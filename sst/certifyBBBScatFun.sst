@@ -1,0 +1,163 @@
+# certifyBBBScatFun.sst: Test SST Broadband Bistatic Scattering Function.
+# $Id: certifyBBBScatFun.sst 6388 2010-04-30 23:19:50Z rpg $
+
+# echoInput = true
+
+######   Sonar Specification ######
+
+# Since the first few tests are for a monostatic sonar, the source and
+# receiver use the same trajectory.
+new sonarTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+    {
+        time = 0.0                             # s
+        position =        (  0.0, 0.0, 116.0 ) # m
+        velocity =        ( 15.0, 0.0,   2.0 ) # m/s
+        orientation =     (  0.0, 5.0,  10.0 ) # deg
+        orientationRate = (  0.0, 0.0,   0.0 ) # deg
+    }
+)
+
+new source = Source {
+    beams = ( OmniBeam )    # a single omnidirectional transmit beam
+
+	# Rectangular, pure-tone, 16-ms pulse
+    signal = ModulatedTone {
+		frequency = 24500.0     # Hz
+		level     =   210.0     # dB // uPa^2 m^2
+		times = { first = 0.008; interval = 0.016; number = 1 };
+	}
+
+    trajectory = sonarTrajectory
+}
+
+new prevEcho = echoInput
+echoInput = false
+read "sampleBeams.sst"   # Defines beamLeft, beamRight
+echoInput = prevEcho
+
+new receiver = Sonar {
+
+    # Two beams, defined in the file just read:
+    beams = ( beamLeft, beamRight )
+
+    trajectory = sonarTrajectory
+}
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 400.0 }  	# m
+
+	# Surface and bottom scattering and reflection are isotropic
+	surface = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+		backStrength = ConstantDbFunction2 { decibels = -25 }
+	}
+	
+	bottom  = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+		backStrength = ConstantDbFunction2 { decibels = -30 }
+	}
+	
+	# One volume reverb layer at mid-depth
+	volume = ReverbList (
+		ReverbLayer {
+			minDepth = 0		# m
+			maxDepth = ocean.depth.value
+			strengthDB = -64.0	# dB // m^-1
+		}
+	)
+	soundspeed = 1500		# m/s
+	volumeAttenuation = -2.1    # dB/km
+}
+
+new eigenrayModel = EigenrayModel {
+    maximumEigenrays = 1 ##5
+    maximumSurfaceBounces = 0 ##1
+    maximumBottomBounces = 0 ##1
+	max2waySurfaceBounces = 0 ##1
+	max2wayBottomBounces = 0 ##1
+	filterLength = 1	# Narrowband; no filtering
+}
+
+
+###### Simulation Parameters ######
+
+# The output Scattering Function is recorded for 12 doppler bins, and includes
+# the beam-to-beam correlation.
+# This version edits the default dopplers grid to test for bug in Ticket #189.
+new bbbgen = BBBScatFun {
+	isComplex = true
+	times = UniformGrid: {
+		first = 1.0
+		last = 1.01
+		number = 2
+	}
+	frequencies = GeometricGrid: {
+		first = 10000
+		ratio = 1.5
+		number = 3	# 10, 15, 22.5 kHz
+	}
+	dopplers = {
+		first = 1.0
+		last =  1.022
+        interval = 0.002
+	}
+	isCorrelated = true
+	maxSamples = 512
+	maxAngleChange = 1
+    doSurface = true
+    doBottom = false
+    doVolume = false
+}
+
+print "\n***** BBBScatFun Test 1: 1 path, surface, monostatic, edit dopplers"
+new bbScatFun = AsciiScatFun { file = "bbbsf_sur1m.txt" }
+CopySignal bbbgen bbScatFun
+
+new standard_sur1m = bbScatFun {
+	file = "$SSTHOME/standard/bbbsf_sur1m.txt"
+}
+CompareSignals {
+    signal = bbScatFun 
+    standard = standard_sur1m
+    message = "certifyBBBScatFun, edit dopplers"
+}
+
+# Same, but uses a fresh UniformGrid for dopplers
+new bbbgen2 = BBBScatFun {
+	isComplex = true
+	times = UniformGrid: {
+		first = 1.0
+		last = 1.01
+		number = 2
+	}
+	frequencies = GeometricGrid: {
+		first = 10000
+		ratio = 1.5
+		number = 3	# 10, 15, 22.5 kHz
+	}
+	dopplers = UniformGrid: {
+		first = 1.0
+		last =  1.022
+		number = 12
+	}
+	isCorrelated = true
+	maxSamples = 512
+	maxAngleChange = 1
+    doSurface = true
+    doBottom = false
+    doVolume = false
+}
+
+print "\n***** BBBScatFun Test 2: 1 path, surface, monostatic, fresh dopplers"
+new bbScatFun2 = AsciiScatFun { file = "bbbsf_sur1m_2.txt" }
+CopySignal bbbgen2 bbScatFun2
+
+# Same standard
+
+CompareSignals {
+    signal = bbScatFun2 
+    standard = standard_sur1m
+    message = "certifyBBBScatFun, fresh dopplers"
+}

@@ -1,0 +1,13 @@
+# write_pulses.sst: Write the JNSE 1998 pulses into binary files
+
+read "parameters.sst"
+read "pulses.sst"
+
+CopySignal pulse_19 BinarySignal:{file = "pulse_19.bin"}
+CopySignal pulse_20 BinarySignal:{file = "pulse_20.bin"}
+CopySignal pulse_21 BinarySignal:{file = "pulse_21.bin"}
+CopySignal pulse_22 BinarySignal:{file = "pulse_22.bin"}
+CopySignal pulse_23 BinarySignal:{file = "pulse_23.bin"}
+CopySignal pulse_24 BinarySignal:{file = "pulse_24.bin"}
+CopySignal pulse_26 BinarySignal:{file = "pulse_26.bin"}
+CopySignal pulse_27 BinarySignal:{file = "pulse_27.bin"}

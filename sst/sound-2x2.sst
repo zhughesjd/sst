@@ -1,0 +1,13 @@
+# sound.sst:  Make listenable sound for pursuit example.
+# This optional run makes a listenable .snd file.
+# Id: sound.sst,v 3.3 1995/07/12 13:45:28 rpg Rel rpg $
+
+# Here we "heterodyne" down to audible range by the simple expedient
+# of lying about the center frequency of the complex envelope.
+new hetSignal = SIOSignal {
+	frequency = 750
+	# times is in the file header
+	file = "total_1-2x2.sio"
+}
+
+read "sound-common.sst"

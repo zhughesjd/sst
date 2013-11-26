@@ -1,0 +1,98 @@
+# sonar.sst:  A high-frequency, 5-beam sonar with offset beams.
+# $Id: sonar.sst 5208 2008-02-04 23:02:31Z rpg $
+
+# This file is adapted directly from the pursuit example.  I will
+# attempt to label which sections have not yet been converted and
+# which have been converted, but we all know that such "code
+# comments" can go out-of-date if not rigorously maintained.
+
+######   Sonar Specification ######
+
+# Converted
+# The sonar has 64 omnibeam transducers with radii of
+# 15 cm each (1 wavelength), placed in a 8x8 grid.
+# The "detection" beam is the sum of the omnibeams.
+
+# Converted (left unchanged, but still applies)
+# The ConeBeam in this ProductBeam limits the response to the forward
+# hemisphere.  To be more realistic, the cutoff should be more gradual
+# (use an EBFTableBeam instead of the ConeBeam for the cutoff).
+
+# Partially converted
+new elementBeam = ProductBeam {
+	inBeams = (
+		ConeBeam { 
+			axisElevation = 0
+			axisBearing = 0
+			halfAngle = 90
+		},
+		PistonBeam {
+			axisElevation = 0
+			axisBearing = 0
+			radius = 0.15
+		}
+	)
+}
+
+new spacing = float : .212
+new spacingInv = float : -.212
+
+new ulBeam = elementBeam {
+	offset = (0, spacingInv, spacingInv)	# [meter]
+}
+
+new urBeam = elementBeam {
+	offset = (0, spacingInv, spacing)	# [meter]
+}
+
+new llBeam = elementBeam {
+	offset = (0, spacing, spacingInv)	# [meter]
+}
+
+new lrBeam = elementBeam {
+	offset = (0, spacing, spacing)	# [meter]
+}
+
+# Partially converted
+# A SumBeam would be the simplest representation, but the following form
+# is faster when the beams to be summed have identical shape (differ only
+# in offset, weight, and delay).
+new searchBeam = ProductBeam {
+	inBeams = (
+		elementBeam,
+		ElementSumBeam {
+			elements = (
+				# offset [m]				amp	delay
+				0,	spacingInv,	spacingInv	0.25	0.0
+				0,	spacingInv,	spacing		0.25	0.0
+				0,	spacing,	spacingInv	0.25	0.0
+				0,	spacing,	spacing		0.25	0.0
+			)
+		}
+	)
+}
+
+# Not converted yet, identical to pursuit
+# Since this is a monostatic sonar, the transmitter and receiver use the
+# same trajectory.  It's climbing toward the target at about 40 knots.
+new sonarTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+	{
+		time = 0.0  # s
+		position =        (  0.0,  0.0, 300.0 )  # m
+		velocity =        ( 20.0,  0.0,   1.0 )  # m/s
+		orientation =     (  0.0,  3.0,   0.0 )  # deg
+		orientationRate = (  0.0,  0.0,   0.0 )  # deg/s
+	}
+)
+
+new receiverElmLevel = Sonar {
+	beams = ( ulBeam, urBeam, llBeam, lrBeam )
+	trajectory = sonarTrajectory
+}
+
+new receiverBeamLevel = Sonar {
+	beams = ( searchBeam )
+	trajectory = sonarTrajectory
+}
+
+#You will have to assign receiver to one of the receivers specified above directly after reading this script

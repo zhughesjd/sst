@@ -1,0 +1,32 @@
+# compEigenrays.sst: Compute the GSM eigenrays
+
+path = ( "..", "$SSTHOME/input" )
+
+read "parameters.sst"
+read "ocean.sst"
+
+traceEigenrayModel = true
+
+new gsmrun = GSMEigenrayRun {
+	maximumEigenrays = 100
+	maximumSurfaceBounces = 100
+	maximumBottomBounces = 100
+	filterLength = 1
+	rangeReference = 1.0
+	
+		# Source depths: Transmitter and hydrophones
+		# Transmitter is atop a 6-meter tower in 32 m of water.
+		# APMS hydrophones are deployed from the Kalkgrund at depths
+		# of 8, 13, 18, and 23 m, according to bistatic/readme.txt.
+	sourceDepths = ListGrid( 8, 13, 18, 23, 26 )
+		# Target depths: Surface, 2 vol layers, bottom,
+		# plus the transmitter for the one-way (direct) paths.
+		# 26 to 26 is unused.
+	targetDepths = ListGrid( 0, 3, 19, 26, ocean.depth )
+		# An appropriate scale for ranges.interval is the water depth
+	ranges = UniformGrid{ first=50; last=2500; interval=50 }
+		# For now, keep frequencies in step with the scattering functions
+	frequencies = scatFunFreqs
+}
+
+PrintGSMEigenrays { eigenrayModel = gsmrun }

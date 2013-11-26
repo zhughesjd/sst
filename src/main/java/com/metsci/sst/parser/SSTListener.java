@@ -1,4 +1,4 @@
-// Generated from C:\Users\Joshua\Desktop\SST.g4 by ANTLR 4.1
+// Generated from C:\Users\hughes\git\sst\src\main\resources\SST.g4 by ANTLR 4.1
 package com.metsci.sst.parser;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
@@ -8,6 +8,17 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  * {@link SSTParser}.
  */
 public interface SSTListener extends ParseTreeListener {
+	/**
+	 * Enter a parse tree produced by {@link SSTParser#identifierbrackets}.
+	 * @param ctx the parse tree
+	 */
+	void enterIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SSTParser#identifierbrackets}.
+	 * @param ctx the parse tree
+	 */
+	void exitIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx);
+
 	/**
 	 * Enter a parse tree produced by {@link SSTParser#clearsignal}.
 	 * @param ctx the parse tree
@@ -20,15 +31,59 @@ public interface SSTListener extends ParseTreeListener {
 	void exitClearsignal(@NotNull SSTParser.ClearsignalContext ctx);
 
 	/**
-	 * Enter a parse tree produced by {@link SSTParser#identifierbrackets}.
+	 * Enter a parse tree produced by {@link SSTParser#printeigenrays}.
 	 * @param ctx the parse tree
 	 */
-	void enterIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx);
+	void enterPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link SSTParser#identifierbrackets}.
+	 * Exit a parse tree produced by {@link SSTParser#printeigenrays}.
 	 * @param ctx the parse tree
 	 */
-	void exitIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx);
+	void exitPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx);
+
+	/**
+	 * Enter a parse tree produced by {@link SSTParser#quit}.
+	 * @param ctx the parse tree
+	 */
+	void enterQuit(@NotNull SSTParser.QuitContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SSTParser#quit}.
+	 * @param ctx the parse tree
+	 */
+	void exitQuit(@NotNull SSTParser.QuitContext ctx);
+
+	/**
+	 * Enter a parse tree produced by {@link SSTParser#assignmentvalue}.
+	 * @param ctx the parse tree
+	 */
+	void enterAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SSTParser#assignmentvalue}.
+	 * @param ctx the parse tree
+	 */
+	void exitAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx);
+
+	/**
+	 * Enter a parse tree produced by {@link SSTParser#print}.
+	 * @param ctx the parse tree
+	 */
+	void enterPrint(@NotNull SSTParser.PrintContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SSTParser#print}.
+	 * @param ctx the parse tree
+	 */
+	void exitPrint(@NotNull SSTParser.PrintContext ctx);
+
+	/**
+	 * Enter a parse tree produced by {@link SSTParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterStatement(@NotNull SSTParser.StatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SSTParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitStatement(@NotNull SSTParser.StatementContext ctx);
 
 	/**
 	 * Enter a parse tree produced by {@link SSTParser#assignment}.
@@ -42,15 +97,15 @@ public interface SSTListener extends ParseTreeListener {
 	void exitAssignment(@NotNull SSTParser.AssignmentContext ctx);
 
 	/**
-	 * Enter a parse tree produced by {@link SSTParser#printeigenrays}.
+	 * Enter a parse tree produced by {@link SSTParser#assignmentstatement}.
 	 * @param ctx the parse tree
 	 */
-	void enterPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx);
+	void enterAssignmentstatement(@NotNull SSTParser.AssignmentstatementContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link SSTParser#printeigenrays}.
+	 * Exit a parse tree produced by {@link SSTParser#assignmentstatement}.
 	 * @param ctx the parse tree
 	 */
-	void exitPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx);
+	void exitAssignmentstatement(@NotNull SSTParser.AssignmentstatementContext ctx);
 
 	/**
 	 * Enter a parse tree produced by {@link SSTParser#copysignal}.
@@ -75,17 +130,6 @@ public interface SSTListener extends ParseTreeListener {
 	void exitCopysignalvalue(@NotNull SSTParser.CopysignalvalueContext ctx);
 
 	/**
-	 * Enter a parse tree produced by {@link SSTParser#comparesignals}.
-	 * @param ctx the parse tree
-	 */
-	void enterComparesignals(@NotNull SSTParser.ComparesignalsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link SSTParser#comparesignals}.
-	 * @param ctx the parse tree
-	 */
-	void exitComparesignals(@NotNull SSTParser.ComparesignalsContext ctx);
-
-	/**
 	 * Enter a parse tree produced by {@link SSTParser#read}.
 	 * @param ctx the parse tree
 	 */
@@ -95,6 +139,17 @@ public interface SSTListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitRead(@NotNull SSTParser.ReadContext ctx);
+
+	/**
+	 * Enter a parse tree produced by {@link SSTParser#comparesignals}.
+	 * @param ctx the parse tree
+	 */
+	void enterComparesignals(@NotNull SSTParser.ComparesignalsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SSTParser#comparesignals}.
+	 * @param ctx the parse tree
+	 */
+	void exitComparesignals(@NotNull SSTParser.ComparesignalsContext ctx);
 
 	/**
 	 * Enter a parse tree produced by {@link SSTParser#sstinput}.
@@ -128,37 +183,4 @@ public interface SSTListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitBrackets(@NotNull SSTParser.BracketsContext ctx);
-
-	/**
-	 * Enter a parse tree produced by {@link SSTParser#assignmentvalue}.
-	 * @param ctx the parse tree
-	 */
-	void enterAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link SSTParser#assignmentvalue}.
-	 * @param ctx the parse tree
-	 */
-	void exitAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx);
-
-	/**
-	 * Enter a parse tree produced by {@link SSTParser#quit}.
-	 * @param ctx the parse tree
-	 */
-	void enterQuit(@NotNull SSTParser.QuitContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link SSTParser#quit}.
-	 * @param ctx the parse tree
-	 */
-	void exitQuit(@NotNull SSTParser.QuitContext ctx);
-
-	/**
-	 * Enter a parse tree produced by {@link SSTParser#print}.
-	 * @param ctx the parse tree
-	 */
-	void enterPrint(@NotNull SSTParser.PrintContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link SSTParser#print}.
-	 * @param ctx the parse tree
-	 */
-	void exitPrint(@NotNull SSTParser.PrintContext ctx);
 }

@@ -1,0 +1,116 @@
+# certifyPoint.sst: Certify a single SST scatterer using DirectSignal.
+# $Id: certifyPoint.sst 5848 2009-04-07 19:16:12Z kwiley $
+
+# Test 1:  Carefully chosen round numbers.
+# Correct (hand-calculated) results: P = (100.0, 0.0) for all samples from
+# t = 1.34 to 1.43 inclusive, zero outside.
+
+new target = PointTarget {
+    trajectory = ( { time = 0.6666667; position = ( 800 0 100 ) } )
+    points = ( { strengthDB = -20 } )
+}
+
+new receiver = Sonar {
+	beams = ( OmniBeam )
+    trajectory = ( { time = 0.0; position = ( 0 0 700 ) } )
+}
+
+new source = Source {
+	beams = receiver.beams
+	trajectory = receiver.trajectory
+	signal = ModulatedTone {
+		frequency = 15000.0
+		times = { first = 0.05; interval = 0.1; number = 1 }
+		order = 0	# nearest neighbor interpolation
+		level = 200
+	}
+}
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 1000.0 }
+	soundspeed = 1500
+	volumeAttenuation = -10	# dB/km; pressure * 0.1 for 2000 m round trip
+}
+
+new eigenrayModel = EigenrayModel {
+    maximumEigenrays = 1
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+	filterLength = 1	# no filtering
+}
+
+new signal = InternalSignal {}
+
+new echoGenerator = TargetEcho {
+	times = { first = 1.31; last = 1.45; interval = 0.01 }
+	frequency = 15000
+	isComplex = true
+	order = 0	# nearest neighbor (no Doppler shift or beam delays)
+}
+CopySignal echoGenerator signal
+
+
+print signal
+
+new standard = InternalSignal {
+	isComplex = true
+	times = { first = 1.31; last = 1.45; interval = 0.01 }
+	frequency = 15000
+	buf = (
+   0.0, 0.0,   0.0, 0.0,   0.0, 0.0, 100.0, 0.0, 100.0, 0.0,
+ 100.0, 0.0, 100.0, 0.0, 100.0, 0.0, 100.0, 0.0, 100.0, 0.0,
+ 100.0, 0.0, 100.0, 0.0, 100.0, 0.0,   0.0, 0.0,   0.0, 0.0 )
+}
+
+CompareSignals {
+   message = "certifyPoint -- Test 1:  Carefully chosen round numbers"
+}
+
+
+# Test 2:  Same with highlight randomization.
+
+random.seed = 0		# always the same
+target.randomPosition = 0.01	# 10% of wavelength; 72 deg RMS phase shift
+CopySignal echoGenerator signal
+print signal
+standard.buf = (
+    0.0,     0.0,    0.0,     0.0,    0.0,     0.0, 60.488, 79.6316, 60.488, 79.6316,
+ 60.488, 79.6316, 60.488, 79.6316, 60.488, 79.6316, 60.488, 79.6316, 60.488, 79.6316,
+ 60.488, 79.6316, 60.488, 79.6316, 60.488, 79.6316,    0.0,     0.0,     0.0,    0.0 )
+CompareSignals {
+   message = "certifyPoint -- Test 2:  Same with highlight randomization"
+}
+
+
+# Test 3:  Same with ramp pulse, no randomization.
+
+target.randomPosition = 0.0
+source.signal = InternalSignal {
+	frequency = 15000.0
+	times = { first = 0.01; last = 0.09; interval = 0.02 }
+	order = 0	# nearest neighbor (no Doppler shift or beam delays)
+	buf = (
+		0.2e10, 0.10e10,
+		0.4e10, 0.08e10,
+		0.6e10, 0.06e10,
+		0.8e10, 0.04e10,
+		1.0e10, 0.02e10 )
+}
+
+CopySignal echoGenerator signal
+
+print signal
+
+standard = InternalSignal {
+	isComplex = true
+	times = { first = 1.31; last = 1.45; interval = 0.01 }
+	frequency = 15000
+	buf = (
+   0.0, 0.0,   0.0, 0.0,   0.0, 0.0,  20.0, 10.0,  20.0, 10.0,
+  40.0, 8.0,  40.0, 8.0,  60.0, 6.0,  60.0,  6.0,  80.0,  4.0,
+  80.0, 4.0, 100.0, 2.0, 100.0, 2.0,   0.0,  0.0,   0.0,  0.0 )
+}
+
+CompareSignals {
+   message = "certifyPoint --  Test 3:  Same with ramp pulse, no randomization"
+}

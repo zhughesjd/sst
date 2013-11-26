@@ -1,0 +1,17 @@
+# dumpEigenrays.sst: Print the GSM eigenrays
+
+path = ( "..", "$SSTHOME/input" )
+
+read "ocean.sst"
+read "eigmodel.sst"
+
+## traceEigenrayModel = true
+
+# Modify the eigenray model to include all GSM eigenrays
+eigenrayModel{
+	maximumEigenrays = 100
+	maximumSurfaceBounces = 100
+	maximumBottomBounces = 100
+}
+
+PrintGSMEigenrays

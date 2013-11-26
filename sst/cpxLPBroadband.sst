@@ -1,0 +1,43 @@
+# cpxLPBroadband.sst: Low-Pass FIR Filter on complex BroadbandNoise signal
+# $Id: cpxLPBroadband.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+sigTimes = UniformGrid:{ first = 0; last = 1; rate = 1000 }
+
+# The test signal contains Gaussian noise from 1600 to 2400 Hz (80% Nyquist)
+# Total level = 29.0 dB unfiltered, 26.0 dB filtered.
+new cbbn = BroadbandNoise {
+	isComplex = true
+	frequency = 2000
+	times = sigTimes
+    spectrumDB = TableFunction {
+	    order = 1
+    	table = (
+		# f     dB
+		1580	-100
+		1600	0
+		2400	0
+		2420	-100
+		)
+	}
+    updateInterval = 0.25	# just under 256 samples; 256 complex FFT
+}
+new cbroadband = SIOSignal {
+	file = "CLPBroadband.sio"
+}
+CopySignal cbbn cbroadband
+
+# The test:  Filter out components over 200 Hz from center (40% Nyquist),
+# varying length.
+new cfilter = VarFirFilter {
+    inSignal = cbroadband
+    coefBuf = LPFirCoefBuf {
+		filterLength = 31
+		bandFraction = 0.4
+	}
+}
+
+new cfiltered = SIOSignal { file = "CLPBroadband_31.sio" }
+
+CopySignal cfilter cfiltered

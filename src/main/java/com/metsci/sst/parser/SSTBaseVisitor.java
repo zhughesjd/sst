@@ -1,4 +1,4 @@
-// Generated from C:\Users\Joshua\Desktop\SST.g4 by ANTLR 4.1
+// Generated from C:\Users\hughes\git\sst\src\main\resources\SST.g4 by ANTLR 4.1
 package com.metsci.sst.parser;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
@@ -18,6 +18,14 @@ public class SSTBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements SS
 	 * The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.
 	 */
+	@Override public T visitIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx) { return visitChildren(ctx); }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.
+	 */
 	@Override public T visitClearsignal(@NotNull SSTParser.ClearsignalContext ctx) { return visitChildren(ctx); }
 
 	/**
@@ -26,7 +34,39 @@ public class SSTBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements SS
 	 * The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.
 	 */
-	@Override public T visitIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx) { return visitChildren(ctx); }
+	@Override public T visitPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx) { return visitChildren(ctx); }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.
+	 */
+	@Override public T visitQuit(@NotNull SSTParser.QuitContext ctx) { return visitChildren(ctx); }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.
+	 */
+	@Override public T visitAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx) { return visitChildren(ctx); }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.
+	 */
+	@Override public T visitPrint(@NotNull SSTParser.PrintContext ctx) { return visitChildren(ctx); }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.
+	 */
+	@Override public T visitStatement(@NotNull SSTParser.StatementContext ctx) { return visitChildren(ctx); }
 
 	/**
 	 * {@inheritDoc}
@@ -42,7 +82,7 @@ public class SSTBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements SS
 	 * The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.
 	 */
-	@Override public T visitPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx) { return visitChildren(ctx); }
+	@Override public T visitAssignmentstatement(@NotNull SSTParser.AssignmentstatementContext ctx) { return visitChildren(ctx); }
 
 	/**
 	 * {@inheritDoc}
@@ -66,7 +106,7 @@ public class SSTBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements SS
 	 * The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.
 	 */
-	@Override public T visitComparesignals(@NotNull SSTParser.ComparesignalsContext ctx) { return visitChildren(ctx); }
+	@Override public T visitRead(@NotNull SSTParser.ReadContext ctx) { return visitChildren(ctx); }
 
 	/**
 	 * {@inheritDoc}
@@ -74,7 +114,7 @@ public class SSTBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements SS
 	 * The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.
 	 */
-	@Override public T visitRead(@NotNull SSTParser.ReadContext ctx) { return visitChildren(ctx); }
+	@Override public T visitComparesignals(@NotNull SSTParser.ComparesignalsContext ctx) { return visitChildren(ctx); }
 
 	/**
 	 * {@inheritDoc}
@@ -99,28 +139,4 @@ public class SSTBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements SS
 	 * {@link #visitChildren} on {@code ctx}.
 	 */
 	@Override public T visitBrackets(@NotNull SSTParser.BracketsContext ctx) { return visitChildren(ctx); }
-
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.
-	 */
-	@Override public T visitAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx) { return visitChildren(ctx); }
-
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.
-	 */
-	@Override public T visitQuit(@NotNull SSTParser.QuitContext ctx) { return visitChildren(ctx); }
-
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.
-	 */
-	@Override public T visitPrint(@NotNull SSTParser.PrintContext ctx) { return visitChildren(ctx); }
 }

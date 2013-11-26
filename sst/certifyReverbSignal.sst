@@ -1,0 +1,57 @@
+# certifyReverbSignal.sst: Test ReverbSignal generation of reverberation
+# $Id: certifyReverbSignal.sst 5866 2009-04-15 18:27:57Z kwiley $
+
+print "\n***** ReverbSpectrum Test 1.1: Short and narrow pulse."
+print "***** Result should be close to ScatFun's middle frequency,"
+print "***** delayed by 0.01 s and scaled up by 1e10."
+
+random.seed = 0
+
+# The input scattering function is the output from certifyBBBScatFun.sst.
+new bbScatFun = AsciiScatFun {
+    file = "$SSTHOME/standard/bbbsf_sur1m.txt"
+	isComplex = true
+	times = UniformGrid: {
+		first = 1.0
+		last = 1.01
+		number = 2
+	}
+	frequencies = GeometricGrid: {
+		first = 10000
+		ratio = 1.5
+		number = 3	# 10, 15, 22.5 kHz
+	}
+	dopplers = UniformGrid: {
+		first = 1.0
+		last =  1.022
+		number = 12
+	}
+	isCorrelated = true
+}
+
+new sourceSignal = ModulatedTone {
+	frequency = 15000
+	level = 120
+	times = { first = 0.0; last = 0.02; rate = 500 }
+	isComplex = true
+	envelope = HannWindow { start = 0.0; end = 0.02 }
+}
+
+new revSigGen = ReverbSignal {
+	frequency = 15000
+	times = { first = 1.00; last = 1.03; rate = 1000 }
+	scatFunction = bbScatFun
+	verbose = true
+}
+
+new rev_sur1m_hf = BareAsciiSignal { file = "rev_sur1m_hf.txt" }
+CopySignal revSigGen rev_sur1m_hf
+
+new standard_sur1m_hf = rev_sur1m_hf {
+	file = "$SSTHOME/standard/rev_sur1m_hf.txt"
+}
+CompareSignals {
+   signal = rev_sur1m_hf 
+   standard = standard_sur1m_hf
+   message = "certifyReverbSignal"
+}

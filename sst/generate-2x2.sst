@@ -1,0 +1,109 @@
+#Set the various filenames for output sound "recordings"
+
+################################################################################
+# Set up the simulation
+read "generate-common.sst"
+
+################################################################################
+# Continue setting up the simulation
+
+# Initialize the random number generator.  0 means standard; always the same.
+random.seed = 0
+
+##### Generate ping 1
+new time = double:0.0
+new reverbSigFile = SIOSignal {
+	file = "reverb_1-2x2.sio"
+	frequency = 10000
+	times = {
+		first = 0.20
+		last = 5.50
+		rate = 800
+	}
+}
+new reverbGenerator = ReverbSignal {
+	frequency = reverbSigFile.frequency
+	times = reverbSigFile.times
+	scatFunction = scatFunTotal
+	sourceSignal = tranPulse
+	# verbose = true		# Print equivalent processing chain
+}
+CopySignal reverbGenerator reverbSigFile
+
+##### Generate the target echo
+new targetGenerator = TargetEcho {
+	isComplex = reverbSigFile.isComplex
+	frequency = reverbSigFile.frequency
+	times = reverbSigFile.times
+	source = tranSource
+}
+new targetSignal = SIOSignal { file = "target_1-2x2.sio" }
+CopySignal targetGenerator targetSignal
+
+##### Generate the passive signal
+# The passive signals need a higher sample rate to cover their higher
+# bandwidth plus Doppler shift plus some processing space at the ends
+# of the spectrum. The sampling rate is reduced at the end, filtering
+# out the parts that fall outside the final Nyquist band.
+new passiveGenerator = DirectSignal {
+	times = {
+		first = -1.0
+		last = 12.0
+		rate = 1600
+	}
+	frequency = reverbSigFile.frequency
+	source = targetSource
+    order = 15    # used by ResampleSignal below
+}
+new resamplePassive = ResampleSignal {
+    frequency =  reverbSigFile.frequency
+    times = reverbSigFile.times
+    inSignal = passiveGenerator
+}
+new passiveSignal = SIOSignal { file = "passive_1-2x2.sio" }
+CopySignal resamplePassive passiveSignal
+
+##### Generate the total signal from all the component parts
+new totalSignal = SIOSignal { file = "total_1-2x2.sio" }
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}
+
+# For subsequent pings, everything remains the same except the time and the
+# filenames.  The random number generator retains its state as of the end
+# of the previous ping, so each ping is independent.
+
+##### Generate ping 2
+time = 4
+reverbSigFile.file = "reverb_2-2x2.sio"
+CopySignal reverbGenerator reverbSigFile
+targetSignal.file = "target_2-2x2.sio"
+CopySignal targetGenerator targetSignal
+passiveSignal.file = "passive_2-2x2.sio"
+CopySignal resamplePassive passiveSignal
+totalSignal.file = "total_2-2x2.sio"
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}
+
+##### Generate ping 3
+time = 8
+reverbSigFile.file = "reverb_3-2x2.sio"
+CopySignal reverbGenerator reverbSigFile
+targetSignal.file = "target_3-2x2.sio"
+CopySignal targetGenerator targetSignal
+passiveSignal.file = "passive_3-2x2.sio"
+CopySignal resamplePassive passiveSignal
+totalSignal.file = "total_3-2x2.sio"
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}

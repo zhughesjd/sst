@@ -1,0 +1,134 @@
+### First Test - check MFS-BareAscii
+
+new ascii_in = BareAsciiSignal{ 
+    file="UnixBareAsciiSignal.txt"
+    isComplex=true 
+}
+
+new proto = BareAsciiSignal{
+    file="mfs-%ci-%si.txt"
+    isComplex=true
+}
+
+new mfs_out = MultiFileSignal{ 
+    isComplex = true
+    times = { first=0; last=0.04; rate=100 }
+    numChannels = 2
+    numChannelsPerFile = 1
+    numTimesPerFile = 3
+    prototype = proto
+}
+
+CopySignal ascii_in mfs_out
+CompareSignals mfs_out ascii_in 
+
+new mfs_in = MultiFileSignal{ 
+    isComplex = true
+    times = { first=0; last=0.04; rate=100 }
+    numChannels = 2
+    numChannelsPerFile = 1
+    numTimesPerFile = 3
+    prototype = proto
+}
+
+CompareSignals mfs_in ascii_in 
+
+### Second Test - check MFS-SIO
+
+new protoSio = SIOSignal{
+    file="mfs-%ci-%si.sio"
+    isComplex=true
+}
+
+new mfs_out_sio = MultiFileSignal{ 
+    isComplex = true
+    times = { first=0; last=0.04; rate=100 }
+    numChannels = 2
+    numChannelsPerFile = 1
+    numTimesPerFile = 3
+    prototype = protoSio
+}
+
+CopySignal ascii_in mfs_out_sio
+CompareSignals mfs_out_sio ascii_in 
+
+new mfs_in_sio = MultiFileSignal{ 
+    isComplex = true
+    times = { first=0; last=0.04; rate=100 }
+    numChannels = 2
+    numChannelsPerFile = 1
+    numTimesPerFile = 3
+    prototype = protoSio
+}
+
+CompareSignals mfs_in_sio ascii_in 
+
+### Third Test - check MFS-Binary
+
+new protoBin = BinarySignal{
+    file="mfs-%ci-%si.bin"
+    isComplex=true
+    encoding=FLOAT
+    numChannels=1
+    clipDB=100
+}
+
+new mfs_out_bin = MultiFileSignal{ 
+    isComplex = true
+    times = { first=0; last=0.04; rate=100 }
+    numChannels = 2
+    numChannelsPerFile = 1
+    numTimesPerFile = 3
+    prototype = protoBin
+}
+
+CopySignal ascii_in mfs_out_bin
+CompareSignals mfs_out_bin ascii_in 
+
+new mfs_in_bin = MultiFileSignal{ 
+    isComplex = true
+    times = { first=0; last=0.04; rate=100 }
+    numChannels = 2
+    numChannelsPerFile = 1
+    numTimesPerFile = 3
+    prototype = protoBin
+}
+
+CompareSignals mfs_in_bin ascii_in 
+
+### Fourth Test - check MFS-Sound
+
+new ascii_in_real = BareAsciiSignal{ 
+    file="UnixBareAsciiSignal.txt"
+    isComplex=false 
+}
+
+new protoSound = SoundSignal{
+    file="mfs-%ci-%si.snd"
+    isComplex=false
+    encoding=FLOAT
+    clipDB=100
+}
+
+new mfs_out_snd = MultiFileSignal{ 
+    isComplex = false 
+    times = { first=0; last=0.04; rate=100 }
+    numChannels = 4
+    numChannelsPerFile = 1
+    numTimesPerFile = 3
+    prototype = protoSound
+}
+
+CopySignal ascii_in_real mfs_out_snd
+CompareSignals mfs_out_snd ascii_in_real 
+
+new mfs_in_snd = MultiFileSignal{ 
+    isComplex = false
+    times = { first=0; last=0.04; rate=100 }
+    numChannels = 4
+    numChannelsPerFile = 1
+    numTimesPerFile = 3
+    prototype = protoSound
+}
+
+CompareSignals mfs_in_snd ascii_in_real 

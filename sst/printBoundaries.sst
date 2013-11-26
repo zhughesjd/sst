@@ -1,0 +1,45 @@
+# printBoundaries.sst: Tabulate the surface and bottom models
+
+path = ( "..", "$SSTHOME/input" )
+
+read "parameters.sst"
+read "ocean.sst"
+
+# Tabulation Grids
+new monoAngles = UniformGrid:{ first=0; last=90; interval=1 }
+new incAngles = UniformGrid:{ first=10; last=40; interval=10 }
+new scatAngles = UniformGrid:{ first=0; last=90; interval=2 }
+new bisAngles = UniformGrid:{ first=0; last=180; interval=2 }
+
+print "\n\n\n******* McDaniel Surface *******"
+print ocean.windspeed
+TabulateBoundary {
+    boundary = ocean.surface
+    frequencies = scatFunFreqs
+    angles = monoAngles
+}
+
+TabulateBistatic {
+    boundary = ocean.surface
+    soundspeed = 1485	# m/s (in the neighborhood is close enough)
+    incidentAngles = incAngles
+    scatteredAngles = scatAngles
+    bistaticAngles = bisAngles
+    frequencies = scatFunFreqs
+}
+
+print "\n\n\n******* Jackson Bottom *******\n"
+TabulateBoundary {
+    boundary = ocean.bottom
+    frequencies = scatFunFreqs
+    angles = monoAngles
+}
+
+TabulateBistatic {
+    boundary = ocean.bottom
+    soundspeed = 1484	# m/s (in the neighborhood is close enough)
+    incidentAngles = incAngles
+    scatteredAngles = scatAngles
+    bistaticAngles = bisAngles
+    frequencies = scatFunFreqs
+}

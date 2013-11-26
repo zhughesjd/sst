@@ -1,0 +1,99 @@
+# SST run script to test clutter
+
+# $Id: reverbDD.sst 6569 2011-03-31 18:59:39Z rpg $
+
+# Various parameters
+new areComplex = bool:true
+new sampleRate = double:400
+new theFrequency = double:10000
+new endTime = double:4.0
+
+# Start the random numbers using the clock: different each time
+random.seed = -1
+
+### Define the source's transmitted signal ###
+# It's a short Modulated Tone
+theSignal = ModulatedTone {
+    isComplex = areComplex
+    frequency = theFrequency
+    frequencyModulation = ConstantFunction{ value=theFrequency }
+    startingPhase = 0
+    level = 200.0          # dB
+    # Effective pulse length is 25 ms
+    times = { first=0; last=0.05; rate=sampleRate }
+    envelope = HannWindow {start=0; end=0.05}
+}
+
+### Define a sound source. ###
+theSource = Source {
+    signal = theSignal
+    beams = ( OmniBeam )
+    trajectory = { time=0.0; position=( 0 0 25 ) }
+}
+
+### Define a very simple receiver ###
+theReceiver = Sonar {
+    beams = ( OmniBeam )
+    trajectory = theSource.trajectory
+}
+
+kBottom = JacksonBottom:{
+    grainSize = -1.0    # SandyGravel
+    scattererDensity = 1.132e-5  # 1 scatterer per cell at 1 second delay
+}
+
+### Define the ocean environment ###
+kOcean = Ocean {
+    depth = 400.0
+    soundspeed = 1500	# [m/s]
+    bottom = kBottom
+    volumeAttenuation = 0.0
+}
+
+### Define the eigenray model ###
+theEM = EigenrayModel {
+    # Direct path only
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+}
+
+
+### Specify reverb params ###
+kDDDFun = DirectionalDopplerDensity {
+    frequencies = (1000)
+    times = UniformGrid { first=0; last=endTime; rate=sampleRate }
+    scatFunTimes = UniformGrid { first=0; last=endTime; interval=.05 }
+    # What type of reverberation?
+    doSurface = false
+    doBottom = true
+    doVolume = false
+    ocean = kOcean
+    isComplex = true
+    source = theSource
+    receiver = theReceiver
+    eigenrayModel = theEM
+    tesselation = GriddedTesselation {}	
+}
+
+kResult = DDReverbSignal { 
+    dopplerDensity = kDDDFun 
+    sourceSignal = theSource.signal 
+    isComplex = theSource.signal.isComplex 
+    frequency = theSource.signal.frequency 
+    # In a more realistic simulation, the reverb response would need to be
+    # sampled for a longer period of time than this, but to keep this timing
+    # experiment moving along, let's just generate a short output
+    times = { first=0; last=endTime; rate = sampleRate }
+} 
+
+### Generate file output ###
+kOutput = SIOSignal { file="DDDReverb_k.sio" }
+CopySignal kResult kOutput
+
+### Do it again for Gaussian reverb
+gBottom = kBottom:{ scattererDensity = 0 }
+gOcean = kOcean:{ bottom = gBottom }
+gDDDFun = kDDDFun:{ ocean = gOcean }
+gResult = kResult:{ dopplerDensity = gDDDFun }
+gOutput = kOutput:{ file="DDDReverb_g.sio" }
+CopySignal gResult gOutput

@@ -1,0 +1,31 @@
+# source.sst: Source definitions
+
+read "flat_wide_beam.sst"	# defines tranBeam
+
+# Transmitter is atop a 6-meter tower in 32 m of water.
+# Its axis is pointed due east and "7 to 10 degrees up" (ref: A. Cutezo,
+# 23 Sep 1999, quoting ARL IM 99-024)
+
+new sourceTraj = Trajectory:(
+	{
+		time = 0
+		position = ( 0, 0, 26 )
+		orientation = { heading = 90; pitch = -8.5 }
+	}
+)
+
+new source = Source {
+	beams = ( tranBeam )
+	trajectory = sourceTraj
+	signal = ModulatedTone:{	# Start with a simple one
+		frequency = 25000
+		times = UniformGrid:{ first=0; last=0.25; rate=200 }
+		isComplex = true
+		level = 220
+		envelope = HannWindow:{	# Almost square
+			start = 0
+			end = 0.25
+			taperFraction = 0.05
+		}
+	}
+}

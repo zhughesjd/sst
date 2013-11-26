@@ -39,9 +39,9 @@ Dollar=12
 'CompareSignals'=19
 '='=5
 'false'=11
-'('=14
 'print'=3
 ':'=6
+'('=14
 ')'=15
 'bool'=9
 'read'=2

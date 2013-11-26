@@ -1,0 +1,31 @@
+# isoOcean.sst: Isovelocity Ocean for certification tests.
+# $Id: isoOcean.sst 4951 2006-12-29 00:59:57Z rpg $
+
+######   Ocean Environment Specification ######
+
+read "aplBottoms.sst"
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 5000.0 }
+
+	# Surface scattering amplitude proportional to sine of the grazing angle.
+	surface = Boundary {
+		backStrength = PowSineScat {
+			strengthDB = -25
+			exponent = 1
+		}
+	}
+	
+	# The bottom is the APL Medium Sand model.
+	bottom  = MediumSand
+
+	soundspeed = 1500			# m/s
+	volumeAttenuation = -2.1    # dB/km
+}
+
+new eigenrayModel = EigenrayModel {
+    maximumEigenrays = 2
+    maximumSurfaceBounces = 1
+    maximumBottomBounces = 0
+	max2waySurfaceBounces = 1
+	filterLength = 1	# no filtering
+}

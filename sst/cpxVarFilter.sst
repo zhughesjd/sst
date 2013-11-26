@@ -1,0 +1,67 @@
+# cpxVarFilter.sst: Variable FIR filter on complex HarmonicFamily signal
+# $Id: cpxVarFilter.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+new sigTimes = UniformGrid:{ first = 0; last = 1; rate = 1000 }
+
+# The test signal contains 9 equal cosines covering 80% of Nyquist band.
+new charfam = HarmonicFamily {
+	isComplex = true
+	frequency = 2000
+	times = sigTimes
+	fundamental = 100
+	harmonics = (
+  # number	ampDB	phaseDeg
+	16		0.0		0
+	17		0.0		0
+	18		0.0		0
+	19		0.0		0
+	20		0.0		0
+	21		0.0		0
+	22		0.0		0
+	23		0.0		0
+	24		0.0		0
+	)
+}
+new charmonics = SIOSignal {
+	file = "CVHarmonics.sio"
+}
+CopySignal charfam charmonics
+
+# The spectrum is designed to produce a 1-sample delay and filter
+# coefficients = 0.25, 0.5, 0.25 times the Hann window.
+new spectrum1 = InternalSignal {
+	isComplex = true
+	order = 1
+	times = { first = 0.25; last = 0.75; number = 2 }
+	buf = (
+#f=	1500/2000		1625/2125		1750/2250		1875/2375
+	0.0  0.0	-0.10355  0.10355	0.0  0.5	 0.60355  0.60355
+	1.0  0.0	 0.60355 -0.60355	0.0 -0.5	-0.10355 -0.10355
+
+	0.0  0.0	-0.20710  0.20710	0.0  1.0	 1.20711  1.20711
+	2.0  0.0	 1.20711 -1.20711	0.0 -1.0	-0.20710 -0.20710
+	)
+}
+
+# This filter specifier will be inherited by FIRCoefBuf objects
+new firCoef = FIRCoef {
+    nfft = 8		# freq. spacing is Nyquist bandwidth/8
+    filterLength = 7	# Should nail the specified spectrum
+    rate = sigTimes.rate
+	frequency = charfam.frequency	# complex signal
+}
+
+new coefGenerator = FIRCoefBuf { specBuf = spectrum1 }
+
+new cfilter = VarFirFilter {
+    inSignal = charmonics
+    coefBuf = coefGenerator
+}
+
+new cfiltered = SIOSignal {
+	file = "CVFiltered.sio"
+}
+
+CopySignal cfilter cfiltered

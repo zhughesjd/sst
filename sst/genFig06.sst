@@ -1,0 +1,279 @@
+# genFig05.sst: Generate SST simulation corresponding to Cole Figure 5
+
+# $Id: genFig06.sst 6285 2009-11-02 18:03:43Z rpg $
+
+# Parameters
+new pulseLength = double:0.02
+new scatFunInterval = double:0.01
+new centerFrequency = double:3500
+
+# The sonar is sitting still, at the depth specified by Cole
+new sonarTrajectory = Trajectory:(
+	{
+		time = 0.0  # s
+		position = ( 0.0,  0.0,  7.62 )  # m
+	}
+)
+
+# First 20-ms pulse is an LFM with bandwidth 50 Hz centered at 3500 Hz
+new sampleRate  = double:500.0
+new tranPulse_lfm0050 = ModulatedTone:{
+	isComplex = true
+    frequency = centerFrequency
+	times = UniformGrid:{
+        first = 0.0
+        last = pulseLength
+        rate = sampleRate
+    }
+	level = 231.0	# dB // uPa^2 m^2 (adjusted to match figure)
+    # Use just enough tapering to cut down edge transients
+	envelope = CosineWindow:{
+        start = 0
+        end = pulseLength
+        taperFraction = 0.05
+    }
+    frequencyModulation = ConstantFunction:{
+        value = centerFrequency
+    }
+}
+
+# The sonar is monostatic, omnidirectional
+new source_lfm0050 = Source:{
+	beams = ( OmniBeam )
+	signal = tranPulse_lfm0050
+	trajectory = sonarTrajectory
+}
+
+new receiver = Sonar:{
+	beams = ( OmniBeam )
+	trajectory = sonarTrajectory
+}
+
+# Define the ocean environment, as specified in Cole
+new ocean = Ocean {
+	depth = 50        # [m]
+	soundspeed = 1500	# [m/s]
+
+	# The surface is a perfect reflector
+	windspeed = 0		# [m/s]
+	surface = Boundary:{}
+
+	# Bottom parameters
+	bottom = Boundary:{
+        backStrength = PowSineScat:{
+            strengthDB = -27
+            exponent = 1
+        }
+    }
+
+	# Volume attenuation unspecified; do something reasonable
+	volumeAttenuation = ThorpAttenuation:{}
+}
+
+# Isovelocity eigenray model
+new eigenrayModel = EigenrayModel {
+	maximumEigenrays = 2
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 0
+}
+
+# These objects compute the reverberation
+new doppDensity_lfm0050 = DirectionalDopplerDensity {
+    isComplex = source.signal.isComplex
+    # Try 5 frequencies across the full Nyquist band. No, just 1.
+    frequencies = UniformGrid:{
+        first = centerFrequency   ##3400
+        last = centerFrequency   ##3600
+        number = 1              ##5
+    }
+    times = UniformGrid { first=0; last=5; rate=sampleRate }
+    scatFunTimes = UniformGrid { first=0; last=5; interval=scatFunInterval }
+    # No doppler
+    dopplers = UniformGrid {
+            first = 1.0
+            last =  1.0
+            number = 1
+    }
+    maxAngleChange = 100    # for omni beams
+    maxSamples = 4          # ditto
+    # Do bottom only
+    doSurface = false
+    doBottom = true
+    doVolume = false
+    source = source_lfm0050
+    # Use a 5x5-Deg tesselation
+    tesselation = GriddedTesselation {
+        elevationInc = 5.0
+        azimuthIncEq = 5.0
+    }
+    
+    # All of these runs are coherent
+    coherentBottom = true
+}
+
+new ddReverb_lfm0050 = DDReverbSignal {
+	dopplerDensity = doppDensity_lfm0050
+	sourceSignal = tranPulse_lfm0050
+    isComplex = tranPulse_lfm0050.isComplex
+    frequency = tranPulse_lfm0050.frequency
+    times = doppDensity_lfm0050.times
+}
+
+# Always use the same set of random numbers
+random.seed = 123456789
+
+# Generate 20 pings for the 50-Hz (narrowband) pulse
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_01.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_02.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_03.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_04.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_05.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_06.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_07.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_08.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_09.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_10.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_11.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_12.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_13.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_14.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_15.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_16.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_17.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_18.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_19.sio" }
+CopySignal ddReverb_lfm0050 SIOSignal{ file="fig6_0050_20.sio" }
+
+# Second 20-ms pulse is an LFM with bandwidth 600 Hz centered at 3500 Hz
+sampleRate  = 1800.0
+new tranPulse_lfm0600 = ModulatedTone:{
+	isComplex = true
+    frequency = centerFrequency
+	times = UniformGrid:{
+        first = 0.0
+        last = pulseLength
+        rate = sampleRate
+    }
+	level = 231.0	# dB // uPa^2 m^2 (adjusted to match figure)
+    # Use just enough tapering to cut down edge transients
+	envelope = CosineWindow:{
+        start = 0
+        end = pulseLength
+        taperFraction = 0.05
+    }
+    frequencyModulation = TableFunction:{
+        order = 1   # Linear interpolation
+        table = (
+          # time        frequency
+          0.00          3200
+          0.02          3800
+    }
+}
+new source_lfm0600 = source_lfm0050:{
+    signal = tranPulse_lfm0600
+}
+new doppDensity_lfm0600 = doppDensity_lfm0050:{
+    times = UniformGrid { first=0; last=5; rate=sampleRate }
+    # Try 5 frequencies across the full Nyquist band. No, just 1.
+    frequencies = UniformGrid {
+        first = centerFrequency   ##2900
+        last = centerFrequency   ##4100
+        number = 1              ##5
+    }
+    source = source_lfm0600
+}
+new ddReverb_lfm0600 = DDReverbSignal {
+	dopplerDensity = doppDensity_lfm0600
+	sourceSignal = tranPulse_lfm0600
+    isComplex = tranPulse_lfm0600.isComplex
+    frequency = tranPulse_lfm0600.frequency
+    times = doppDensity_lfm0600.times
+}
+
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_01.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_02.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_03.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_04.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_05.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_06.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_07.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_08.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_09.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_10.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_11.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_12.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_13.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_14.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_15.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_16.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_17.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_18.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_19.sio" }
+CopySignal ddReverb_lfm0600 SIOSignal{ file="fig6_0600_20.sio" }
+
+# Third 20-ms pulse is an LFM with bandwidth 1600 Hz centered at 3500 Hz
+sampleRate  = 4800.0
+new tranPulse_lfm1600 = ModulatedTone:{
+	isComplex = true
+    frequency = centerFrequency
+	times = UniformGrid:{
+        first = 0.0
+        last = pulseLength
+        rate = sampleRate
+    }
+	level = 231.0	# dB // uPa^2 m^2 (adjusted to match figure)
+    # Use just enough tapering to cut down edge transients
+	envelope = CosineWindow:{
+        start = 0
+        end = pulseLength
+        taperFraction = 0.05
+    }
+    frequencyModulation = TableFunction:{
+        order = 1   # Linear interpolation
+        table = (
+          # time        frequency
+          0.00          2700
+          0.02          4300
+    }
+}
+new source_lfm1600 = source_lfm0050:{
+    signal = tranPulse_lfm1600
+}
+new doppDensity_lfm1600 = doppDensity_lfm0050:{
+    times = UniformGrid { first=0; last=5; rate=sampleRate }
+    # Try 5 frequencies across the full Nyquist band. No, just 1.
+    frequencies = UniformGrid {
+        first = centerFrequency   ##2000
+        last = centerFrequency   ##5000
+        number = 1              ##5
+    }
+    source = source_lfm1600
+}
+new ddReverb_lfm1600 = DDReverbSignal {
+	dopplerDensity = doppDensity_lfm1600
+	sourceSignal = tranPulse_lfm1600
+    isComplex = tranPulse_lfm1600.isComplex
+    frequency = tranPulse_lfm1600.frequency
+    times = doppDensity_lfm1600.times
+}
+
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_01.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_02.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_03.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_04.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_05.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_06.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_07.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_08.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_09.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_10.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_11.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_12.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_13.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_14.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_15.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_16.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_17.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_18.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_19.sio" }
+CopySignal ddReverb_lfm1600 SIOSignal{ file="fig6_1600_20.sio" }

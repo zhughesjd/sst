@@ -1,0 +1,154 @@
+# certifyTARMODCFDTarget.sst: Certify complex frequency dependent target
+# $Id: certifyTARMODCFDTarget.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Analysis: See Mathematica notebook examples/tarmod/RResponse.nb
+
+
+######   Environment Specification ######
+
+# Simplest possible single-path environment
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 5000.0 }
+	soundspeed = 1500		# m/s
+	volumeAttenuation = 0    # dB/km
+}
+
+new eigenrayModel = EigenrayModel {
+    maximumEigenrays = 1
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+	filterLength = 1	# no filtering
+}
+
+######   Sonar Specification (high frequency, complex) ######
+
+# Monostatic sonar below the origin, target 1 m north
+new sonarTrajectory = Trajectory (
+    {
+        time = 0.0                          # s
+        position = ( 0.0 0.0 100.0 )        # m
+    }
+)
+
+# The transmit signal is two clean, windowed tones, below resonance and on it
+new ctone0 = ModulatedTone {
+	frequency = 15000.0
+	level = 0
+	times = { first = 0; last = 0.1; rate = 6000 }
+	frequencyModulation = ConstantFunction:{ value = 14250 }
+	envelope = HannWindow { start = 0; end = 0.1 }
+}
+new ctone1 = ModulatedTone {
+	frequency = ctone0.frequency
+	level = 0
+	times = ctone0.times
+	frequencyModulation = ConstantFunction:{ value = 15750 }
+	envelope = HannWindow { start = 0; end = 0.1 }
+}
+
+new csignal = SumSignal {
+	inSignals = ( ctone0, ctone1 )
+}
+
+new csource = Source {
+	beams  = ( OmniBeam )
+	trajectory = sonarTrajectory
+	signal = csignal
+}
+
+new creceiver = Sonar {
+	beams  = ( OmniBeam )
+	trajectory = sonarTrajectory
+}
+
+######   Target Specification (high frequency, complex)   ######
+
+new targetTrajectory = Trajectory (
+    {
+        time = 0.0                          # s
+        position = ( 1.0 0.0 100.0 )        # m
+    }
+)
+
+# This target model has a constant amplitude of 0.5 plus a resonance
+# at 15750 with amplitude 1.0 and width 750. Filter length is 31, which
+# is about right (four spectrum samples between the 3-dB points).
+# It also has a delay of 2.666667 ms. When combined with the propagation
+# delay, the total delay is 4 ms. The input file is:
+#	HIGHLIGHT
+#	0 0 0 0.002666667 0 32
+#	0.5 1.0 15750 750
+
+new cetarget = ExternalTarget:{
+	trajectory = targetTrajectory
+	command = "tarmod_test $SSTHOME/input/targetCFD.etd"
+}
+new cgenerator = TargetEcho {
+    isComplex = true
+	times = {
+		first = 0.0
+		last = 0.108
+		rate = 6000
+	}
+    frequency =         15000   # Hz
+	source = csource
+	receiver = creceiver
+	target = cetarget
+}
+
+new signalCE = BareAsciiSignal { file =	"targetCE.txt" }
+CopySignal cgenerator signalCE
+
+# The standard consists of the same two tones with different amplitudes and
+# delays. Both are delayed 0.004 s for the 2-m travel time + target delay.
+# This delay doesn't introduce a phase shift because it's an integer
+# number of cycles at both tone frequencies and at the center frequency.
+# The complex amplitudes are 1+2+1 weighted averages of the target model
+# spectra, which are (0.74983,-0.06025) and (0.50310, -0.90003).
+# The envelopes are delayed by the "group delay", which is 4 ms minus
+# derivative of the response phase with respect to frequency / 2 Pi.
+new ctone0r = ModulatedTone {
+	frequency = cgenerator.frequency
+	level = -2.47285	# dB = 20*log10(cabs(amp))
+	startingPhase = -4.59392	# deg = atan(im(amp)/re(amp))
+	times = cgenerator.times
+	frequencyModulation = ConstantFunction:{ value = 14250 }
+	envelope = HannWindow { start = 0.00401425; end = 0.10401425 }
+}
+new ctone1r = ModulatedTone:{
+	frequency = cgenerator.frequency
+	level = 0.26601	# dB = 20*log10(cabs(amp))
+	startingPhase = -60.7959	# deg = (180/Pi)*atan(im(amp)/re(amp))
+	times = cgenerator.times
+	frequencyModulation = ConstantFunction:{ value = 15750 }
+	envelope = HannWindow { start = 0.00424872; end = 0.10424872 }
+}
+# Center tone: (0.915269, -0.213413)
+#new ctonecr = ModulatedTone:{
+#	frequency = cgenerator.frequency
+#	level = -0.5391	# dB = 20*log10(cabs(amp))
+#	startingPhase = -13.125	# deg = (180/Pi)*atan(im(amp)/re(amp))
+#	times = cgenerator.times
+#	frequencyModulation = ConstantFunction:{ value = 15000 }
+#	envelope = HannWindow { start = 0.004; end = 0.104 }
+#}
+
+new cstandard = SumSignal {
+	inSignals = ( ctone0r, ctone1r )
+}
+
+##new standardCE = BareAsciiSignal { file =	"standardCE.txt" }
+##CopySignal cstandard standardCE
+##new standardCE0 = BareAsciiSignal { file = "standardCE0.txt" }
+##CopySignal ctone0r standardCE0
+##new standardCE1 = BareAsciiSignal { file = "standardCE1.txt" }
+##CopySignal ctone1r standardCE1
+
+print "\n***** Frequency Dependent Target, Real Signal:"
+print "***** Expect max rel diff = 0.011"
+CompareSignals {
+  signal = signalCE 
+  standard = cstandard
+  message = "certifyTARMODCFDTarget -- Frequency Dependent Target, Real Signal"
+  tolerance = 0.011
+}

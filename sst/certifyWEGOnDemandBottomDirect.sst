@@ -1,0 +1,132 @@
+# certifyWEGOnDemandBottomDirect: Test DirectSignal with the wegBottom option of WEGOnDemand
+
+# $Id: certifyWEGOnDemandBottomDirect.sst 5212 2008-02-05 20:31:48Z billk $
+
+#traceEigenrayModel = true
+
+print "\n***** Test scattering with a GriddedBoundary & a weg bottom "
+
+read "jacksonBottoms.sst"
+
+new sandyGravelLocale = 
+	 BoundaryLocale { x = 600; y = 0.0; boundary = SandyGravel }
+
+new clayLocale = 
+	 BoundaryLocale { x = 0.0; y = 0.0; boundary = Clay }
+
+pulse = ModulatedTone {
+	frequency = 30000
+	order = 0
+	times = {	 # One sample extending from 0 to 10 ms
+		  first = 0.005
+		  interval = 0.01
+		  number = 1
+	}
+	level = 200		 # dB // uPa^2 m^2
+ }
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+ 
+	depth = 500.0   # constant (meters)
+	
+	bottom  = Clay
+	
+	soundspeed = 1500	 # m/s
+	
+        volumeAttenuation = ThorpAttenuation
+}
+
+new source1 = Source {
+	beams  = ( OmniBeam )
+	signal = pulse
+	trajectory = Trajectory (  	
+	{
+		time = 0.0			# s
+		position = ( 0.0 0.0 60.0 )	# m
+	}
+   )
+}
+
+new receiver1 = Sonar {
+	beams = ( OmniBeam )
+	trajectory = Trajectory (  	
+	{
+		time = 0.0			# s
+		position = ( 540.0 0.0 60.0 )	# m
+	}
+   )
+}
+
+eigenrayModel1 = WEGOnDemand {
+	maximumSurfaceBounces = 0
+	maximumBottomBounces = 1
+	maximumEigenrays = 20
+	filterLength = 9
+	verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+	frequencies = UniformGrid{ first=28000; last=32000; number=3 }
+	maximumEigenraysPerSignature = 2
+	printEigenrays = true
+}
+
+directGenerator1 = DirectSignal {
+	eigenrayModel = eigenrayModel1
+	times = {
+		first = 0.68
+		last = 0.70
+		rate = 4000
+	}
+	frequency = 30000
+	source = source1
+	receiver = receiver1
+}
+
+new wegOnDemandBottomDirect_1 = BareAsciiSignal { file = "wegOnDemandBottomDirect_1.txt" }
+CopySignal directGenerator1 wegOnDemandBottomDirect_1
+CompareSignals {
+	signal = wegOnDemandBottomDirect_1
+	standard = BareAsciiSignal {
+		# Note that we use the certifyWEGBottomDirect standard files for comparison
+		file = "$SSTHOME/standard/wegOnDemandBottomDirect_1.txt"
+	}
+	message = "certifyWEGOnDemandBottomDirect, first test"
+}
+
+new source2 = Source {
+	beams  = ( OmniBeam )
+	signal = pulse
+	trajectory = Trajectory (  	
+	{
+		time = 0.0			# s
+		position = ( 60.0 0.0 60.0 )	# m
+	}
+   )
+}
+
+new receiver2 = Sonar {
+	beams = (OmniBeam)
+	trajectory = Trajectory (  	
+	{
+		time = 0.0			# s
+		position = ( 600.0 0.0 60.0 )	# m
+	}
+   )
+}
+
+directGenerator2 = directGenerator1 {
+	eigenrayModel = eigenrayModel1
+	source = source2
+	receiver = receiver2
+}
+new wegOnDemandBottomDirect_2 = BareAsciiSignal { file = "wegOnDemandBottomDirect_2.txt" }
+CopySignal directGenerator2 wegOnDemandBottomDirect_2
+
+CompareSignals {
+	signal = wegOnDemandBottomDirect_2
+	standard = BareAsciiSignal {
+		# Note that we use the certifyWEGBottomDirect standard files for comparison
+		file = "$SSTHOME/standard/wegOnDemandBottomDirect_2.txt" 
+	}
+	message = "certifyWEGOnDemandBottomDirect, second test"
+}

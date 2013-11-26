@@ -1,0 +1,311 @@
+##############################################################################################
+# Vector-Sensor Element BeamPatterns
+#
+# In this model, the sensor generates 4 channels of data:
+# - A omni channel
+# - DipoleBeam in the +X direction
+# - DipoleBeam in the +Y direction
+# - DipoleBeam in the -Z direction
+#
+# Per convention, +X points horizontally forward, +Y points 
+# horizontally to stbd, and +Z points down (so -Z = up).
+#
+# Note that beampatterns have no bearing or frequency Dependence.
+##############################################################################################
+
+# Create X,Y,and Z Dipole Beams
+dipoleX = DipoleBeam {
+            axisBearing = 0;
+            axisElevation = 0;
+          }
+dipoleY = DipoleBeam {
+            axisBearing = 90;
+            axisElevation = 0;
+          }
+dipoleZ = DipoleBeam {
+            axisBearing = 0;
+            axisElevation = -90;  # up
+          }
+###########################################################################################
+
+##### Create an array of the above #####
+# Each "element" of the array consists of an X,Y,Z dipole pattern which follow an
+# OmniBeam (a built-in SST beampattern).  The elements are spaced in a line, at 
+# arbitrary distance.
+# To form a more complicated pattern, simply modify the offset elements appropriately.
+
+# SST will generate an independent time series for each of the following, i.e.
+# 4 channels per "element".
+
+# 24 elements, along the X-axis, spaced half-lambda for 10 kHz, centered at zero.
+new vectorSensorArray = BeamList(
+)
+new element_1 = BeamList(
+    OmniBeam{ offset=(0.8625, 0, 0) }
+    dipoleX{  offset=(0.8625, 0, 0) }
+    dipoleY{  offset=(0.8625, 0, 0) }
+    dipoleZ{  offset=(0.8625, 0, 0) }
+)
+new element_2 = BeamList(
+    OmniBeam{ offset=(0.7875, 0, 0) }
+    dipoleX{  offset=(0.7875, 0, 0) }
+    dipoleY{  offset=(0.7875, 0, 0) }
+    dipoleZ{  offset=(0.7875, 0, 0) }
+   # Element 3
+    OmniBeam{ offset=(0.7125, 0, 0) }
+    dipoleX{  offset=(0.7125, 0, 0) }
+    dipoleY{  offset=(0.7125, 0, 0) }
+    dipoleZ{  offset=(0.7125, 0, 0) }
+   # Element 4
+    OmniBeam{ offset=(0.6375, 0, 0) }
+    dipoleX{  offset=(0.6375, 0, 0) }
+    dipoleY{  offset=(0.6375, 0, 0) }
+    dipoleZ{  offset=(0.6375, 0, 0) }
+   # Element 5
+    OmniBeam{ offset=(0.5625, 0, 0) }
+    dipoleX{  offset=(0.5625, 0, 0) }
+    dipoleY{  offset=(0.5625, 0, 0) }
+    dipoleZ{  offset=(0.5625, 0, 0) }
+   # Element 6
+    OmniBeam{ offset=(0.4875, 0, 0) }
+    dipoleX{  offset=(0.4875, 0, 0) }
+    dipoleY{  offset=(0.4875, 0, 0) }
+    dipoleZ{  offset=(0.4875, 0, 0) }
+   # Element 7
+    OmniBeam{ offset=(0.4125, 0, 0) }
+    dipoleX{  offset=(0.4125, 0, 0) }
+    dipoleY{  offset=(0.4125, 0, 0) }
+    dipoleZ{  offset=(0.4125, 0, 0) }
+   # Element 8
+    OmniBeam{ offset=(0.3375, 0, 0) }
+    dipoleX{  offset=(0.3375, 0, 0) }
+    dipoleY{  offset=(0.3375, 0, 0) }
+    dipoleZ{  offset=(0.3375, 0, 0) }
+   # Element 9
+    OmniBeam{ offset=(0.2625, 0, 0) }
+    dipoleX{  offset=(0.2625, 0, 0) }
+    dipoleY{  offset=(0.2625, 0, 0) }
+    dipoleZ{  offset=(0.2625, 0, 0) }
+   # Element 10
+    OmniBeam{ offset=(0.1875, 0, 0) }
+    dipoleX{  offset=(0.1875, 0, 0) }
+    dipoleY{  offset=(0.1875, 0, 0) }
+    dipoleZ{  offset=(0.1875, 0, 0) }
+   # Element 11
+    OmniBeam{ offset=(0.1125, 0, 0) }
+    dipoleX{  offset=(0.1125, 0, 0) }
+    dipoleY{  offset=(0.1125, 0, 0) }
+    dipoleZ{  offset=(0.1125, 0, 0) }
+   # Element 12
+    OmniBeam{ offset=(0.0375, 0, 0) }
+    dipoleX{  offset=(0.0375, 0, 0) }
+    dipoleY{  offset=(0.0375, 0, 0) }
+    dipoleZ{  offset=(0.0375, 0, 0) }
+   # Element 13
+    OmniBeam{ offset=(-0.0375, 0, 0) }
+    dipoleX{  offset=(-0.0375, 0, 0) }
+    dipoleY{  offset=(-0.0375, 0, 0) }
+    dipoleZ{  offset=(-0.0375, 0, 0) }
+   # Element 14
+    OmniBeam{ offset=(-0.1125, 0, 0) }
+    dipoleX{  offset=(-0.1125, 0, 0) }
+    dipoleY{  offset=(-0.1125, 0, 0) }
+    dipoleZ{  offset=(-0.1125, 0, 0) }
+   # Element 15
+    OmniBeam{ offset=(-0.1875, 0, 0) }
+    dipoleX{  offset=(-0.1875, 0, 0) }
+    dipoleY{  offset=(-0.1875, 0, 0) }
+    dipoleZ{  offset=(-0.1875, 0, 0) }
+   # Element 16
+    OmniBeam{ offset=(-0.2625, 0, 0) }
+    dipoleX{  offset=(-0.2625, 0, 0) }
+    dipoleY{  offset=(-0.2625, 0, 0) }
+    dipoleZ{  offset=(-0.2625, 0, 0) }   
+   # Element 17
+    OmniBeam{ offset=(-0.3375, 0, 0) }
+    dipoleX{  offset=(-0.3375, 0, 0) }
+    dipoleY{  offset=(-0.3375, 0, 0) }
+    dipoleZ{  offset=(-0.3375, 0, 0) }
+   # Element 18
+    OmniBeam{ offset=(-0.4125, 0, 0) }
+    dipoleX{  offset=(-0.4125, 0, 0) }
+    dipoleY{  offset=(-0.4125, 0, 0) }
+    dipoleZ{  offset=(-0.4125, 0, 0) }
+   # Element 19
+    OmniBeam{ offset=(-0.4875, 0, 0) }
+    dipoleX{  offset=(-0.4875, 0, 0) }
+    dipoleY{  offset=(-0.4875, 0, 0) }
+    dipoleZ{  offset=(-0.4875, 0, 0) }
+   # Element 20
+    OmniBeam{ offset=(-0.5625, 0, 0) }
+    dipoleX{  offset=(-0.5625, 0, 0) }
+    dipoleY{  offset=(-0.5625, 0, 0) }
+    dipoleZ{  offset=(-0.5625, 0, 0) }
+   # Element 21
+    OmniBeam{ offset=(-0.6375, 0, 0) }
+    dipoleX{  offset=(-0.6375, 0, 0) }
+    dipoleY{  offset=(-0.6375, 0, 0) }
+    dipoleZ{  offset=(-0.6375, 0, 0) }
+   # Element 22
+    OmniBeam{ offset=(-0.7125, 0, 0) }
+    dipoleX{  offset=(-0.7125, 0, 0) }
+    dipoleY{  offset=(-0.7125, 0, 0) }
+    dipoleZ{  offset=(-0.7125, 0, 0) }
+   # Element 23
+    OmniBeam{ offset=(-0.7875, 0, 0) }
+    dipoleX{  offset=(-0.7875, 0, 0) }
+    dipoleY{  offset=(-0.7875, 0, 0) }
+    dipoleZ{  offset=(-0.7875, 0, 0) }
+   # Element 24
+    OmniBeam{ offset=(-0.8625, 0, 0) }
+    dipoleX{  offset=(-0.8625, 0, 0) }
+    dipoleY{  offset=(-0.8625, 0, 0) }
+    dipoleZ{  offset=(-0.8625, 0, 0) }
+)
+
+
+# Now define the elements one at a time, for optional small-file computation
+new element_01 = BeamList(
+    OmniBeam{ offset=(0.8625, 0, 0) }
+    dipoleX{  offset=(0.8625, 0, 0) }
+    dipoleY{  offset=(0.8625, 0, 0) }
+    dipoleZ{  offset=(0.8625, 0, 0) }
+)
+new element_02 = BeamList(
+    OmniBeam{ offset=(0.7875, 0, 0) }
+    dipoleX{  offset=(0.7875, 0, 0) }
+    dipoleY{  offset=(0.7875, 0, 0) }
+    dipoleZ{  offset=(0.7875, 0, 0) }
+)
+new element_03 = BeamList(
+    OmniBeam{ offset=(0.7125, 0, 0) }
+    dipoleX{  offset=(0.7125, 0, 0) }
+    dipoleY{  offset=(0.7125, 0, 0) }
+    dipoleZ{  offset=(0.7125, 0, 0) }
+)
+new element_04 = BeamList(
+    OmniBeam{ offset=(0.6375, 0, 0) }
+    dipoleX{  offset=(0.6375, 0, 0) }
+    dipoleY{  offset=(0.6375, 0, 0) }
+    dipoleZ{  offset=(0.6375, 0, 0) }
+)
+new element_05 = BeamList(
+    OmniBeam{ offset=(0.5625, 0, 0) }
+    dipoleX{  offset=(0.5625, 0, 0) }
+    dipoleY{  offset=(0.5625, 0, 0) }
+    dipoleZ{  offset=(0.5625, 0, 0) }
+)
+new element_06 = BeamList(
+    OmniBeam{ offset=(0.4875, 0, 0) }
+    dipoleX{  offset=(0.4875, 0, 0) }
+    dipoleY{  offset=(0.4875, 0, 0) }
+    dipoleZ{  offset=(0.4875, 0, 0) }
+)
+new element_07 = BeamList(
+    OmniBeam{ offset=(0.4125, 0, 0) }
+    dipoleX{  offset=(0.4125, 0, 0) }
+    dipoleY{  offset=(0.4125, 0, 0) }
+    dipoleZ{  offset=(0.4125, 0, 0) }
+)
+new element_08 = BeamList(
+    OmniBeam{ offset=(0.3375, 0, 0) }
+    dipoleX{  offset=(0.3375, 0, 0) }
+    dipoleY{  offset=(0.3375, 0, 0) }
+    dipoleZ{  offset=(0.3375, 0, 0) }
+)
+new element_09 = BeamList(
+    OmniBeam{ offset=(0.2625, 0, 0) }
+    dipoleX{  offset=(0.2625, 0, 0) }
+    dipoleY{  offset=(0.2625, 0, 0) }
+    dipoleZ{  offset=(0.2625, 0, 0) }
+)
+new element_10 = BeamList(
+    OmniBeam{ offset=(0.1875, 0, 0) }
+    dipoleX{  offset=(0.1875, 0, 0) }
+    dipoleY{  offset=(0.1875, 0, 0) }
+    dipoleZ{  offset=(0.1875, 0, 0) }
+)
+new element_11 = BeamList(
+    OmniBeam{ offset=(0.1125, 0, 0) }
+    dipoleX{  offset=(0.1125, 0, 0) }
+    dipoleY{  offset=(0.1125, 0, 0) }
+    dipoleZ{  offset=(0.1125, 0, 0) }
+)
+new element_12 = BeamList(
+    OmniBeam{ offset=(0.0375, 0, 0) }
+    dipoleX{  offset=(0.0375, 0, 0) }
+    dipoleY{  offset=(0.0375, 0, 0) }
+    dipoleZ{  offset=(0.0375, 0, 0) }
+)
+new element_13 = BeamList(
+    OmniBeam{ offset=(-0.0375, 0, 0) }
+    dipoleX{  offset=(-0.0375, 0, 0) }
+    dipoleY{  offset=(-0.0375, 0, 0) }
+    dipoleZ{  offset=(-0.0375, 0, 0) }
+)
+new element_14 = BeamList(
+    OmniBeam{ offset=(-0.1125, 0, 0) }
+    dipoleX{  offset=(-0.1125, 0, 0) }
+    dipoleY{  offset=(-0.1125, 0, 0) }
+    dipoleZ{  offset=(-0.1125, 0, 0) }
+)
+new element_15 = BeamList(
+    OmniBeam{ offset=(-0.1875, 0, 0) }
+    dipoleX{  offset=(-0.1875, 0, 0) }
+    dipoleY{  offset=(-0.1875, 0, 0) }
+    dipoleZ{  offset=(-0.1875, 0, 0) }
+)
+new element_16 = BeamList(
+    OmniBeam{ offset=(-0.2625, 0, 0) }
+    dipoleX{  offset=(-0.2625, 0, 0) }
+    dipoleY{  offset=(-0.2625, 0, 0) }
+    dipoleZ{  offset=(-0.2625, 0, 0) }   
+)
+new element_17 = BeamList(
+    OmniBeam{ offset=(-0.3375, 0, 0) }
+    dipoleX{  offset=(-0.3375, 0, 0) }
+    dipoleY{  offset=(-0.3375, 0, 0) }
+    dipoleZ{  offset=(-0.3375, 0, 0) }
+)
+new element_18 = BeamList(
+    OmniBeam{ offset=(-0.4125, 0, 0) }
+    dipoleX{  offset=(-0.4125, 0, 0) }
+    dipoleY{  offset=(-0.4125, 0, 0) }
+    dipoleZ{  offset=(-0.4125, 0, 0) }
+)
+new element_19 = BeamList(
+    OmniBeam{ offset=(-0.4875, 0, 0) }
+    dipoleX{  offset=(-0.4875, 0, 0) }
+    dipoleY{  offset=(-0.4875, 0, 0) }
+    dipoleZ{  offset=(-0.4875, 0, 0) }
+)
+new element_20 = BeamList(
+    OmniBeam{ offset=(-0.5625, 0, 0) }
+    dipoleX{  offset=(-0.5625, 0, 0) }
+    dipoleY{  offset=(-0.5625, 0, 0) }
+    dipoleZ{  offset=(-0.5625, 0, 0) }
+)
+new element_21 = BeamList(
+    OmniBeam{ offset=(-0.6375, 0, 0) }
+    dipoleX{  offset=(-0.6375, 0, 0) }
+    dipoleY{  offset=(-0.6375, 0, 0) }
+    dipoleZ{  offset=(-0.6375, 0, 0) }
+)
+new element_22 = BeamList(
+    OmniBeam{ offset=(-0.7125, 0, 0) }
+    dipoleX{  offset=(-0.7125, 0, 0) }
+    dipoleY{  offset=(-0.7125, 0, 0) }
+    dipoleZ{  offset=(-0.7125, 0, 0) }
+)
+new element_23 = BeamList(
+    OmniBeam{ offset=(-0.7875, 0, 0) }
+    dipoleX{  offset=(-0.7875, 0, 0) }
+    dipoleY{  offset=(-0.7875, 0, 0) }
+    dipoleZ{  offset=(-0.7875, 0, 0) }
+)
+new element_24 = BeamList(
+    OmniBeam{ offset=(-0.8625, 0, 0) }
+    dipoleX{  offset=(-0.8625, 0, 0) }
+    dipoleY{  offset=(-0.8625, 0, 0) }
+    dipoleZ{  offset=(-0.8625, 0, 0) }
+)

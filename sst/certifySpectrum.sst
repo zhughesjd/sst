@@ -1,0 +1,163 @@
+# certifySpectrum.in: Certification tests for SST Spectrum subclasses
+# $Id: certifySpectrum.sst 5233 2008-02-27 00:21:40Z rpg $
+
+# echoInput = true
+traceInherit = false
+
+## First we look at InternalSpectrum.
+
+print "\n***** Original InternalSpectrum is a 2-channel complex spectral amplitude."
+new spect1 = InternalSpectrum {
+    isComplex = true
+	isPower = false
+	isCorrelated = false
+    times = {
+        first = 0
+        last = 0.4
+        interval = 0.1
+    }
+    frequencies = {
+        first = 200
+        last = 300
+        interval = 100
+    }
+    samples = (
+#    f1c1          f1c2          f2c1          f2c2
+ 11.10, 11.11, 11.20, 11.21, 12.10, 12.11, 12.20, 12.21,  # t1
+ 21.10, 21.11, 21.20, 21.21, 22.10, 22.11, 22.20, 22.21,  # t2
+ 31.10, 31.11, 31.20, 31.21, 32.10, 32.11, 32.20, 32.21,  # t3
+ 41.10, 41.11, 41.20, 41.21, 42.10, 42.11, 42.20, 42.21,  # t4
+ 51.10, 51.11, 51.20, 51.21, 52.10, 52.11, 52.20, 52.21 ) # t5
+}
+print "***** Check buf increasing nn.mm *****"
+print spect1
+
+print "\n***** Empty InternalSpectrum:"
+new spect2 = InternalSpectrum { }
+print "***** Check buf EMPTY *****"
+print spect2
+
+print "\n***** Comparing original to a copy into existing empty InternalSpectrum."
+CopySignal ( spect1, spect2 )
+# print spect2
+CompareSignals {
+  signal = spect1
+  standard = spect2 
+  message = "certifySpectrum -- Comparing original to a copy into existing empty InternalSpectrum."
+}
+
+print "\n***** Comparing an InternalSpectrum to a copy into a new one."
+new spect2r = InternalSpectrum {}
+CopySignal ( spect1, spect2r )
+CompareSignals {
+  signal =  spect1
+  standard = spect2r 
+  message = "certifySpectrum -- Comparing an InternalSpectrum to a copy into a new one."
+}
+
+## Now look at AsciiSpectrum.
+
+print "\n***** Comparing InternalSpectrum original to AsciiSpectrum copy."
+new spect3 = AsciiSpectrum { file = "spect3.txt" }
+CopySignal ( spect1, spect3 )
+# print spect3
+CompareSignals {
+  signal = spect1
+  standard = spect3 
+  message = "certifySpectrum -- Comparing InternalSpectrum original to AsciiSpectrum copy."
+}
+
+print "\n***** Comparing InternalSpectrum copy to AsciiSpectrum original."
+CopySignal ( spect3, spect2 )
+CompareSignals {
+  signal = spect2
+  standard = spect3 
+  message = "certifySpectrum -- Comparing InternalSpectrum copy to AsciiSpectrum original."
+}
+
+print "\n***** Ditto, same AsciiSpectrum file via new object."
+new spect3r = AsciiSpectrum {
+	file = "spect3.txt"
+    times = spect1.times
+    frequencies = spect1.frequencies
+    isComplex = spect1.isComplex
+    isPower = spect1.isPower
+    isCorrelated = spect1.isCorrelated
+}
+CompareSignals {
+  signal = spect2
+  standard = spect3r 
+  message = "certifySpectrum -- Ditto, same AsciiSpectrum file via new object."
+}
+
+## Do the same for BinarySpectrum.
+
+print "\n***** Comparing InternalSpectrum original to BinarySpectrum copy."
+new spect4bin = BinarySpectrum {
+    file.filename = "spect4.bin"
+}
+CopySignal ( spect1, spect4bin )
+# print spect4bin
+CompareSignals {
+  signal = spect1
+  standard = spect4bin 
+  message = "certifySpectrum -- Comparing InternalSpectrum original to BinarySpectrum copy."
+}
+
+print "\n***** Comparing InternalSpectrum copy to BinarySpectrum original."
+CopySignal ( spect4bin, spect2 )
+CompareSignals {
+  signal = spect2
+  standard = spect4bin 
+  message = "certifySpectrum -- Comparing InternalSpectrum copy to BinarySpectrum original."
+}
+
+print "\n***** Ditto, same BinarySpectrum file via new object."
+new spect4rbin = BinarySpectrum {
+    times = spect1.times
+    frequencies = spect1.frequencies
+    isComplex = spect1.isComplex
+    isPower = spect1.isPower
+    isCorrelated = spect1.isCorrelated
+    numChannels = 2
+	file = "spect4.bin"
+}
+# print spect4rbin
+CompareSignals {
+  signal = spect2
+  standard = spect4rbin 
+  message = "certifySpectrum -- Ditto, same BinarySpectrum file via new object."
+}
+
+## Do the same for SIOSpectrum.
+
+print "\n***** Comparing InternalSpectrum original to SIOSpectrum copy."
+new spect4 = SIOSpectrum {
+    file.filename = "spect4.sio"
+}
+CopySignal ( spect1, spect4 )
+# print spect4
+CompareSignals {
+  signal = spect4
+  standard = spect1
+  message = "certifySpectrum -- Comparing InternalSpectrum original to SIOSpectrum copy."
+}
+
+print "\n***** Comparing InternalSpectrum copy to SIOSpectrum original."
+CopySignal ( spect4, spect2 )
+CompareSignals {
+  signal =  spect2
+  standard = spect4 
+  message = "certifySpectrum -- Comparing InternalSpectrum copy to SIOSpectrum original."
+}
+
+print "\n***** Comparing InternalSpectrum original to same SIO file via new object"
+new spect4r = SIOSpectrum {
+	file = "spect4.sio"
+}
+# print spect4r
+CompareSignals {
+  signal = spect4r
+  standard = spect1
+  message = "Comparing InternalSpectrum original to same SIO file via new object"
+}

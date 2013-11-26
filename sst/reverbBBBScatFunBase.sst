@@ -1,0 +1,43 @@
+# Tail end of SST run script.
+# Must be preceded by definitions of theSource, theOcean, theEM, theReceiver,
+# sampleRate, reverbFileName, and endTime
+
+# $Id: reverbBBBScatFunBase.sst 5731 2009-01-31 01:19:28Z rpg $
+
+### Specify reverb params ###
+theScatFun = BBBScatFun {
+    frequencies = (1000)
+    times = UniformGrid { first=0; last=endTime; interval=.05 }
+    dopplers = UniformGrid{ first=.97; last=1.03; interval=.005 }
+    # What type of reverberation?
+    doSurface = true
+    doBottom = false
+    doVolume = false
+    ocean = theOcean
+    isCorrelated = true
+    isComplex = true
+    source = theSource
+    receiver = theReceiver
+    eigenrayModel = theEM
+    ocean = theOcean
+}
+# For Testing: Dump the scattering function
+#output = BareAsciiSignal { file = "BBBScatFun.txt" }
+#CopySignal theScatFun output
+
+### Describe what we want to do ###
+# Create a "ReverbSignal" for this monostatic scenario
+result = ReverbSignal { 
+    scatFunction = theScatFun 
+    sourceSignal = theSource.signal 
+    isComplex = theSource.signal.isComplex 
+    frequency = theSource.signal.frequency 
+    # In a more realistic simulation, the reverb response would need to be
+    # sampled for a longer period of time than this, but to keep this timing
+    # experiment moving along, let's just generate a short output
+    times = { first=0; last=endTime; rate = sampleRate }
+} 
+
+### Generate file output ###
+output = SIOSignal { file.filename=reverbFileName }
+CopySignal result output 500

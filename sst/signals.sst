@@ -1,0 +1,63 @@
+# signals.sst: Define the signal files
+
+	# Pulse 19, Channels 1-4
+new reverb_19 = BinarySignal {
+    file = "reverb_19.bin"
+    times = listenTimes
+    isComplex = true
+	frequency = centerFrequency
+	numChannels = 4
+}
+new surface_19 = reverb_19 { file = "surface_19.bin" }
+new bottom_19 = reverb_19 { file = "bottom_19.bin" }
+new volume_19 = reverb_19 { file = "volume_19.bin" }
+new direct_19 = reverb_19 { file = "direct_19.bin" }
+
+	# Pulse 20
+new reverb_20 = reverb_19 { file = "reverb_20.bin" }
+new surface_20 = reverb_19 { file = "surface_20.bin" }
+new bottom_20 = reverb_19 { file = "bottom_20.bin" }
+new volume_20 = reverb_19 { file = "volume_20.bin" }
+new direct_20 = reverb_19 { file = "direct_20.bin" }
+
+	# Pulse 21
+new reverb_21 = reverb_19 { file = "reverb_21.bin" }
+new surface_21 = reverb_19 { file = "surface_21.bin" }
+new bottom_21 = reverb_19 { file = "bottom_21.bin" }
+new volume_21 = reverb_19 { file = "volume_21.bin" }
+new direct_21 = reverb_19 { file = "direct_21.bin" }
+
+	# Pulse 22
+new reverb_22 = reverb_19 { file = "reverb_22.bin" }
+new surface_22 = reverb_19 { file = "surface_22.bin" }
+new bottom_22 = reverb_19 { file = "bottom_22.bin" }
+new volume_22 = reverb_19 { file = "volume_22.bin" }
+new direct_22 = reverb_19 { file = "direct_22.bin" }
+
+	# Pulse 23
+new reverb_23 = reverb_19 { file = "reverb_23.bin" }
+new surface_23 = reverb_19 { file = "surface_23.bin" }
+new bottom_23 = reverb_19 { file = "bottom_23.bin" }
+new volume_23 = reverb_19 { file = "volume_23.bin" }
+new direct_23 = reverb_19 { file = "direct_23.bin" }
+
+	# Pulse 24
+new reverb_24 = reverb_19 { file = "reverb_24.bin" }
+new surface_24 = reverb_19 { file = "surface_24.bin" }
+new bottom_24 = reverb_19 { file = "bottom_24.bin" }
+new volume_24 = reverb_19 { file = "volume_24.bin" }
+new direct_24 = reverb_19 { file = "direct_24.bin" }
+
+	# Pulse 26
+new reverb_26 = reverb_19 { file = "reverb_26.bin" }
+new surface_26 = reverb_19 { file = "surface_26.bin" }
+new bottom_26 = reverb_19 { file = "bottom_26.bin" }
+new volume_26 = reverb_19 { file = "volume_26.bin" }
+new direct_26 = reverb_19 { file = "direct_26.bin" }
+
+	# Pulse 27
+new reverb_27 = reverb_19 { file = "reverb_27.bin" }
+new surface_27 = reverb_19 { file = "surface_27.bin" }
+new bottom_27 = reverb_19 { file = "bottom_27.bin" }
+new volume_27 = reverb_19 { file = "volume_27.bin" }
+new direct_27 = reverb_19 { file = "direct_27.bin" }

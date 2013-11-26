@@ -1,0 +1,24 @@
+# sound.sst:  Make listenable sound for pursuit example.
+# This optional run makes a listenable .snd file.
+# Id: sound.sst,v 3.3 1995/07/12 13:45:28 rpg Rel rpg $
+
+# This object converts its input signal to real samples and samples it
+# at half of the standard CD rate.
+new resampledSignal = ResampleSignal {
+	isComplex = false
+	times = {
+		first = 0.2
+		last = 5.5
+		rate = 22050
+	}
+	inSignal = SelectChannel: {
+		inSignal = hetSignal; channel = 1
+	}
+}
+
+new sound = SoundSignal {
+	file = "onechan.snd"
+	clipDB = 115
+}
+
+CopySignal resampledSignal sound

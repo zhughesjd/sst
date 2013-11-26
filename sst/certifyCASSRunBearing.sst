@@ -1,0 +1,82 @@
+# $Id: certifyCASSRunBearing.sst 5212 2008-02-05 20:31:48Z billk $
+
+# Omnidirectional source
+new source = Source {
+        beams = ( OmniBeam )
+        signal = ModulatedTone {
+                frequency = 3000.0     # Hz
+                level = 200.0           # dB // uPa^2 m^2
+                times = { first = 0.05; interval = 0.1; number = 1 }
+        }
+        trajectory = ( { time = 0.0; position = ( 0 0 150 ) } )
+}
+
+# Omnidirectional receiver at transmitter (monostatic)
+new receiver = Sonar {
+    beams = ( OmniBeam )    
+    trajectory = source.trajectory
+}
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+        # Specify the (complex) bathymetry grid
+        depthFile = "$SSTHOME/input/SMALLBTH.DAT"
+
+        # Surface and bottom scattering and reflection are isotropic
+        surface = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+                backStrength = ConstantDbFunction2 { decibels = -40 }
+        }
+        bottom  = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+                backStrength = ConstantDbFunction2 { decibels = -20 }
+        }
+        soundspeed = 1500       # m/s
+        volumeAttenuation = ThorpAttenuation
+        windspeed = 0
+}
+
+###### Reverberation propagation model ######
+
+cassEigenrayModel = CASSEigenrayRun {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        scenario = "Reverberation"
+        ocean = ocean
+        maximumSurfaceBounces = 0
+    	maximumBottomBounces = 0
+        maximumEigenrays = 100
+        filterLength = 1        # Narrowband; no filtering
+        verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+        receiverTrajectory = receiver.trajectory
+        ranges = UniformGrid { first = 0; last = 10000; interval = 10 }
+        frequencies = UniformGrid{ first=3000; last=3000; number=1 }
+        rangeReference = 1
+        receiverBearingAngles = UniformGrid{ first=0; last=315; number=8 }
+        doVolume = false
+        doSurface = false
+        doBottom = true
+}
+
+###### Simulation Parameters ######
+new scatFunGenerator = BBBScatFun {
+        eigenrayModel = cassEigenrayModel
+        times = UniformGrid { first = 0; interval = 0.1; number = 60 }
+        # 1 frequency/doppler bin.
+        frequencies = UniformGrid { first = 3000; number = 1 }
+        dopplers = UniformGrid { first = 1.0; last = 1.0; number = 1 }
+        # Compute Surface & Bottom Reverb
+        doVolume = cassEigenrayModel.doVolume
+        doSurface = cassEigenrayModel.doSurface
+        doBottom = cassEigenrayModel.doBottom
+}
+
+new scatFunFile = BareAsciiSignal { file = "certifyCASSRunBearing.txt" }
+CopySignal scatFunGenerator scatFunFile
+
+# Compare to the standard
+CompareSignals {
+  standard = BareAsciiSignal { file = "$SSTHOME/standard/certifyCASSRunBearing.txt" }
+  signal = scatFunFile
+  message = "certifyCASSRunBearing"
+}

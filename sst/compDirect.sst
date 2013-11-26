@@ -1,0 +1,37 @@
+# compDirect.sst: Compute the direct blast
+
+read "parameters.sst"
+read "pulses.sst"
+read "source.sst"
+read "receivers.sst"
+read "ocean.sst"
+read "eigmodel.sst"
+read "signals.sst"
+
+	# Since we don't know the beam pattern in the back hemisphere,
+	# we assume it's omni. We will fit it to the data later.
+source.beams = ( OmniBeam )
+
+	# Pulse 19, Channels 1-4
+source.signal = pulse_19
+new direct_gen_1 = DirectSignal:{
+	isComplex = true
+	frequency = centerFrequency
+	times = listenTimes
+	receiver = receiver_1
+}
+new direct_gen_2 = direct_gen_1:{
+	receiver = receiver_2
+}
+new direct_gen_3 = direct_gen_1:{
+	receiver = receiver_3
+}
+new direct_gen_4 = direct_gen_1:{
+	receiver = receiver_4
+}
+
+new direct_gen = MergeSignal:{
+	inSignals = ( direct_gen_1, direct_gen_2, direct_gen_3, direct_gen_4 )
+}
+
+CopySignal direct_gen direct_19

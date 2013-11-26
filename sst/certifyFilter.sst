@@ -1,0 +1,373 @@
+# certifyFilter.sst: Compare VarSpectFilter and VarFirFilter results
+# $Id: certifyFilter.sst 6397 2010-05-26 23:39:38Z rpg $
+
+##echoInput = true
+
+# Test 1:  Short real signal. Filter out components over 1 kHz (25% Nyquist).
+
+new sigTimes1 = UniformGrid:{ first = 0; last = 0.012; rate = 8000 }
+
+# The test signal contains equal-amplitude sines up to 80% of Nyquist.
+new harfam1 = HarmonicFamily {
+	isComplex = false
+	times = sigTimes1
+	fundamental = 200
+	harmonics = (
+  # number	ampDB	phaseDeg
+	1		0.0		-90
+	2		0.0		-90
+	3		0.0		-90
+	4		0.0		-90
+	5		0.0		-90
+	6		0.0		-90
+	7		0.0		-90
+	8		0.0		-90
+	9		0.0		-90
+	10		0.0		-90
+	11		0.0		-90
+	12		0.0		-90
+	13		0.0		-90
+	14		0.0		-90
+	15		0.0		-90
+	16		0.0		-90
+	)
+}
+
+new coefBuf1 = LPFirCoefBuf {
+	filterLength = 25
+	bandFraction = 0.25
+}
+new coefs1 = InternalSignal{}
+CopySignal coefBuf1 coefs1
+print coefs1
+
+# 1A: Do it with VarFirFilter
+new filter1A = VarFirFilter {
+    inSignal = harfam1
+    coefBuf = coefBuf1
+}
+new sig1A = BareAsciiSignal{ file = "filter_1A.txt" }
+CopySignal filter1A sig1A
+
+standard1A = BareAsciiSignal {
+	file = "$SSTHOME/standard/filter_1A.txt"
+	isComplex = false
+	times = sigTimes1
+}
+
+print "***** VarFirFilter Test 1A: Short, real *****"
+CompareSignals {
+   signal = sig1A 
+   standard = standard1A
+   message = "certifyFilter -- VarFirFilter Test 1A: Short, real"
+}
+
+# 1B: Do it with VarSpectFilter
+new spectgen1B = SpectrumFromSignal {
+	inSignal = harfam1
+	isComplex = true
+	isPower = false
+	window = RectangularWindow
+}
+
+new filter1B = VarSpectFilter {
+	inSpectrum = spectgen1B
+    coefBuf = coefBuf1
+    sampleRate = sigTimes1.rate
+}
+
+print "***** Expect report re setting overlapFraction to 0.242188 *****"
+new ifft1B = SignalFromSpectrum {
+	spectrum = filter1B
+	times = sigTimes1
+	isComplex = false
+	window = RectangularWindow
+}
+new sig1B = BareAsciiSignal{ file = "sigCSF_1B.txt" }
+CopySignal ifft1B sig1B
+
+print "\n***** VarSpectFilter Test 1: Short, real *****"
+CompareSignals {
+   signal = sig1B 
+   standard = standard1A
+   message = "certifyFilter -- VarSpectFilter Test 1: Short, real"
+}
+
+# Test 2: Varying filter, long uniform signal
+
+new sigTimes2 = UniformGrid:{ first = 0; last = 1.0; rate = 8000 }
+
+# The test signal contains equal-amplitude sines up to 80% of Nyquist.
+new harfam2 = HarmonicFamily {
+	isComplex = false
+	times = sigTimes2
+	fundamental = 200
+	harmonics = (
+  # number	ampDB	phaseDeg
+	1		0.0		-90
+	2		0.0		-90
+	3		0.0		-90
+	4		0.0		-90
+	5		0.0		-90
+	6		0.0		-90
+	7		0.0		-90
+	8		0.0		-90
+	9		0.0		-90
+	10		0.0		-90
+	11		0.0		-90
+	12		0.0		-90
+	13		0.0		-90
+	14		0.0		-90
+	15		0.0		-90
+	16		0.0		-90
+	)
+}
+
+# The filter coefficients below are derived from a "stick" beam pattern
+# using the following commands (plus cutting, pasting, and minor editing)
+/* *******
+beam2 = StickBeam { length = 10 }	# 10 wavelengths at 1500 Hz
+tableBeam2 = EBFTableBeam {
+	originalBeam = beam2
+	##bearings = { first = 90; last = 100; number = 5 }
+	bearings = { first = 92.5 }
+	frequencies = { first = 0; last = 4000; number = 33 }
+	isComplex = true
+}
+print tableBeam2
+tableBeam2.bearings.first = 95
+print tableBeam2
+tableBeam2.bearings.first = 97.5
+print tableBeam2
+tableBeam2.bearings.first = 100
+print tableBeam2
+******* */
+
+# This time-dependent filter spectrum simulates a source crossing a StickBeam's
+# main beam rapidly.
+new filterspect2 = InternalSignal: {
+    times = {
+        first = 0.0
+        last = 1.0
+        interval = 0.25
+    }
+    isComplex = true
+    order = 1
+    buf = (
+  1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0,
+  1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0,
+  1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0, 1.0,0,
+  1.0,0, 1.0,0, 1.0,0,
+
+  1.000000e+00,0,  9.978280e-01,0,  9.913290e-01,0,  9.805536e-01,0,  9.655861e-01,0,
+  9.465432e-01,0,  9.235728e-01,0,  8.968533e-01,0,  8.665912e-01,0,  8.330198e-01,0,
+  7.963965e-01,0,  7.570009e-01,0,  7.151320e-01,0,  6.711055e-01,0,  6.252508e-01,0,
+  5.779083e-01,0,  5.294260e-01,0,  4.801567e-01,0,  4.304546e-01,0,  3.806721e-01,0,
+  3.311570e-01,0,  2.822492e-01,0,  2.342781e-01,0,  1.875592e-01,0,  1.423922e-01,0,
+  9.905781e-02,0,  5.781614e-02,0,  1.890417e-02,0, -1.746584e-02,0, -5.110789e-02,0,
+ -8.186359e-02,0, -1.096031e-01,0, -1.342257e-01,0
+
+  1.000000e+00,0,  9.913454e-01,0,  9.656510e-01,0,  9.237148e-01,0,  8.668345e-01,0,
+  7.967586e-01,0,  7.156230e-01,0,  6.258724e-01,0,  5.301712e-01,0,  4.313078e-01,0,
+  3.320949e-01,0,  2.352708e-01,0,  1.434045e-01,0,  5.880955e-02,0, -1.653119e-02,0,
+ -8.102668e-02,0, -1.335225e-01,0, -1.733281e-01,0, -2.002250e-01,0, -2.144578e-01,0,
+ -2.167062e-01,0, -2.080419e-01,0, -1.898711e-01,0, -1.638658e-01,0, -1.318872e-01,0,
+ -9.590364e-02,0, -5.790783e-02,0, -1.983590e-02,0,  1.650812e-02,0,  4.951943e-02,0,
+  7.784858e-02,0,  1.004447e-01,0,  1.165846e-01,0
+
+  1.000000e+00,0,  9.806516e-01,0,  9.239510e-01,0,  8.338214e-01,0,  7.164401e-01,0,
+  5.797329e-01,0,  4.327286e-01,0,  2.848340e-01,0,  1.450925e-01,0,  2.149065e-02,0,
+ -7.962746e-02,0, -1.539896e-01,0, -1.996348e-01,0, -2.169480e-01,0, -2.084923e-01,0,
+ -1.786616e-01,0, -1.331909e-01,0, -7.857367e-02,0, -2.144366e-02,0,  3.202187e-02,0,
+  7.662303e-02,0,  1.085378e-01,0,  1.255706e-01,0,  1.272329e-01,0,  1.146566e-01,0,
+  9.035807e-02,0,  5.788167e-02,0,  2.136548e-02,0, -1.492484e-02,0, -4.704601e-02,0,
+ -7.176679e-02,0, -8.686138e-02,0, -9.128193e-02,0
+
+  1.000000e+00,0,  9.659092e-01,0,  8.678041e-01,0,  7.175814e-01,0,  5.331455e-01,0,
+  3.358435e-01,0,  1.474574e-01,0, -1.277871e-02,0, -1.306845e-01,0, -1.987920e-01,0,
+ -2.169345e-01,0, -1.917174e-01,0, -1.350040e-01,0, -6.170125e-02,0,  1.276814e-02,0,
+  7.488753e-02,0,  1.149805e-01,0,  1.283739e-01,0,  1.156507e-01,0,  8.201049e-02,0,
+  3.590805e-02,0, -1.275053e-02,0, -5.451326e-02,0, -8.205234e-02,0, -9.132326e-02,0,
+ -8.204359e-02,0, -5.745279e-02,0, -2.344510e-02,0,  1.272591e-02,0,  4.390642e-02,0,
+  6.438660e-02,0,  7.088819e-02,0,  6.303355e-02,0
+)
+}
+
+# Source of time-dependent FIR filter coefficients
+new coefBuf2 = FIRCoefBuf {
+	specBuf = filterspect2
+	firCoef = {
+		nfft = 64
+		filterLength =31
+		rate = sigTimes2.rate
+		frequency = 0
+	}
+}
+
+# 2A: Filter the signal in the time domain using VarFirFilter
+new filter2A = VarFirFilter {
+    inSignal = harfam2
+    coefBuf = coefBuf2
+}
+new sig2A = BinarySignal{
+	file = "sigCSF_2A.bin"
+	numChannels = 1
+}
+CopySignal filter2A sig2A
+
+# 2B: Filter the signal in the frequency domain using VarSpectFilter
+new spectgen2B = SpectrumFromSignal {
+	inSignal = harfam2
+	times = { first = 0; last = 1; interval = 0.0125 }
+	isComplex = true
+	isPower = false
+	window = LinearWindow
+	overlapFraction = 0.5
+}
+
+new filter2B = VarSpectFilter {
+	inSpectrum = spectgen2B
+    coefBuf = coefBuf2
+    sampleRate = sigTimes2.rate
+}
+
+print "***** Expect report re setting overlapFraction to 0.609375 *****"
+new ifft2B = SignalFromSpectrum {
+	spectrum = filter2B
+	times = sigTimes2
+	isComplex = false
+	window = RectangularWindow
+}
+new sig2B = BinarySignal{
+	file = "sigCSF_2B.bin"
+	numChannels = 1
+}
+CopySignal.bufferStride = 100
+CopySignal ifft2B sig2B
+
+print "\n***** VarSpectFilter vs. VarFirFilter Test 2: Long, varying, real *****"
+CompareSignals {
+   signal = sig2B 
+   standard = sig2A
+   message = "certifyFilter -- VarSpectFilter vs. VarFirFilter Test 2: Long, varying, real"
+}
+
+# Test 3:  Short complex signal. Filter out components over 1 kHz
+# (25% Nyquist) from the band center.
+
+new sigTimes3 = UniformGrid:{ first = 0; last = 0.012; rate = 8000 }
+
+# The test signal contains equal-amplitude sines up to 80% of Nyquist.
+new harfam3 = HarmonicFamily {
+	isComplex = true
+	frequency = 20000
+	times = sigTimes3
+	fundamental = 200
+	harmonics = (
+  # number	ampDB		phaseDeg
+	84		-3.0103		 90
+	85		-3.0103		 90
+	86		-3.0103		 90
+	87		-3.0103		 90
+	88		-3.0103		 90
+	89		-3.0103		 90
+	90		-3.0103		 90
+	91		-3.0103		 90
+	92		-3.0103		 90
+	93		-3.0103		 90
+	94		-3.0103		 90
+	95		-3.0103		 90
+	96		-3.0103		 90
+	97		-3.0103		 90
+	98		-3.0103		 90
+	99		-3.0103		 90
+	101		-3.0103		-90
+	102		-3.0103		-90
+	103		-3.0103		-90
+	104		-3.0103		-90
+	105		-3.0103		-90
+	106		-3.0103		-90
+	107		-3.0103		-90
+	108		-3.0103		-90
+	109		-3.0103		-90
+	110		-3.0103		-90
+	111		-3.0103		-90
+	112		-3.0103		-90
+	113		-3.0103		-90
+	114		-3.0103		-90
+	115		-3.0103		-90
+	116		-3.0103		-90
+	)
+}
+
+# 3A: Do it with VarFirFilter
+new coefBuf3A = LPFirCoefBuf {
+	filterLength = 25
+	bandFraction = 0.25
+}
+new coefs3A = InternalSignal{}
+CopySignal coefBuf3A coefs3A
+print coefs3A
+
+new filter3A = VarFirFilter {
+    inSignal = harfam3
+    coefBuf = coefBuf3A
+}
+new sig3A = BareAsciiSignal{ file = "filter_3A.txt" }
+CopySignal filter3A sig3A
+
+standard3A = BareAsciiSignal {
+	file = "$SSTHOME/standard/filter_3A.txt"
+	isComplex = true
+	frequency = harfam3.frequency
+	times = sigTimes3
+}
+
+print "***** VarFirFilter Test 3A: Short, complex *****"
+CompareSignals {
+    signal = sig3A 
+    standard = standard3A
+    message = "certifyFilter -- VarFirFilter Test 3A: Short, complex"
+}
+
+# 3B: Do it with VarSpectFilter
+new coefBuf3B = LPFirCoefBuf {
+	isComplex = true
+	frequency = harfam3.frequency
+	filterLength = 25
+	bandFraction = 0.25
+}
+new coefs3B = InternalSignal{}
+CopySignal coefBuf3B coefs3B
+print coefs3B
+
+new spectgen3B = SpectrumFromSignal {
+	inSignal = harfam3
+	isComplex = true
+	isPower = false
+	window = RectangularWindow
+}
+
+new filter3B = VarSpectFilter {
+	inSpectrum = spectgen3B
+    coefBuf = coefBuf3B
+    sampleRate = sigTimes3.rate
+}
+
+print "***** Expect report re setting overlapFraction to 0.242188 *****"
+new ifft3B = SignalFromSpectrum {
+	isComplex = true
+	frequency = harfam3.frequency
+	spectrum = filter3B
+	times = sigTimes3
+	window = RectangularWindow
+}
+new sig3B = BareAsciiSignal{ file = "filter_3B.txt" }
+CopySignal ifft3B sig3B
+
+print "\n***** VarSpectFilter Test 3B: Short, complex *****"
+CompareSignals {
+   signal = sig3B 
+   standard = standard3A
+   message = "certifyFilter -- VarSpectFilter Test 3B: Short, complex"
+}

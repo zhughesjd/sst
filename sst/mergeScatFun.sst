@@ -1,0 +1,20 @@
+# mergeScatFun.sst: Merge 4 1-channel uncorrelated scattering functions
+
+path = ( "..", "$SSTHOME/input" )
+
+read "parameters.sst"
+read "scatFuns.sst"
+
+new scatFunGen = MergeSignal {
+	inSignals = ( scatFun_1, scatFun_2, scatFun_3, scatFun_4 )
+}
+CopySignal scatFunGen scatFun
+
+scatFunGen.inSignals = ( scatFunSur_1, scatFunSur_2, scatFunSur_3, scatFunSur_4 )
+CopySignal scatFunGen scatFunSur
+
+scatFunGen.inSignals = ( scatFunBot_1, scatFunBot_2, scatFunBot_3, scatFunBot_4 )
+CopySignal scatFunGen scatFunBot
+
+scatFunGen.inSignals = ( scatFunVol_1, scatFunVol_2, scatFunVol_3, scatFunVol_4 )
+CopySignal scatFunGen scatFunVol

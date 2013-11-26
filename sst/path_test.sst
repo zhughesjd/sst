@@ -1,0 +1,16 @@
+# set path to empty
+path = ("")
+# verify that the path is empty
+print path
+# test for reading local file with no path
+read "nopath.sst"
+
+# set path to two directories
+path = ("hello", "world")
+# verify that both directories are on the path
+print path
+# read one file from each directory
+read "hello.sst"
+read "world.sst"
+read "nopath.sst"
+

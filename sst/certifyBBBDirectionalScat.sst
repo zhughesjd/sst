@@ -1,0 +1,147 @@
+# certifyBBBDirectionalScat.sst: Test "Directional" (Tesselated) SST Broadband 
+# Bistatic Scattering Function.
+# $Id: certifyBBBDirectionalScat.sst 6388 2010-04-30 23:19:50Z rpg $
+
+# echoInput = true
+
+# Source is omnidirectional
+new source = Source {
+        beams = ( OmniBeam )
+        signal = ModulatedTone {
+                frequency = 15000.0     # Hz
+                level = 200.0           # dB // uPa^2 m^2
+                times = { first = 0.05; interval = 0.1; number = 1 }
+        }
+# Locate transmitter: 150 meters down
+        trajectory = ( { time = 0.0
+                         position = ( 0 0 150 ) 
+                         velocity = ( 0 0 0 ) 
+                         orientation = ( 0 0 0 )
+                        } 
+                     )
+}
+
+# 2 Rectangular Piston Beams, with back hemisphere cut off.
+# Offset to generate complex response patterns
+
+new recPiston1 = RecPistonBeam {
+                    width = 0.1
+                    height = 0.1
+                    axisElevation = 0
+                    axisBearing = 65
+                    offset = (0, 1.0, 0)
+                 }
+new beam1 = ProductBeam {
+              inBeams = (
+                recPiston1,
+                ConeBeam {
+                    axisElevation = recPiston1.axisElevation
+                    axisBearing = recPiston1.axisBearing
+                    halfAngle = 90
+                }
+              )
+            }
+
+new recPiston2 = RecPistonBeam {
+                    width = 0.1
+                    height = 0.1
+                    axisElevation = 0
+                    axisBearing = -65
+                    offset = (0, -1.0, 0)
+                 }
+new beam2 = ProductBeam {
+              inBeams = (
+                recPiston2,
+                ConeBeam {
+                    axisElevation = recPiston2.axisElevation
+                    axisBearing = recPiston2.axisBearing
+                    halfAngle = 90
+                }
+              )
+            }                 
+
+# Define receive beams
+new rcvbeam = BeamList ( beam1, beam2 )
+
+# Locate receiver:  5 km due south of transmitter and moving
+new receiver = Sonar {
+   beams = rcvbeam
+#     beams = ( OmniBeam )    
+    trajectory = ( { time = 0.0
+                     position = ( -5000 0 150 )
+                     velocity = ( 10 5 1 )
+                     orientation = ( 0 0 0 )
+                   } 
+    )
+}
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+        depth = 1000.0   # constant (meters)
+        # Surface and bottom scattering and reflection are isotropic
+        surface = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+                backStrength = ConstantDbFunction2 { decibels = -40 }
+        }
+  	    bottom  = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+                backStrength = ConstantDbFunction2 { decibels = -20 }
+        }
+        soundspeed = 1500       # m/s
+ 	    # Volume parameters
+	    volumeAttenuation = -7.0    	# dB/km
+}
+
+# Use the internal SST eigenray model 
+new internalEigenrayModel = EigenrayModel {
+        maximumEigenrays = 5
+        maximumSurfaceBounces = 2
+        maximumBottomBounces = 2
+        filterLength = 1        # Narrowband; no filtering
+}
+
+###### Simulation Parameters ######
+
+# Use a 1x1 (at the equator) tesselation
+new tess = GriddedTesselation {
+        elevationInc = 1.0
+        azimuthIncEq = 1.0
+	#writePower = true
+	#writeResponse = true
+	#powerOutFile = "DirectPower.bin"
+	#responseOutFile = "DirectResponse.bin"
+}
+
+new scatFunGenerator = BBBDirectionalScat {
+        isComplex = true
+        isCorrelated = true
+        frequencies = UniformGrid { first=3500; number=1 }
+        # 1 second at 10 Hz
+        times = UniformGrid { first=3; last=4; interval= 0.1; }
+        dopplers = {
+                first = 1.0
+                last =  1.008
+                number = 3
+        }
+        maxAngleChange = 0.5    # make small compared to beamwidth
+        maxSamples = 1024       # next ^2 over (360/maxAngleChange)
+        # Do surface & bottom reverb
+        doVolume = false
+        doSurface = true
+        doBottom = true
+        eigenrayModel = internalEigenrayModel
+        tesselation = tess
+}
+
+print "\n***** BBBDirectionalScatFun Test: Multipaths, bistatic, surface & bottom, complex, correlated
+
+new this = BareAsciiSignal { file = "bbbdirectscat.txt" }
+CopySignal scatFunGenerator this
+
+new standard = BareAsciiSignal { file = "$SSTHOME/standard/bbbdirectscat.txt" }
+CompareSignals {
+    signal = this 
+    standard = standard
+    message = "certifyBBBDirectionalScat"
+}

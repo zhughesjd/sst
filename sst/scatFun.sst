@@ -1,0 +1,11 @@
+# scatFun.sst: Specify the scattering function
+# $Id: scatFun.sst 4951 2006-12-29 00:59:57Z rpg $
+
+new scatFun = SIOScatFun {
+    file = "scatFunTotal.sio"
+	times = scatFunTimes            # see grids.sst
+	frequencies = scatFunFreqs      # see grids.sst
+	dopplers = scatFunDopplers      # see grids.sst
+	isCorrelated = true
+	isComplex = true
+}

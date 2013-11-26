@@ -1,0 +1,28 @@
+# Define a 400-ms 70-dB order-9 Taylor-weighted pulse
+new pulseTimes = UniformGrid {
+	first = 0.0
+	last  = 0.4
+	rate = 2000
+}
+new tranPulse = ModulatedTone {
+	isComplex = true
+	frequency = 10000.0
+	times = pulseTimes
+	level = 210.0	# dB // uPa^2 m^2
+	envelope = TaylorWindow {
+		start = 0
+		end = 0.4
+		sidelobeRatioDB = 70
+		numTerms = 9
+	}
+}
+
+new transmissionBeam = elementBeam {
+	offset = (0, 0, 0)	# [meter]
+}
+
+new tranSource = Source {
+	beams  = ( transmissionBeam )
+	signal = tranPulse
+	trajectory = sonarTrajectory
+}

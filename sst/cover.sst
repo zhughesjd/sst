@@ -1,0 +1,91 @@
+# cover.sst: Oversample a complex signal at a higher rate
+# $Id: cover.sst 5616 2008-12-04 00:30:09Z schutz $
+
+##   Summary:
+#	The intent of this example is to help users choose the value of the
+# interpolation order, to achieve a balance between accuracy and performance.
+#	This example starts with a narrowband signal consisting of a set of
+# 7 tones at 200-Hz intervals from 4400 to 5600 Hz, in "complex envelope"
+# representation using a center frequency of 5 kHz and a sampling rate of
+# 1500 Hz -- 25% oversampled.  It uses ResampleSignal to interpolate it to
+# a sampling rate of 4750 Hz.  The result is compared to a "standard" that
+# consists of the same 7 tones computed originally at the higher rate.
+#	This is very similar to input/certifyCCSampler.sst, but uses more
+# different "order" values, a longer time interval, and produces output
+# signals in SIO format for plotting instead of using CompareSignals.
+# Plot them using the UNIX SIO script plotCover.csh in this directory.
+
+# Make the 7-tone "standard".
+harfam = HarmonicFamily:{
+	frequency = 5000
+	times = { first = 0; last = 1.0; rate = 4750 }
+	order = 0
+	fundamental = 199.7	# Hz  -- displaced to avoid hiding alias peaks
+	harmonics = (
+	#  number   ampDB    phaseDeg
+		22       0.0       0.0
+		23       0.0       0.0
+		24       0.0       0.0
+		25       0.0       0.0
+		26       0.0       0.0
+		27       0.0       0.0
+		28       0.0       0.0
+	)
+}
+standard = SIOSignal { file = "cover_std.sio" }
+CopySignal harfam standard
+
+# The test input signal is the same harmonic family, but sampled at
+# only 1500 Hz -- 25% oversampled.
+harfam.times = { first = -0.1; last = 1.1; rate = 1500 }
+testin = SIOSignal { file = "cover_in.sio" }
+CopySignal harfam testin
+
+# Test the resampling for orders 0 to 10
+resampler = ResampleSignal {
+	frequency = standard.frequency
+	times = standard.times
+	inSignal = testin
+}
+
+echoInput = true
+
+resampler.inSignal.order = 0
+testout = SIOSignal { file = "cover_00.sio" }
+CopySignal resampler testout
+
+resampler.inSignal.order = 1
+testout.file = "cover_01.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 2
+testout.file = "cover_02.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 3
+testout.file = "cover_03.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 4
+testout.file = "cover_04.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 5
+testout.file = "cover_05.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 7
+testout.file = "cover_07.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 9
+testout.file = "cover_09.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 11
+testout.file = "cover_11.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 13
+testout.file = "cover_13.sio"
+CopySignal resampler testout

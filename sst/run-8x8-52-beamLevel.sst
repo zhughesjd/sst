@@ -1,0 +1,11 @@
+# A high-frequency, 5-beam monostatic sonar with offset beams.
+read "../verticalPlanarArray/sonar-8x8-52.sst"
+receiver = receiverBeamLevel
+
+read "transmitter.sst"
+
+read "reverb.sst"
+
+read "generate-8x8-52.sst"
+
+read "sound-8x8-52.sst"

@@ -1,0 +1,39 @@
+###### Describe the target (active + passive) ######
+
+# Specify the active target.  It's running away and turning left.
+new targetTrajectory = Trajectory(	# One Snapshot. Circular arc.
+	{
+		time = 0                         # s
+		
+		position = ( 2000 0 400 )          # m
+		# position = ( 2000 0 100 )          # m
+		# position = ( 2000 300 400 )          # m
+		# position = ( 2000 300 100 )          # m
+		
+		velocity = ( 10.4, 6, 0.0 )         # m/s
+		orientation = ( 30.0, 0, 0 )       # deg
+		orientationRate = ( -2.0 0.0 0.0 )   # deg/s
+	}
+)
+new target = PointTarget {
+	trajectory = targetTrajectory
+    points = (		# Three highlights in an 80-meter line.
+#    strength [dB]    position [m]    velocity [m/s]
+        -4,         ( 40, 0, 0 ),     ( 0, 0, 0 )
+         0,         ( 10, 0, 0 ),     ( 0, 0, 0 )
+         7,        ( -40, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+
+################################################################################
+# Set up the source signal
+# The source signal consists of broadband noise.
+read "source.sst"
+
+# The broadband noise source has the same trajectory as the active target.
+# The emission center is near the target's stern.
+new targetSource = Source {
+	beams = ( OmniBeam{ offset = ( -30, 0, 0 ) } )
+	signal = sourceGenerator
+	trajectory = targetTrajectory
+}

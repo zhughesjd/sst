@@ -1,0 +1,89 @@
+# cpxDoppler.sst: Interpolate complex signal using various orders
+# $Id: cpxDoppler.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# SUMMARY:
+#	The intent of this example is to help users choose the value of the
+# interpolation order, to achieve a balance between accuracy and performance.
+#	This example starts with a narrowband signal consisting of a set of
+# 13 tones at 100-Hz intervals from 4400 to 5600 Hz, in "complex envelope"
+# representation using a center frequency of 5 kHz and a sampling rate of
+# 1500 Hz -- 25% oversampled.  It uses ResampleSignal to interpolate it to
+# a sample rate and center frequency that differ from the originals by 1%.
+# This is computationally equivalent to listening to the signal from a
+# narrowband source that is Doppler shifted due to a closing speed of 1% of
+# the speed of sound (15 m/s, or 30 knots).  The calculation is repeated
+# using several different values of the input Signal's "order" attribute
+# to show the effects of interpolation order.
+
+harfam = HarmonicFamily:{
+	frequency = 4950
+	times = { first = -0.1; last = 1.1; rate = 1485 }
+	order = 0
+	fundamental = 99.7	# Hz -- displaced to avoid hiding alias peaks
+	harmonics = (
+	#  number   ampDB    phaseDeg
+		44       0.0       0.0
+		45       0.0       0.0
+		46       0.0       0.0
+		47       0.0       0.0
+		48       0.0       0.0
+		49       0.0       0.0
+		50       0.0       0.0
+		51       0.0       0.0
+		52       0.0       0.0
+		53       0.0       0.0
+		54       0.0       0.0
+		55       0.0       0.0
+		56       0.0       0.0
+	)
+}
+sourceSignal = SIOSignal { file = "cpxDoppler_src.sio" }
+CopySignal harfam sourceSignal
+
+resampler = ResampleSignal {
+	inSignal = sourceSignal
+	frequency = 5000
+	times = { first = 0; last = 1.0; rate = 1500 }
+}
+recSignal = SIOSignal { file = "cpxDoppler_00.sio" }
+CopySignal resampler recSignal
+
+recSignal.file = "cpxDoppler_01.sio"
+sourceSignal.order = 1
+resampler.inSignal = sourceSignal
+CopySignal resampler recSignal
+
+recSignal.file = "cpxDoppler_02.sio"
+sourceSignal.order = 2
+resampler.inSignal = sourceSignal
+CopySignal resampler recSignal
+
+recSignal.file = "cpxDoppler_03.sio"
+sourceSignal.order = 3
+resampler.inSignal = sourceSignal
+CopySignal resampler recSignal
+
+recSignal.file = "cpxDoppler_05.sio"
+sourceSignal.order = 5
+resampler.inSignal = sourceSignal
+CopySignal resampler recSignal
+
+recSignal.file = "cpxDoppler_07.sio"
+sourceSignal.order = 7
+resampler.inSignal = sourceSignal
+CopySignal resampler recSignal
+
+recSignal.file = "cpxDoppler_09.sio"
+sourceSignal.order = 9
+resampler.inSignal = sourceSignal
+CopySignal resampler recSignal
+
+recSignal.file = "cpxDoppler_11.sio"
+sourceSignal.order = 11
+resampler.inSignal = sourceSignal
+CopySignal resampler recSignal
+
+recSignal.file = "cpxDoppler_13.sio"
+sourceSignal.order = 13
+resampler.inSignal = sourceSignal
+CopySignal resampler recSignal

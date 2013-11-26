@@ -1,0 +1,141 @@
+# SST script to run the dispersion example with varying number of eigenrays
+#
+# The calculation is done 5 times, with EigenrayModel.maximumEigenrays set to
+# 50, 100, 200, 500, and 100 respectively, to files with names of the form
+# "out-$n.sio" where $n is that number.
+#
+# The idea is to produce a time series that is reasonably close to an
+# "impulse response" for this ocean channel. Ideally, then, the transmit
+# pulse should be a delta function, but that would violate SST's
+# requirement that the signal's band must be well within the Nyquist
+# band determined by the output sample rate. So, the transmit signal used
+# is a delta function (one nonzero sample) passed through a FIR filter
+# set to limit it to 80% of the Nyquist limit. The result is written into
+# file "filt.sio" for plotting.
+
+# $Id: run.sst 6717 2011-10-06 17:41:52Z rpg $
+
+# The bottom has the same properties as in the RAM run:
+new jb = JacksonBottom {
+    densityRatio = 2
+    soundSpeedRatio = 1.1
+    lossParameter = 0.00916169
+}
+new o = Ocean {
+    soundspeed = 1500
+    depth = 30
+    windspeed = 0
+    bottom = jb
+}
+#check
+#print TableBoundary {
+#    originalBoundary = o.bottom
+#    soundspeed = 1500;
+#    frequencies = UniformGrid { first = 100; interval = 100; number = 5; }
+#    angles = UniformGrid { first = 10; interval = 10; number = 3; }
+#}
+
+# Normalize pulse to give final filtered version an energy of 1.0 uPa^2 s.
+# Over-sample it by a factor of 20, and then filter it down to a
+# 500-Hz band (with a 10% taper) as in the RAM run.
+impulse = ModulatedTone {
+    times = UniformGrid { first = -0.02; last = 0.02; rate = 20000 }
+    order = 0
+    isComplex = false
+    envelope = RectangularWindow {  # One nonzero sample
+        value = 498.3024    # experimentally determined
+        start = -0.000025   # -0.5/rate
+        end = 0.000025      # 0.5/rate
+    }
+}
+
+# The FIRCoefBuf below needs its input spectrum on these frequencies:
+# The frequency interval must be firCoef.rate/firCoef.nfft = 20000/1024 = 19.53
+new specFrequencies = UniformGrid { first = 0; last = 10000; number = 513 }
+
+# Here starts a kludge: Construct a "signal" whose shape versus time
+# is the shape we want for the filter versus frequency.
+new hw = HannWindow {
+    start = 30
+    end = 500
+    taperFraction = 0.1
+}
+new spectone = ModulatedTone {
+    frequency = 5000    # doesn't matter but must be big enough
+    times = specFrequencies
+    isComplex = true
+    envelope = hw
+}
+new spectab = InternalSignal{}
+CopySignal spectone spectab
+# For plotting:
+CopySignal spectone SIOSignal{ file = "spect.sio" }
+##print spectab
+
+
+# This is the kludgy part: Use the same sample values but re-shape it
+new sb = InternalSpectrum {
+    isComplex = true
+    frequencies = UniformGrid{ first = 0; last = 10000; number = 513 }
+    isPower = false
+    samples = spectab.buf
+}
+
+new fc = FIRCoef {
+    nfft = 1024
+    filterLength = 1000
+    rate = impulse.times.rate
+    frequency = 0
+}
+
+new cb = FIRCoefBuf {
+    isComplex = false
+    firCoef = fc
+    specBuf = sb
+}
+
+new filt = VarFirFilter {
+    times = UniformGrid { first = -0.1; last = 0.1; rate = 20000 }
+    isComplex = false
+    order = 32
+    inSignal = impulse
+    #coefBuf = LPFirCoefBuf { filterLength = 127; bandFraction = 0.0475 }
+    coefBuf = cb
+}
+
+CopySignal filt SIOSignal{ file = "filt.sio" }
+
+
+s = DirectSignal { 
+    times = UniformGrid { first = 6.4; rate = 2000; last = 7.1 }
+    isComplex = false
+    ocean = o
+    order = 32
+    source = Source {
+        beams = ( OmniBeam {} )
+        signal = filt
+        trajectory = ( { position = ( 0, 0, 10 ) } )
+    }
+    receiver = Sonar {
+        beams = ( OmniBeam {} )
+        trajectory = ( { position = ( 9750, 0, 10 ); } )
+    }
+    eigenrayModel = EigenrayModel {
+        filterLength = 128
+        maximumEigenrays = 50;  # first value
+        maximumSurfaceBounces = 1000; maximumBottomBounces = 1000; }
+}
+
+CopySignal s SIOSignal { file = "out-50.sio" }
+
+s.eigenrayModel.maximumEigenrays = 100
+CopySignal s SIOSignal { file = "out-100.sio" }
+
+s.eigenrayModel.maximumEigenrays = 200
+CopySignal s SIOSignal { file = "out-200.sio" }
+
+s.eigenrayModel.maximumEigenrays = 500
+CopySignal s SIOSignal { file = "out-500.sio" }
+
+s.eigenrayModel.maximumEigenrays = 1000
+CopySignal s SIOSignal { file = "out-1000.sio" }

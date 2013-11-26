@@ -1,0 +1,133 @@
+# compScatFun.sst: Compute the scattering function
+
+path = ( "..", "$SSTHOME/input" )
+
+read "parameters.sst"
+read "source.sst"
+read "receivers.sst"
+read "ocean.sst"
+read "eigmodel.sst"
+read "scatFuns.sst"
+
+# Receiver 1 at 8 m
+new scatFunSurGen_1 = BBBScatFun {
+	time = 0
+	times = scatFunTimes
+	frequencies = scatFunFreqs
+	dopplers = scatFunDopplers
+	isCorrelated = false
+	receiver = receiver_1
+	doSurface = true
+	doBottom = false
+	doVolume = false
+	maxSamples = 64	# lower it for speed (wide beams)
+	maxAngleChange = 6
+}
+CopySignal.bufferStride = 1	# so we can see progress
+CopySignal scatFunSurGen_1 scatFunSur_1
+
+new scatFunBotGen_1 = scatFunSurGen_1 {
+	doSurface = false
+	doBottom = true
+	doVolume = false
+}
+CopySignal scatFunBotGen_1 scatFunBot_1
+
+new scatFunVolGen_1 = scatFunSurGen_1 {
+	doSurface = false
+	doBottom = false
+	doVolume = true
+}
+CopySignal scatFunVolGen_1 scatFunVol_1
+
+new scatFunGen_1 = SumSignal {
+	inSignals = ( scatFunSur_1, scatFunBot_1, scatFunVol_1 )
+}
+CopySignal scatFunGen_1 scatFun_1
+
+# Receiver 2 at 13 m
+new scatFunSurGen_2 = scatFunSurGen_1 {
+	receiver = receiver_2
+}
+CopySignal scatFunSurGen_2 scatFunSur_2
+
+new scatFunBotGen_2 = scatFunSurGen_2 {
+	doSurface = false
+	doBottom = true
+	doVolume = false
+}
+CopySignal scatFunBotGen_2 scatFunBot_2
+
+new scatFunVolGen_2 = scatFunSurGen_2 {
+	doSurface = false
+	doBottom = false
+	doVolume = true
+}
+CopySignal scatFunVolGen_2 scatFunVol_2
+
+new scatFunGen_2 = SumSignal {
+	inSignals = ( scatFunSur_2, scatFunBot_2, scatFunVol_2 )
+}
+CopySignal scatFunGen_2 scatFun_2
+
+
+# Receiver 3 at 18 m
+new scatFunSurGen_3 = scatFunSurGen_1 {
+	receiver = receiver_3
+}
+CopySignal scatFunSurGen_3 scatFunSur_3
+
+new scatFunBotGen_3 = scatFunSurGen_3 {
+	doSurface = false
+	doBottom = true
+	doVolume = false
+}
+CopySignal scatFunBotGen_3 scatFunBot_3
+
+new scatFunVolGen_3 = scatFunSurGen_3 {
+	doSurface = false
+	doBottom = false
+	doVolume = true
+}
+CopySignal scatFunVolGen_3 scatFunVol_3
+
+new scatFunGen_3 = SumSignal {
+	inSignals = ( scatFunSur_3, scatFunBot_3, scatFunVol_3 )
+}
+CopySignal scatFunGen_3 scatFun_3
+
+
+# Receiver 4 at 23 m
+new scatFunSurGen_4 = scatFunSurGen_1 {
+	receiver = receiver_4
+}
+CopySignal scatFunSurGen_4 scatFunSur_4
+
+new scatFunBotGen_4 = scatFunSurGen_4 {
+	doSurface = false
+	doBottom = true
+	doVolume = false
+}
+CopySignal scatFunBotGen_4 scatFunBot_4
+
+new scatFunVolGen_4 = scatFunSurGen_4 {
+	doSurface = false
+	doBottom = false
+	doVolume = true
+}
+CopySignal scatFunVolGen_4 scatFunVol_4
+
+new scatFunGen_4 = SumSignal {
+	inSignals = ( scatFunSur_4, scatFunBot_4, scatFunVol_4 )
+}
+CopySignal scatFunGen_4 scatFun_4
+
+#### SST BUG: This doesn't work. It gets only the first 2 channels.
+## After this run, do it in a separate run from the event directory:
+## sst ../mergeScatFun.sst
+
+# Merge channels
+new scatFunGen = MergeSignal {
+	inSignals = ( scatFun_1, scatFun_2, scatFun_3, scatFun_4 )
+}
+CopySignal scatFunGen scatFun

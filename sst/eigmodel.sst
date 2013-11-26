@@ -1,0 +1,16 @@
+# eigmodel.sst: The eigenray model (use after compEigenrays.sst is run)
+
+new eigenrayModel = GSMEigenrayModel {
+ 	maximumEigenrays = 15
+ 	maximumSurfaceBounces = 2
+ 	maximumBottomBounces = 3
+ 	filterLength = 1	# No filtering for now
+ 	rangeReference = 1.0	# Meter, not yard
+    files = (
+		"ER0101.DAT", "ER0102.DAT", "ER0103.DAT", "ER0104.DAT",
+		"ER0201.DAT", "ER0202.DAT", "ER0203.DAT", "ER0204.DAT",
+		"ER0301.DAT", "ER0302.DAT", "ER0303.DAT", "ER0304.DAT",
+		"ER0401.DAT", "ER0402.DAT", "ER0403.DAT", "ER0404.DAT",
+		"ER0501.DAT", "ER0502.DAT", "ER0503.DAT", "ER0504.DAT"
+	)
+}

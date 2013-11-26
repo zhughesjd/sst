@@ -1,0 +1,268 @@
+# certifyFunction.sst: Certification tests for SST Function subclasses
+# $Id: certifyFunction.sst 4951 2006-12-29 00:59:57Z rpg $
+
+##echoInput = true
+
+# Tabulate a constant function.
+new constFun = ConstantFunction { value = 1.5 }
+new tabConstFun = TableFunction {
+	originalFunction = constFun;
+	table.x = { first = 0; last = 1; number = 6 }
+}
+##print tabConstFun.table.y
+new standardConstant = FloatAutoArray: ( 1.5, 1.5, 1.5, 1.5, 1.5, 1.5 )
+print "\n***** ConstantFunction *****"
+CompareTables {
+  table = tabConstFun.table.y 
+  standardTable = standardConstant
+  message = "certifyFunction -- ConstantFunction"
+}
+
+# Print a TableFunction specified using separate x and y lists.
+# Use linear interpolation.
+new listInFun = TableFunction {
+	table = {
+		x = { first = 0; last = 4; number = 5 }
+		y = ( 1, 3, 0.5, 4, 5 )
+	}
+}
+print "\n***** Check 2-column print format of this TableFunction *****"
+print listInFun
+new listOutFun = TableFunction {
+	originalFunction = listInFun
+	table.x = { first = -.2; last = 5; interval = 0.2 }
+}
+##print listOutFun.table.y
+new standardLinear = FloatAutoArray: (
+   1.0, 1.0, 1.40, 1.80, 2.20, 2.60, 3.0, 2.50, 2.0, 1.50,
+   1.0, 0.50, 1.20, 1.90, 2.60, 3.30, 4.0, 4.20, 4.40, 4.60,
+   4.80, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0 )
+print "\n***** Linear list-form TableFunction *****"
+CompareTables {
+  table = listOutFun.table.y 
+  standardTable = standardLinear
+  message = "certifyFunction -- Linear list-form TableFunction"
+}
+
+# Print and sub-tablulate a TableFunction specified using a 2-column table.
+# Use linear interpolation.
+new tabInFun = TableFunction { table = (
+0	1
+1	3
+2	0.5
+3	4
+4	5
+)}
+new tabOutFun = TableFunction {
+	originalFunction = tabInFun
+	table.x = { first = -.2; last = 5; interval = 0.2 }
+}
+##print tabOutFun.table.y
+print "\n***** Linear table-form TableFunction *****"
+CompareTables {
+  table = tabOutFun.table.y 
+  standardTable = standardLinear
+  message = "certifyFunction -- Linear table-form TableFunction"
+}
+
+# Sub-tabulate the same TableFunction, but use cubic interpolation.
+tabInFun.order = 3
+tabOutFun.originalFunction = tabInFun	# to force re-initialization
+##print tabOutFun.table.y
+new standardCubic = FloatAutoArray: (
+  1.0, 1.0, 1.760, 2.340, 2.740, 2.960, 3.0, 2.6920, 2.0360, 1.2840,
+  6.880e-01, 5.0e-01, 8.560e-01, 1.5880, 2.4920, 3.3640, 4.0, 4.40, 4.70, 4.90,
+  5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0
+)
+print "\n***** Cubic TableFunction *****"
+CompareTables {
+  table = tabOutFun.table.y 
+  standardTable = standardCubic
+  message = "certifyFunction -- Cubic TableFunction"
+}
+
+# Sub-tabulate the same TableFunction, but use zero order (nearest neighbor).
+tabInFun.order = 0
+tabOutFun.originalFunction = tabInFun	# to force re-initialization
+##print tabOutFun.table.y
+new standardNearest = FloatAutoArray: (
+  1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 3.0, 3.0, 5.0e-01,
+  5.0e-01, 5.0e-01, 5.0e-01, 5.0e-01, 4.0, 4.0, 4.0, 4.0, 4.0, 5.0,
+  5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0
+)
+print "\n***** Nearest-neighbor TableFunction *****"
+CompareTables {
+  table = tabOutFun.table.y 
+  standardTable = standardNearest
+  message = "certifyFunction -- Nearest-neighbor TableFunction"
+}
+
+## Now go through the whole sequence again, using an original function
+## tabulated on a non-uniform grid.
+
+# Print a TableFunction specified using separate x and y lists.
+listInFun = TableFunction {
+	table = {
+		x = ( 0, 0.8, 2, 2.5, 4 )
+		y = ( 1, 3, 0.5, 4, 5 )
+	}
+}
+listOutFun = TableFunction {
+	originalFunction = listInFun
+	table.x = { first = -.2; last = 5; interval = 0.2 }
+}
+##print listOutFun.table.y
+new standardLinearNU = FloatAutoArray: (
+  1.0, 1.0, 1.50, 2.0, 2.50, 3.0, 2.583333, 2.166667, 1.750, 1.333333,
+  9.166667e-01, 5.0e-01, 1.90, 3.30, 4.066667, 4.20, 4.333333, 4.466667, 4.60, 4.733333,
+  4.866667, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0
+)
+print "\n***** Linear nonuniform list-form TableFunction *****"
+CompareTables {
+  table = listOutFun.table.y 
+  standardTable = standardLinearNU
+  message = "certifyFunction -- Linear nonuniform list-form TableFunction"
+}
+
+# Print and sub-tablulate a TableFunction specified using a 2-column table.
+# Use linear interpolation.
+tabInFun = TableFunction { table = (
+0	1
+0.8	3
+2.0	0.5
+2.5	4
+4	5
+)}
+tabOutFun = TableFunction {
+	originalFunction = tabInFun
+	table.x = { first = -.2; last = 5; interval = 0.2 }
+}
+##print tabOutFun.table.y
+print "\n***** Linear nonuniform table-form TableFunction *****"
+CompareTables {
+  table = tabOutFun.table.y 
+  standardTable = standardLinearNU
+  message = "certifyFunction -- Linear nonuniform table-form TableFunction"
+}
+
+# Sub-tabulate the same TableFunction, but use cubic interpolation.
+tabInFun.order = 3
+tabOutFun.originalFunction = tabInFun	# to force re-initialization
+##print tabOutFun.table.y
+new standardCubicNU = FloatAutoArray: (
+  1.0, 1.0, 1.7750, 2.366667, 2.7750, 3.0, 2.787173, 2.085621, 1.200735, 4.379085e-01,
+  1.025327e-01, 5.0e-01, 1.783647, 3.358588, 4.510, 5.340, 5.916667, 6.240, 6.310, 6.126667,
+  5.690, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0
+)
+print "\n***** Cubic nonuniform TableFunction *****"
+CompareTables {
+  table = tabOutFun.table.y 
+  standardTable = standardCubicNU
+  message = "certifyFunction -- Cubic nonuniform TableFunction"
+}
+
+# Sub-tabulate the same TableFunction, but use zero order (nearest neighbor).
+tabInFun.order = 0
+tabOutFun.originalFunction = tabInFun	# to force re-initialization
+##print tabOutFun.table.y
+new standardNearestNU = FloatAutoArray: (
+  1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 3.0, 3.0, 5.0e-01, 5.0e-01,
+  5.0e-01, 5.0e-01, 5.0e-01, 4.0, 4.0, 4.0, 4.0, 4.0, 5.0, 5.0,
+  5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0
+)
+print "\n***** Nearest-neighbor nonuniform TableFunction *****"
+CompareTables {
+  table = tabOutFun.table.y 
+  standardTable = standardNearestNU
+  message = "certifyFunction -- Nearest-neighbor nonuniform TableFunction"
+}
+
+## Now test DerivTableFunction.
+
+# Print a DerivTableFunction specified using separate x, y, deriv lists.
+new listInDerFun = DerivTableFunction {
+	table = {
+		x =     ( 0, 0.8, 2, 2.5, 4 )
+		y =     ( 1, 3, 0.5, 4, 4.9 )
+		deriv = ( 0.0, 0.0, 1.0, 0.6, 0.6 )
+	}
+}
+##print listInDerFun
+tabOutFun.originalFunction = listInDerFun
+new standardDerTabFun = FloatAutoArray: (
+  1.0, 1.0, 1.31250, 2.0, 2.68750, 3.0, 2.787037, 2.262963, 1.60, 9.703704e-01,
+  5.462963e-01, 5.0e-01, 1.77520, 3.61360, 4.060, 4.180, 4.30, 4.420, 4.540, 4.660,
+  4.780, 4.90, 4.90, 4.90, 4.90, 4.90, 4.90
+)
+print "\n***** List-form DerivTableFunction *****"
+CompareTables {
+  table = tabOutFun.table.y 
+  standardTable = standardDerTabFun
+  message = "certifyFunction -- List-form DerivTableFunction"
+}
+
+# Print and sub-tablulate a DerivTableFunction specified using a 3-column table.
+new tabInDerFun = DerivTableFunction { table = (
+0	1   0.0
+0.8	3   0.0
+2.0	0.5 1.0
+2.5	4   0.6
+4	4.9 0.6
+)}
+tabOutFun.originalFunction = tabInDerFun
+##print tabOutFun.table.y
+print "\n***** Table-form DerivTableFunction *****"
+CompareTables {
+  table = tabOutFun.table.y 
+  standardTable = standardDerTabFun
+  message = "certifyFunction -- Table-form DerivTableFunction"
+}
+
+# Pierson-Dolelan Wave Height Spectrum
+new pdwh = PiersonWaveHeight{ windspeed = 10 }
+new tabPiersonFun = TableFunction {
+	originalFunction = PiersonWaveHeight;
+    # Each set of 5 samples crosses a region boundary.
+    # Check for continuity across each 5-member row.
+    table.x = ( 0, 2.5e-5, 5e-5, 7.5e-5, 1e-4,
+    0.004695, 0.004696, 0.004697, 0.004698, 0.004699,
+    0.0098, 0.0099, 0.0100, 0.0101, 0.0102, 
+    0.940,  0.941,  0.942, 0.943, 0.944, 
+    4.620, 4.625, 4.630, 4.635, 4.640 )
+}
+##print tabPiersonFun.table.y
+new standardPierson = FloatAutoArray: (
+  0.000000e+00,   0.000000e+00,   0.000000e+00,   2.830118e-35,   1.109771e-19,
+  1.510518e+00,   1.510335e+00,   1.510156e+00,   1.509995e+00,   1.509834e+00,
+  1.045488e+00,   1.040194e+00,   1.034980e+00,   1.026012e+00,   1.017209e+00,
+  1.946329e-02,   1.944519e-02,   1.943026e-02,   1.942731e-02,   1.942436e-02,
+  9.484584e-03,   9.471554e-03,   9.458539e-03,   9.420609e-03,   9.349778e-03
+)
+print "\n***** Pierson-Dolelan Wave Height Spectrum *****"
+CompareTables {
+  table = tabPiersonFun.table.y 
+  standardTable = standardPierson
+  message = "certifyFunction -- Pierson-Dolelan Wave Height Spectrum"
+}
+
+# Thorp volume attenuation model
+new tabThorpFun = TableFunction {
+	originalFunction = ThorpAttenuation;
+    # Each set of 5 samples crosses a region boundary.
+    # Check for continuity across each 5-member row.
+    table.x = ( 0, 1000, 2000, 5000, 10000, 20000 )
+}
+#print tabThorpFun.table.y
+new standardThorp = FloatAutoArray: ( 
+#kHz=    0       1           2          5         10        20
+#term1   0   0.05        0.08       0.096154   0.09901   0.09975
+#term2   0   0.0097537   0.038986   0.242424   0.95238   3.55556
+#dB/kyd= 0   0.0597537   0.118986   0.338578   1.05139   3.65530
+# / 0.9144 to dB/kHz:
+         0, -0.0653474, -0.130125, -0.370273, -1.14981, -3.99748 )
+print "\n***** Thorp Volume Attenuation Model *****"
+CompareTables {
+  table = tabThorpFun.table.y 
+  standardTable = standardThorp
+  message = "certifyFunction -- Thorp Volume Attenuation Model"
+}

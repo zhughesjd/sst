@@ -1,0 +1,35 @@
+ #### SST script written by SalvoSim_WriteScripts.m at 12-Nov-2013 15:13:21 #### 
+
+ random.seed = 1234567890
+
+# ====================== OCEAN ========================
+
+read "jacksonBottoms.sst"
+ocean = Ocean {
+    depth = 500.0
+    soundspeed = 1500.000
+    bottom = SandyGravel
+    surface = APLSurface
+    windspeed = 5.00
+    volumeAttenuation = ThorpAttenuation
+}
+
+eigenrayModel = EigenrayModel:{
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+}
+
+
+# ====================== TRAJECTORIES ========================
+
+
+new receiver_trajectory = Trajectory:(
+# time    |           position          |           velocity          |         orientation         |       orientationRate
+     0.000       0.0       0.0       0.0     0.000     0.000     0.000       0.0       0.0       0.0       0.0       0.0       0.0
+)   # end receiver_trajectory
+
+# receiver is a receiver
+
+
+print "============= Summing passive + active ============="
+totalReceived_First = SIOSignal:{

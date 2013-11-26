@@ -1,0 +1,18 @@
+# compReverbSpect.sst: Compute the reverberation spectrum
+# $Id: compReverbSpect.sst 4951 2006-12-29 00:59:57Z rpg $
+
+read "grids.sst"        # define various frequency grids
+read "tranSpect.sst"    # define tranSpect
+read "scatFun.sst"      # define scatFun
+read "reverbSpect.sst"  # define reverbSpect
+
+new reverbSpectGen = ReverbSpectrum {
+    scatFunction = scatFun
+    pulseSpectrum = tranSpect
+    times = reverbSpect.times
+    frequencies = reverbSpect.frequencies
+    isPower = reverbSpect.isPower
+    isCorrelated = scatFun.isCorrelated
+}
+
+CopySignal reverbSpectGen reverbSpect

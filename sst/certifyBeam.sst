@@ -1,0 +1,837 @@
+# certifyBeam.sst: Certification tests for SST beam patterns
+# $Id: certifyBeam.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+### General strategy:  For each Beam subclass, we make a sparse table (using
+### EBFTableBeam) and use CompareTables compare it to a table that was
+### produced on an earlier run and scrutinized for correctness.  In some
+### cases, several different ways of computing the same beam are compared
+### to the same table.
+
+## Class OmniBeam:
+new omni = OmniBeam {
+    offset = ( 0.01 0.02 0.03 )
+        # Position of beam phase center (vehicle coordinates, in meters).
+    delay = 0.00005	# 1/2 cycle at 10 kHz
+        # Beam delay offset (in seconds).
+}
+
+new tableOmni = EBFTableBeam {
+    originalBeam = omni
+		# Original beam pattern to be tabulated
+	soundSpeed = 1500
+		# Sound speed, m/s, used to evaluate originalBeam
+	elevations = { first = 0; last = 90; number = 2 }
+		# Elevation angles, degrees down, where beam is tabulated
+	bearings = { first = 0; last = 90; number = 2 }
+		# Bearing angles, degrees to starboard, where beam is tabulated
+	frequencies = { first = 10000; last = 15000; number = 2 }
+		# Frequencies, Hz, where beam is tabulated
+	isComplex = true
+		# true if table is complex, false if real
+}
+	# Beam pattern interpolated from table in elevation, bearing, frequency
+    # Base class: Beam
+
+
+new standardOmni = FloatAutoArray: (
+ -9.135454e-01,  -4.067366e-01,  -3.090170e-01,  -9.510565e-01,
+ -6.691306e-01,  -7.431448e-01,  -3.090170e-01,  -9.510565e-01,
+ 
+ -5.877852e-01,   8.090170e-01,  -9.510565e-01,  -3.090169e-01,
+ -9.510565e-01,   3.090170e-01,  -9.510565e-01,  -3.090169e-01
+)
+
+print "\n***** Comparing offset, delayed OmniBeam to its standard *****"
+CompareTables {
+  table = tableOmni.samples 
+  standardTable = standardOmni
+  message = "certifyBeam -- Comparing offset, delayed OmniBeam to its standard"
+}
+
+## Class ConeBeam:
+new cone = ConeBeam {
+    axisElevation = 45
+        # Elevation of the axis of the cone (degrees down)
+    axisBearing = -45
+        # Bearing of the axis of the cone (degrees to starboard)
+    halfAngle = 60
+        # Cone half-angle, from axis to boundary, in degrees
+}
+new tableCone = EBFTableBeam {
+	elevations = { first = -30; last = 90; number = 5 }
+	bearings = { first = -180; last = 90; number = 8 }
+	frequencies = { first = 15000; last = 15000; number = 1 }
+    originalBeam = cone
+	isComplex = true
+}
+new standardCone = FloatAutoArray: (
+ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+ 0, 0, 0, 0, 0, 0, 1, 0, 1, 0,
+ 0, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+ 0, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+ 0, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+ 0, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+ 0, 0, 0, 0, 0, 0, 1, 0, 1, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0
+)
+print "\n***** Comparing ConeBeam to its standard *****"
+CompareTables {
+   table = tableCone.samples 
+   standardTable = standardCone
+   message = "certifyBeam -- Comparing ConeBeam to its standard"
+}
+
+## Class StickBeam: See Urick Fig. 3.14.
+new stick = StickBeam {
+	axisElevation = 90	# vertical
+	length = 0.3	# 2 wavelengths at 10 kHz, 3 at 15.
+}	# Beam pattern for a continuous, uniform stick transducer
+new tableStick = EBFTableBeam {
+    originalBeam = stick
+	elevations = { first = 0; last = 90; number = 5 }
+	bearings = { first = 0; last = 90; number = 2 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+new standardStick = FloatAutoArray: (
+  1.0, 0.0,  0.2795457, 0.0, -0.2169543, 0.0, -0.0792867, 0.0, 0.0, 0.0,
+  1.0, 0.0,  0.2795457, 0.0, -0.2169543, 0.0, -0.0792867, 0.0, 0.0, 0.0,
+  1.0, 0.0, -0.1243585, 0.0,  0.0558163, 0.0,  0.0755041, 0.0, 0.0, 0.0,
+  1.0, 0.0, -0.1243585, 0.0,  0.0558163, 0.0,  0.0755041, 0.0, 0.0, 0.0
+)
+print "\n***** Comparing StickBeam to its standard *****"
+CompareTables {
+   table = tableStick.samples 
+   standardTable = standardStick
+   message = "certifyBeam -- Comparing StickBeam to its standard"
+}
+
+## Class RecPistonBeam
+new recpiston = RecPistonBeam  {
+	axisElevation = 30	# degrees down
+	axisBearing = 30	# degrees starboard
+    width = 0.2		# 1.33... wavelengths at 10 kHz, 2 at 15.
+    height = 0.3	# 2 wavelengths at 10 kHz, 3 at 15.
+}               # Beam pattern for a rectangular piston transducer
+new tableRecPiston = EBFTableBeam {
+    originalBeam = recpiston
+	elevations = { first = -90; last = 90; number = 5 }
+	bearings = { first = -180; last = 180; number = 9 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+new standardRecPiston = FloatAutoArray: (
+ -1.370669e-01, 0,  3.280136e-01, 0,  6.209616e-02, 0, -5.705824e-02, 0, -1.370669e-01, 0,
+ -1.370669e-01, 0,  5.271316e-01, 0,  2.870588e-02, 0, -4.314287e-02, 0, -1.370669e-01, 0,
+ -1.370669e-01, 0,  3.056857e-02, 0, -8.197261e-02, 0, -4.156707e-02, 0, -1.370669e-01, 0,
+ -1.370669e-01, 0, -2.097375e-02, 0, -1.735751e-01, 0, -3.866511e-03, 0, -1.370669e-01, 0,
+ -1.370669e-01, 0, -5.705830e-02, 0,  6.209616e-02, 0,  3.280136e-01, 0, -1.370669e-01, 0,
+ -1.370669e-01, 0, -4.314287e-02, 0,  2.870588e-02, 0,  5.271316e-01, 0, -1.370669e-01, 0,
+ -1.370669e-01, 0, -4.156707e-02, 0, -8.197261e-02, 0,  3.056857e-02, 0, -1.370669e-01, 0,
+ -1.370669e-01, 0, -3.866511e-03, 0, -1.735751e-01, 0, -2.097375e-02, 0, -1.370669e-01, 0,
+ -1.370669e-01, 0,  3.280136e-01, 0,  6.209616e-02, 0, -5.705830e-02, 0, -1.370669e-01, 0,
+
+  1.167478e-01, 0,  3.141240e-02, 0, -1.938883e-08, 0,  2.872990e-02, 0,  1.167478e-01, 0,
+  1.167478e-01, 0,  1.726599e-01, 0, -1.331524e-01, 0,  3.718114e-02, 0,  1.167478e-01, 0,
+  1.167478e-01, 0,  3.373823e-02, 0, -4.113451e-02, 0, -2.073545e-02, 0,  1.167478e-01, 0,
+  1.167478e-01, 0, -1.101480e-02, 0, -2.695129e-02, 0,  4.248944e-02, 0,  1.167478e-01, 0,
+  1.167478e-01, 0,  2.872992e-02, 0, -1.938883e-08, 0,  3.141240e-02, 0,  1.167478e-01, 0,
+  1.167478e-01, 0,  3.718114e-02, 0, -1.331524e-01, 0,  1.726599e-01, 0,  1.167478e-01, 0,
+  1.167478e-01, 0, -2.073545e-02, 0, -4.113451e-02, 0,  3.373823e-02, 0,  1.167478e-01, 0,
+  1.167478e-01, 0,  4.248944e-02, 0, -2.695129e-02, 0, -1.101480e-02, 0,  1.167478e-01, 0,
+  1.167478e-01, 0,  3.141240e-02, 0, -1.938883e-08, 0,  2.872992e-02, 0,  1.167478e-01, 0
+)
+print "\n***** Comparing RecPistonBeam to its standard *****"
+CompareTables {
+  table = tableRecPiston.samples 
+  standardTable = standardRecPiston
+  message = "certifyBeam -- Comparing RecPistonBeam to its standard"
+}
+
+## A RecPistonBeam is equivalent to a product of two crossed StickBeams with axes 
+## along the edges of the rectangle.
+new lcproduct = ProductBeam {
+	inBeams = (
+		StickBeam { axisElevation = -60; axisBearing = 30; length = 0.3 },
+		StickBeam { axisElevation = 0; axisBearing = -60; length = 0.2 }
+	)
+}
+new tableStickProduct = EBFTableBeam {
+    originalBeam = lcproduct
+	elevations = { first = -90; last = 90; number = 5 }
+	bearings = { first = -180; last = 180; number = 9 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+
+print "\n***** Comparing product of 2 StickBeams to RecPistonBeam *****"
+CompareTables {
+   table = tableStickProduct.samples 
+   standardTable = standardRecPiston
+   message = "certifyBeam -- Comparing product of 2 StickBeams to RecPistonBeam"
+}
+
+
+## The same rotated RecPistonBeam is also equivalent to a product of two
+## crossed StickBeams and a 90-degree ConeBeam aligned along the XYZ axes,
+## with a rotation applied separately using RotatedBeam.
+new rotated = RotatedBeam {
+    inBeam = ProductBeam {
+		inBeams = (
+			StickBeam { axisElevation = 90; axisBearing = 0; length = 0.3 },
+			StickBeam { axisElevation = 0; axisBearing = 90; length = 0.2 }
+		)
+	}   # Input beam pattern to be rotated
+    orientation = {
+        heading = 30
+        pitch = 30
+        roll = 0
+    }   # Orientation of inBeam with respect to vehicle coordinates [degrees].
+}
+        # Beam pattern rotated with respect to the platform coordinates
+        # Base class: Beam
+new tableRotated = EBFTableBeam {
+    originalBeam = rotated
+	elevations = { first = -90; last = 90; number = 5 }
+	bearings = { first = -180; last = 180; number = 9 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+
+print "\n***** Comparing rotated Stick product to RecPistonBeam *****"
+CompareTables {
+  table = tableRotated.samples 
+  standardTable = standardRecPiston
+  message = "certifyBeam -- Comparing rotated Stick product to RecPistonBeam"
+}
+
+
+## Class PistonBeam:  See Urick Fig. 3.14.
+new piston = PistonBeam {
+	axisElevation = 90	# vertical, pointing down
+    radius = 0.15	# Comparable to StickBeam above
+}               # Beam pattern for an ideal piston transducer
+new tablePiston = EBFTableBeam {
+    originalBeam = piston
+	elevations = { first = -90; last = 90; number = 5 }
+	bearings = { first = 0; last = 90; number = 2 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+new standardPiston = FloatAutoArray: (
+ 1,  0, -9.688970e-02,  0, -6.760347e-02,  0, -9.688970e-02,  0,  1,  0,
+ 1,  0, -9.688970e-02,  0, -6.760347e-02,  0, -9.688970e-02,  0,  1,  0,
+ 1,  0, -3.180712e-02,  0,  3.750226e-02,  0, -3.180712e-02,  0,  1,  0,
+ 1,  0, -3.180712e-02,  0,  3.750226e-02,  0, -3.180712e-02,  0,  1,  0
+)
+print "\n***** Comparing PistonBeam to its standard *****"
+CompareTables {
+  table = tablePiston.samples 
+  standardTable = standardPiston
+  message = "certifyBeam -- Comparing PistonBeam to its standard"
+}
+
+## Class DipoleBeam:
+new dipole = DipoleBeam {
+	axisElevation = 90	# vertical, pointing down
+}               # Beam pattern for directional hydrophone
+new tableDipole = EBFTableBeam {
+    originalBeam = dipole
+	elevations = { first = -90;     # start at negative axis
+                   last = 90;       # to positive axis
+                   interval = 30 }  # every 30 degrees
+	bearings = { first = 0; last = 60; number = 2 }  # test for no dependence
+	isComplex = true
+}
+# Elevation varies fastest.  Should see no bearing dependence
+new standardDipole = FloatAutoArray: (
+    -1.0000,0 , -0.8660,0 , -0.5000,0 , 0,0 , 0.5000,0 , 0.8660,0 , 1.0000,0 ,
+    -1.0000,0 , -0.8660,0 , -0.5000,0 , 0,0 , 0.5000,0 , 0.8660,0 , 1.0000,0 
+)
+print "\n***** Comparing DipoleBeam to its standard *****"
+CompareTables {
+  table = tableDipole.samples 
+  standardTable = standardDipole
+  message = "certifyBeam -- Comparing DipoleBeam to its standard"
+}
+
+## Class LineBeam:  See Urick Fig. 3.16.
+new line = LineBeam {
+	axisElevation = 90	# vertical, pointing down
+    numElements = 6
+        # Number of elements in the line array
+    spacing = 0.05	# half wavelength at 15 kHz
+        # Distance between adjacent elements, in meters
+    steerDelay = 2.35702e-5		# steered 45 degrees down
+        # Steering delay of each element relative to its back neighbor
+}               # Beam pattern for unweighted line array
+new tableLine = EBFTableBeam {
+    originalBeam = line
+	elevations = { first = -90; last = 90; number = 5 }
+	bearings = { first = 0; last = 90; number = 2 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+new standardLine = FloatAutoArray: (
+-1.645040e-01, 0,  8.589514e-02, 0, -2.381266e-01, 0,  1, 0,  5.320753e-01, 0,
+-1.645040e-01, 0,  8.589514e-02, 0, -2.381266e-01, 0,  1, 0,  5.320753e-01, 0,
+-1.396235e-01, 0,  1.446464e-01, 0,  6.918966e-02, 0,  1, 0,  1.396236e-01, 0,
+-1.396235e-01, 0,  1.446464e-01, 0,  6.918966e-02, 0,  1, 0,  1.396236e-01, 0
+)
+print "\n***** Comparing LineBeam to its standard *****"
+CompareTables {
+  table = tableLine.samples 
+  standardTable = standardLine
+  message = "certifyBeam -- Comparing LineBeam to its standard"
+}
+
+## Class BinomialBeam:  See Urick Fig. 3.16.
+new binomial = BinomialBeam {
+	axisElevation = 90	# vertical, pointing down
+    numElements = 6
+        # Number of elements in the line array
+    spacing = 0.05	# half wavelength at 15 kHz
+        # Distance between adjacent elements, in meters
+    steerDelay = 2.35702e-5		# steered 45 degrees down
+        # Steering delay of each element relative to its back neighbor
+}               # Beam pattern for binomial weighted line array
+new tableBinomial = EBFTableBeam {
+    originalBeam = binomial
+	elevations = { first = -90; last = 90; number = 5 }
+	bearings = { first = 0; last = 90; number = 2 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+new standardBinomial = FloatAutoArray: (
+ -4.613773e-04, 0,  5.812118e-06, 0, 2.191334e-01, 0, 1, 0, 7.874365e-01, 0,
+ -4.613773e-04, 0,  5.812118e-06, 0, 2.191334e-01, 0, 1, 0, 7.874365e-01, 0,
+ -5.775434e-01, 0, -8.152370e-02, 0, 1.725829e-02, 0, 1, 0, 5.775434e-01, 0,
+ -5.775434e-01, 0, -8.152370e-02, 0, 1.725829e-02, 0, 1, 0, 5.775434e-01, 0 
+)
+print "\n***** Comparing BinomialBeam to its standard *****"
+CompareTables {
+  table = tableBinomial.samples 
+  standardTable = standardBinomial
+  message = "certifyBeam -- Comparing BinomialBeam to its standard"
+}
+
+## Class DCLineBeam: See Urick Fig. 3.16.
+new dcline = DCLineBeam {
+	axisElevation = 90	# vertical, pointing down
+    numElements = 6
+        # Number of elements in the line array
+    spacing = 0.05	# half wavelength at 15 kHz
+        # Distance between adjacent elements, in meters
+    ratioDB = 30
+        # Sidelobe suppression ratio, dB >0
+    steerDelay = 1.666667e-5	# steered 30 degrees down
+        # Steering delay of each element relative to its back neighbor
+}               # Beam pattern for Dolph-Chebeshev weighted line array
+new tableDCLine = EBFTableBeam {
+    originalBeam = dcline
+	elevations = { first = -60; last = 60; number = 5 }
+	bearings = { first = 0; last = 90; number = 2 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+new standardDCLine = FloatAutoArray: (
+ 2.589850e-02, 0, -1.814590e-02, 0, 3.081903e-01, 0, 1, 0, 5.590830e-01, 0,
+ 2.589850e-02, 0, -1.814590e-02, 0, 3.081903e-01, 0, 1, 0, 5.590830e-01, 0,
+ 2.722382e-02, 0, -3.206480e-08, 0, 7.380081e-03, 0, 1, 0, 2.269178e-01, 0,
+ 2.722382e-02, 0, -3.206480e-08, 0, 7.380081e-03, 0, 1, 0, 2.269178e-01, 0
+)
+print "\n***** Comparing DCLineBeam to its standard *****"
+CompareTables {
+  table = tableDCLine.samples 
+  standardTable = standardDCLine
+  message = "certifyBeam -- Comparing DCLineBeam to its standard"
+}
+
+## Class ElementSumBeam:  Use a 6 by 6 Dolph-Chebyshev array with half-wave
+## spacing, steered 6 degrees left.  The sum of the weights is 1.0 and all elements
+## are in phase at the maximum response axis, so the value there is 1.0.
+new elsum = ElementSumBeam {
+    elements = (	# Expandable list of ElementPosWeight structures
+	  # offset         amp         delay
+	0.0 -2.5 -2.5    0.0056167   1.74214e-4
+    0.0 -2.5 -1.5    0.0130679   1.74214e-4
+    0.0 -2.5 -0.5    0.0189389   1.74214e-4
+    0.0 -2.5  0.5    0.0189389   1.74214e-4
+    0.0 -2.5  1.5    0.0130679   1.74214e-4
+    0.0 -2.5  2.5    0.0056167   1.74214e-4
+
+    0.0 -1.5 -2.5    0.0130679   1.04528e-4
+    0.0 -1.5 -1.5    0.0300561   1.04528e-4
+    0.0 -1.5 -0.5    0.0435595   1.04528e-4
+    0.0 -1.5  0.5    0.0435595   1.04528e-4
+    0.0 -1.5  1.5    0.0300561   1.04528e-4
+    0.0 -1.5  2.5    0.0130679   1.04528e-4
+
+    0.0 -0.5 -2.5    0.0189389   0.34843e-4
+    0.0 -0.5 -1.5    0.0435595   0.34843e-4
+    0.0 -0.5 -0.5    0.0631297   0.34843e-4
+    0.0 -0.5  0.5    0.0631297   0.34843e-4
+    0.0 -0.5  1.5    0.0435595   0.34843e-4
+    0.0 -0.5  2.5    0.0189389   0.34843e-4
+
+    0.0  0.5 -2.5    0.0189389   -0.34843e-4
+    0.0  0.5 -1.5    0.0435595   -0.34843e-4
+    0.0  0.5 -0.5    0.0631297   -0.34843e-4
+    0.0  0.5  0.5    0.0631297   -0.34843e-4
+    0.0  0.5  1.5    0.0435595   -0.34843e-4
+    0.0  0.5  2.5    0.0189389   -0.34843e-4
+
+    0.0  1.5 -2.5    0.0130679   -1.04528e-4
+    0.0  1.5 -1.5    0.0300561   -1.04528e-4
+    0.0  1.5 -0.5    0.0435595   -1.04528e-4
+    0.0  1.5  0.5    0.0435595   -1.04528e-4
+    0.0  1.5  1.5    0.0300561   -1.04528e-4
+    0.0  1.5  2.5    0.0130679   -1.04528e-4
+
+    0.0  2.5 -2.5    0.0056167   -1.74214e-4
+    0.0  2.5 -1.5    0.0130679   -1.74214e-4
+    0.0  2.5 -0.5    0.0189389   -1.74214e-4
+    0.0  2.5  0.5    0.0189389   -1.74214e-4
+    0.0  2.5  1.5    0.0130679   -1.74214e-4
+    0.0  2.5  2.5    0.0056167   -1.74214e-4
+
+	)
+}	# Weighted, delayed sum of identical element patterns
+new tableElementSum = EBFTableBeam {
+    originalBeam = elsum
+	elevations = { first = -90; last = 90; number = 5 }
+	bearings = { first = -180; last = 180; number = 9 }
+	frequencies = { first = 750; last = 1000; number = 2 }
+	isComplex = true
+}
+new standardElementSum = FloatAutoArray: (
+             0, 0, -4.609943e-03, 0,  9.038313e-01, 0, -4.609942e-03, 0,             0, 0,
+             0, 0, -5.882294e-04, 0, -3.427313e-02, 0, -5.882336e-04, 0,             0, 0,
+             0, 0,  1.658055e-04, 0,  2.830134e-02, 0,  1.658078e-04, 0,             0, 0,
+             0, 0, -5.882294e-04, 0, -3.427313e-02, 0, -5.882336e-04, 0,             0, 0,
+             0, 0, -4.609943e-03, 0,  9.038313e-01, 0, -4.609942e-03, 0,             0, 0,
+             0, 0,  1.622294e-04, 0,  2.746676e-02, 0,  1.622294e-04, 0,             0, 0,
+             0, 0, -3.304679e-04, 0, -2.830156e-02, 0, -3.304626e-04, 0,             0, 0,
+             0, 0,  1.622294e-04, 0,  2.746676e-02, 0,  1.622294e-04, 0,             0, 0,
+             0, 0, -4.609943e-03, 0,  9.038313e-01, 0, -4.609942e-03, 0,             0, 0,
+  1.682813e-02, 0,  1.515109e-02, 0,  8.341053e-01, 0,  1.515109e-02, 0,  1.682813e-02, 0,
+  1.682813e-02, 0, -2.362540e-04, 0,  2.596676e-02, 0, -2.362528e-04, 0,  1.682813e-02, 0,
+  1.682813e-02, 0,  3.650475e-04, 0, -2.646691e-02, 0,  3.650442e-04, 0,  1.682813e-02, 0,
+  1.682813e-02, 0, -2.362540e-04, 0,  2.596676e-02, 0, -2.362528e-04, 0,  1.682813e-02, 0,
+  1.682813e-02, 0,  1.515109e-02, 0,  8.341053e-01, 0,  1.515109e-02, 0,  1.682813e-02, 0,
+  1.682813e-02, 0,  3.742424e-04, 0, -2.427314e-02, 0,  3.742449e-04, 0,  1.682813e-02, 0,
+  1.682813e-02, 0, -3.772685e-04, 0,  1.616987e-02, 0, -3.772681e-04, 0,  1.682813e-02, 0,
+  1.682813e-02, 0,  3.742424e-04, 0, -2.427314e-02, 0,  3.742449e-04, 0,  1.682813e-02, 0,
+  1.682813e-02, 0,  1.515109e-02, 0,  8.341053e-01, 0,  1.515109e-02, 0,  1.682813e-02, 0
+)
+print "\n***** Comparing ElementSumBeam to its standard *****"
+CompareTables {
+  table = tableElementSum.samples 
+  standardTable = standardElementSum
+  message = "certifyBeam -- Comparing ElementSumBeam to its standard"
+}
+
+## Class EBFTableBeam:  Test interpolation in the table.
+## Make a steered, offset PistonBeam for testing EBFTableBeam.
+new piston2 = PistonBeam {
+	offset = ( 0, 0.025, 0 )
+	axisElevation = 9
+	axisBearing = 6
+    radius = 0.15
+}               # Beam pattern for an ideal piston transducer
+## Sample it on a 5-degree grid, including only "smooth" parts.
+new ebftest1 = EBFTableBeam {
+    originalBeam = piston2
+	elevations = { first = -10; last = 10; number = 5 }
+	bearings = { first = -10; last = 10; number = 5 }
+	frequencies = { first = 10000; last = 20000; number = 5 }
+	isComplex = true
+}
+## Sample a piece of it on a finer grid to serve as the standard
+new ebfstandard = EBFTableBeam {
+    originalBeam = piston2
+	elevations = { first = 0; last = 5; number = 5 }
+	bearings = { first = 0; last = 5; number = 4 }
+	frequencies = { first = 15000; last = 16000; number = 2 }
+	isComplex = true
+}
+## Interpolate the 5-degree grid using various orders, and compare to the standard.
+new ebftable1 = EBFTableBeam {
+    originalBeam = ebftest1
+	elevations = ebfstandard.elevations
+	bearings = ebfstandard.bearings
+	frequencies = ebfstandard.frequencies
+	isComplex = true
+}
+print "\n***** Comparing EBFTableBeam, order = 1, to its standard *****"
+print "***** Expect Maximum relative difference = 0.062, RMS ratio = 0.98 *****"
+CompareTables {
+  table = ebftable1.samples 
+  standardTable = ebfstandard.samples
+  message = "certifyBeam -- Comparing EBFTableBeam, order = 1, to its standard"
+  tolerance = 0.062
+}
+
+new ebftest0 = ebftest1 {
+	elevationOrder = 0
+	bearingOrder = 0
+	frequencyOrder = 0
+	samples = ()
+}
+new ebftable0 = ebftable1 { originalBeam = ebftest0 }
+print "\n***** Comparing EBFTableBeam, order = 0, to its standard *****"
+print "***** Expect Maximum relative difference =  0.196, RMS ratio = 0.998 *****"
+CompareTables {
+  table = ebftable0.samples 
+  standardTable = ebfstandard.samples
+  message = "certifyBeam -- Comparing EBFTableBeam, order = 0, to its standard"
+  tolerance = 0.196
+}
+
+new ebftest3 = ebftest1 {
+	elevationOrder = 3
+	bearingOrder = 3
+	frequencyOrder = 3
+	samples = ()
+}
+new ebftable3 = ebftable1 { originalBeam = ebftest3 }
+print "\n***** Comparing EBFTableBeam, order = 3, to its standard *****"
+print "***** Expect Maximum relative difference =  0.007, RMS ratio = 0.999 *****"
+CompareTables {
+  table = ebftable3.samples 
+  standardTable = ebfstandard.samples
+  message = "certifyBeam -- Comparing EBFTableBeam, order = 3, to its standard"
+}
+
+## Samples outside the boundaries must take the value at the nearest boundary.
+new ebfbound1 = EBFTableBeam {
+    originalBeam = ebftest1
+	elevations = { first = -12; last = 12; number = 3 }
+	bearings = { first = -12; last = 12; number = 3 }
+	frequencies = { first = 8000; last = 22000; number = 3 }
+	isComplex = true
+}
+new standardEBFBound = FloatAutoArray: (
+  3.443608e-01, -6.233640e-02,  5.766215e-01, -1.060264e-01,  6.649641e-01, -1.203722e-01,
+  5.268040e-01, -6.653124e-17,  8.363715e-01, -1.072567e-16,  9.470168e-01, -1.196009e-16,
+  5.366666e-01,  9.714772e-02,  8.483557e-01,  1.559916e-01,  9.597507e-01,  1.737347e-01,
+
+ -2.322329e-02,  6.392796e-03,  2.304717e-01, -6.447176e-02,  3.601427e-01, -9.913834e-02,
+  1.601574e-01, -3.033995e-17,  6.574802e-01, -1.264734e-16,  8.834373e-01, -1.673569e-16,
+  1.774046e-01,  4.883508e-02,  6.826181e-01,  1.909544e-01,  9.112122e-01,  2.508341e-01,
+
+ -1.228075e-01,  4.596766e-02, -2.138714e-02,  8.140353e-03,  9.261251e-02, -3.466548e-02,
+ -7.740182e-02,  1.955049e-17,  4.495434e-01, -1.152993e-16,  7.991956e-01, -2.018644e-16,
+ -5.855937e-02, -2.191916e-02,  4.897841e-01,  1.864212e-01,  8.464616e-01,  3.168362e-01
+)
+print "\n***** Comparing EBFTableBeam out-of-bound samples to standard *****"
+CompareTables {
+  table = ebfbound1.samples 
+  standardTable = standardEBFBound
+  message = "certifyBeam -- Comparing EBFTableBeam out-of-bound samples to standard"
+}
+
+
+## Former GSMBeam: This example is the one used in Section 7.122 of the
+## Generic Sonar Model user's manual.  We construct it using a real
+## EBFTableBeam expressed in decibels, with a DecibelBeam to translate it
+## to pressure ratio.
+new gsm = ProductBeam {
+	inBeams = (
+		# This one is unity inside an "orange segment", zero outside.
+		EBFTableBeam {
+			bearings = { first = -11.459; interval = 11.459; number = 3 }
+			bearingOrder = 0	# constant
+			samples = ( 0, 1, 0 )
+		},
+		# ... multiplied by a table in dB by elevation
+		DecibelBeam {
+			inBeam = EBFTableBeam {
+				elevations = ( -90.0, -45.0, -30.0, -15.0, -10.0, -5.0,
+					0.0, 5.0, 10.0, 15.0, 30.0, 45.0, 90.0 )
+				elevationOrder = 1	# linear interpolation
+				isComplex = false
+				samples = ( -32.8, -27.9, -20.3, -18.3, -6.8, -2.2,
+					-0.3, -0.8, -3.6, -9.8, -19.4, -24.7, -31.3 )
+			}	# Input beam pattern to be transformed from decibels
+		}	# Beam pattern transformed from decibels to pressure ratio
+	)
+}
+new tableGSM = EBFTableBeam {
+    originalBeam = gsm
+	elevations = { first = -89.999; last = 89.999; number = 5 }
+	bearings = { first = -180; last = 180; number = 9 }
+	frequencies = { first = 3500; last = 4000; number = 2 }
+	isComplex = true
+}
+new standardGSM = FloatAutoArray: (
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 2.290868e-02, 0, 4.027170e-02, 0, 9.660509e-01, 0, 5.821032e-02, 0, 2.722701e-02, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 2.290868e-02, 0, 4.027170e-02, 0, 9.660509e-01, 0, 5.821032e-02, 0, 2.722701e-02, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+)
+print "\n***** Comparing GSM DecibelBeam/EBFTableBeam to its standard *****"
+CompareTables {
+  table = tableGSM.samples 
+  standardTable = standardGSM
+  message = "certifyBeam -- Comparing GSM DecibelBeam/EBFTableBeam to its standard"
+}
+
+# Same beam again, but use an EBIntensityBeam.  The table is in a different
+# format.
+new gsm2 = ProductBeam {
+	inBeams = (
+		# This one is unity inside an "orange segment", zero outside.
+		EBFTableBeam {
+			bearings = { first = -11.459; interval = 11.459; number = 3 }
+			bearingOrder = 0	# constant
+			samples = ( 0, 1, 0 )
+		},
+		# ... multiplied by a table in dB by elevation
+		EFIntensityBeam {
+			intensity = DbDegHzTableFunction2 {
+				order = 1
+				tableDegreeHzDB = (
+				# frequencies =
+							3500
+				# elevation value
+				#   [deg]   [dB]
+					-90.0   -32.8
+					-45.0   -27.9
+					-30.0   -20.3
+					-15.0   -18.3
+					-10.0    -6.8
+					 -5.0    -2.2
+					  0.0    -0.3
+					  5.0    -0.8
+					 10.0    -3.6
+					 15.0    -9.8
+					 30.0   -19.4
+					 45.0   -24.7
+					 90.0   -31.3
+				)
+			}
+		}
+	)
+}
+new tableGSM2 = EBFTableBeam {
+    originalBeam = gsm2
+	elevations = { first = -89.999; last = 89.999; number = 5 }
+	bearings = { first = -180; last = 180; number = 9 }
+	frequencies = { first = 3500; last = 4000; number = 2 }
+	isComplex = true
+}
+print "\n***** Comparing GSM EBIntensityBeam/DbDegHzTableFunction2 *****"
+CompareTables {
+  table = tableGSM2.samples 
+  standardTable = standardGSM
+  message = "certifyBeam -- Comparing GSM EBIntensityBeam/DbDegHzTableFunction2"
+}
+
+## Make a Dolph-Chebyshev weighted line beam with cylindrical "stick"
+## transducers in two independent ways, and compare the results.
+
+## First, the simple version is a product of DCLineBeam and StickBeam.
+new dclstick = ProductBeam {
+	inBeams = (
+		StickBeam {
+			axisElevation = 90	# vertical
+			length = 0.05	# half wavelength at 15 kHz
+		},	# Beam pattern for a continuous, uniform stick transducer
+		DCLineBeam {
+			axisElevation = 90	# vertical, pointing down
+			numElements = 6
+			spacing = 0.05	# half wavelength at 15 kHz
+			ratioDB = 30
+		    steerDelay = 1.666667e-5	# steered 30 degrees down
+		}               # Beam pattern for Dolph-Chebeshev weighted line array
+	)
+}
+new tableDCLStick = EBFTableBeam {
+    originalBeam = dclstick
+	elevations = { first = -60; last = 60; number = 5 }
+	bearings = { first = 0; last = 90; number = 2 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+
+## Second, we can build it as a sum of element beams.
+new elstick = StickBeam {
+	axisElevation = 90	# vertical
+	length = 0.05	# half wavelength at 15 kHz
+}
+new dclsticksum = SumBeam {
+	inBeams = (
+		WeightedBeam {
+			offset = (0, 0, -0.125)
+			delay = -4.166667e-5
+			weight = 0.0753
+			inBeam = elstick
+		},
+		WeightedBeam {
+			offset = (0, 0, -0.075)
+			delay = -2.5e-5
+			weight = 0.1728
+			inBeam = elstick
+		},
+		WeightedBeam {
+			offset = (0, 0, -0.025)
+			delay = -0.833333e-5
+			weight = 0.2519
+			inBeam = elstick
+		},
+		WeightedBeam {
+			offset = (0, 0, 0.025)
+			delay = 0.833333e-5
+			weight = 0.2519
+			inBeam = elstick
+		},
+		WeightedBeam {
+			offset = (0, 0, 0.075)
+			delay = 2.5e-5
+			weight = 0.1728
+			inBeam = elstick
+		},
+		WeightedBeam {
+			offset = (0, 0, 0.125)
+			delay = 4.166667e-5
+			weight = 0.0753
+			inBeam = elstick
+		}
+	)
+}
+new tableDCLStickSum = EBFTableBeam {
+    originalBeam = dclsticksum
+	elevations = { first = -60; last = 60; number = 5 }
+	bearings = { first = 0; last = 90; number = 2 }
+	frequencies = { first = 10000; last = 15000; number = 2 }
+	isComplex = true
+}
+
+print "\n***** Comparing sum of DC weighted sticks to DCLine*StickBeam product *****"
+CompareTables {
+  table = tableDCLStickSum.samples 
+  standardTable = tableDCLStick.samples
+  message = "certifyBeam -- Comparing sum of DC weighted sticks to DCLine*StickBeam product"
+}
+
+
+## Class SIOBeam:  Test interpolation in the table.
+## Make a steered, offset PistonBeam for testing SIOBeam.
+new piston4sio = PistonBeam {
+	offset = ( 0, 0.025, 0 )
+	axisElevation = 9
+	axisBearing = 6
+    radius = 0.15
+}               # Beam pattern for an ideal piston transducer
+## Sample it on a 5-degree grid, including only "smooth" parts.
+new siotest0 = SIOBeam {
+    file.filename = "siobeam.sio"
+    originalBeam = piston4sio
+	elevations = { first = -10; last = 10; number = 5 }
+	bearings = { first = -10; last = 10; number = 5 }
+	frequencies = { first = 10000; last = 20000; number = 5 }
+	isComplex = true
+}
+## Read the same file into a new SIOBeam
+new siotest1 = SIOBeam {
+    file.filename = "siobeam.sio"
+}
+## Sample a piece of it on a finer grid to serve as the standard
+new siostandard = EBFTableBeam {
+    originalBeam = piston4sio
+	elevations = { first = 0; last = 5; number = 5 }
+	bearings = { first = 0; last = 5; number = 4 }
+	frequencies = { first = 15000; last = 16000; number = 2 }
+	isComplex = true
+}
+## Interpolate the 5-degree grid using various orders, and compare to the standard.
+new siotable1 = EBFTableBeam {
+    originalBeam = siotest1
+	elevations = siostandard.elevations
+	bearings = siostandard.bearings
+	frequencies = siostandard.frequencies
+	isComplex = true
+}
+print "\n***** Comparing SIOBeam, order = 1, to its standard *****"
+print "***** Expect Maximum relative difference = 0.062, RMS ratio = 0.98 *****"
+CompareTables {
+  table = siotable1.samples 
+  standardTable = siostandard.samples
+  message = "certifyBeam -- Comparing SIOBeam, order = 1, to its standard"
+  tolerance = 0.062
+}
+
+new siotest2 = siotest1 {
+	elevationOrder = 0
+	bearingOrder = 0
+	frequencyOrder = 0
+}
+new siotable2 = siotable1 { originalBeam = siotest2 }
+print "\n***** Comparing SIOBeam, order = 0, to its standard *****"
+print "***** Expect Maximum relative difference =  0.196, RMS ratio = 0.998 *****"
+CompareTables {
+  table = siotable2.samples 
+  standardTable = siostandard.samples
+  message = "certifyBeam -- Comparing SIOBeam, order = 0, to its standard"
+  tolerance = 0.196
+}
+
+new siotest3 = siotest1 {
+	elevationOrder = 3
+	bearingOrder = 3
+	frequencyOrder = 3
+}
+new siotable3 = siotable1 { originalBeam = siotest3 }
+print "\n***** Comparing SIOBeam, order = 3, to its standard *****"
+print "***** Expect Maximum relative difference =  0.007, RMS ratio = 0.999 *****"
+CompareTables {
+  table = siotable3.samples 
+  standardTable = siostandard.samples
+  message = "certifyBeam -- Comparing SIOBeam, order = 3, to its standard"
+}
+
+## Samples outside the boundaries must take the value at the nearest boundary.
+new siobound1 = EBFTableBeam {
+    originalBeam = siotest1
+	elevations = { first = -12; last = 12; number = 3 }
+	bearings = { first = -12; last = 12; number = 3 }
+	frequencies = { first = 8000; last = 22000; number = 3 }
+	isComplex = true
+}
+new standardSIOBound = FloatAutoArray: (
+  3.443608e-01, -6.233640e-02,  5.766215e-01, -1.060264e-01,  6.649641e-01, -1.203722e-01,
+  5.268040e-01, -6.653124e-17,  8.363715e-01, -1.072567e-16,  9.470168e-01, -1.196009e-16,
+  5.366666e-01,  9.714772e-02,  8.483557e-01,  1.559916e-01,  9.597507e-01,  1.737347e-01,
+
+ -2.322329e-02,  6.392796e-03,  2.304717e-01, -6.447176e-02,  3.601427e-01, -9.913834e-02,
+  1.601574e-01, -3.033995e-17,  6.574802e-01, -1.264734e-16,  8.834373e-01, -1.673569e-16,
+  1.774046e-01,  4.883508e-02,  6.826181e-01,  1.909544e-01,  9.112122e-01,  2.508341e-01,
+
+ -1.228075e-01,  4.596766e-02, -2.138714e-02,  8.140353e-03,  9.261251e-02, -3.466548e-02,
+ -7.740182e-02,  1.955049e-17,  4.495434e-01, -1.152993e-16,  7.991956e-01, -2.018644e-16,
+ -5.855937e-02, -2.191916e-02,  4.897841e-01,  1.864212e-01,  8.464616e-01,  3.168362e-01
+)
+print "\n***** Comparing SIOBeam out-of-bound samples to standard *****"
+CompareTables {
+  table = siobound1.samples 
+  standardTable = standardSIOBound
+  message = "certifyBeam -- Comparing SIOBeam out-of-bound samples to standard"
+}

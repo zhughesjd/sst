@@ -1,0 +1,49 @@
+# compReverbSignals.sst: Generate a realization of the reverberation signals
+
+read "parameters.sst"
+read "pulses.sst"
+read "source.sst"
+read "scatFuns.sst"
+read "signals.sst"
+
+## SST BUG: The four InternalSignal objects and corresponding CopySignal
+## commands are workarounds for an SST bug. SST gets a segmentation fault
+## if the four ReverbSignal objects are used in the MergeSignal.
+
+	# Event 20, Pulse 19, Channels 1-4
+new reverb_gen_1 = ReverbSignal:{
+	isComplex = true
+	frequency = centerFrequency
+	times = listenTimes
+	scatFunction = scatFun_1
+	sourceSignal = pulse_19
+	##verbose = true
+}
+new sig_1 = InternalSignal:{}
+CopySignal reverb_gen_1 sig_1
+
+new reverb_gen_2 = reverb_gen_1:{
+	scatFunction = scatFun_2
+}
+new sig_2 = InternalSignal:{}
+CopySignal reverb_gen_2 sig_2
+
+new reverb_gen_3 = reverb_gen_1:{
+	scatFunction = scatFun_3
+}
+new sig_3 = InternalSignal:{}
+CopySignal reverb_gen_3 sig_3
+
+new reverb_gen_4 = reverb_gen_1:{
+	scatFunction = scatFun_4
+}
+new sig_4 = InternalSignal:{}
+CopySignal reverb_gen_4 sig_4
+
+
+new reverb_gen = MergeSignal:{
+	##inSignals = ( reverb_gen_1, reverb_gen_2, reverb_gen_3, reverb_gen_4 )
+	inSignals = ( sig_1, sig_2, sig_3, sig_4 )
+}
+
+CopySignal reverb_gen reverb_19

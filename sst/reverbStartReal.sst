@@ -1,0 +1,11 @@
+# Starting segment for SST reverb runs for real signals.
+# Sample rate is nearly double Nyquist.
+
+# $Id: reverbStartReal.sst 5731 2009-01-31 01:19:28Z rpg $
+
+new areComplex = bool:false
+new sampleRate = double:4000
+new theFrequency = double:0
+new endTime = double:4
+
+

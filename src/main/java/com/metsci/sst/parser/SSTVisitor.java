@@ -1,4 +1,4 @@
-// Generated from C:\Users\Joshua\Desktop\SST.g4 by ANTLR 4.1
+// Generated from C:\Users\hughes\git\sst\src\main\resources\SST.g4 by ANTLR 4.1
 package com.metsci.sst.parser;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
@@ -12,6 +12,13 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  */
 public interface SSTVisitor<T> extends ParseTreeVisitor<T> {
 	/**
+	 * Visit a parse tree produced by {@link SSTParser#identifierbrackets}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx);
+
+	/**
 	 * Visit a parse tree produced by {@link SSTParser#clearsignal}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -19,11 +26,39 @@ public interface SSTVisitor<T> extends ParseTreeVisitor<T> {
 	T visitClearsignal(@NotNull SSTParser.ClearsignalContext ctx);
 
 	/**
-	 * Visit a parse tree produced by {@link SSTParser#identifierbrackets}.
+	 * Visit a parse tree produced by {@link SSTParser#printeigenrays}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx);
+	T visitPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx);
+
+	/**
+	 * Visit a parse tree produced by {@link SSTParser#quit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitQuit(@NotNull SSTParser.QuitContext ctx);
+
+	/**
+	 * Visit a parse tree produced by {@link SSTParser#assignmentvalue}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx);
+
+	/**
+	 * Visit a parse tree produced by {@link SSTParser#print}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrint(@NotNull SSTParser.PrintContext ctx);
+
+	/**
+	 * Visit a parse tree produced by {@link SSTParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStatement(@NotNull SSTParser.StatementContext ctx);
 
 	/**
 	 * Visit a parse tree produced by {@link SSTParser#assignment}.
@@ -33,11 +68,11 @@ public interface SSTVisitor<T> extends ParseTreeVisitor<T> {
 	T visitAssignment(@NotNull SSTParser.AssignmentContext ctx);
 
 	/**
-	 * Visit a parse tree produced by {@link SSTParser#printeigenrays}.
+	 * Visit a parse tree produced by {@link SSTParser#assignmentstatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx);
+	T visitAssignmentstatement(@NotNull SSTParser.AssignmentstatementContext ctx);
 
 	/**
 	 * Visit a parse tree produced by {@link SSTParser#copysignal}.
@@ -54,18 +89,18 @@ public interface SSTVisitor<T> extends ParseTreeVisitor<T> {
 	T visitCopysignalvalue(@NotNull SSTParser.CopysignalvalueContext ctx);
 
 	/**
-	 * Visit a parse tree produced by {@link SSTParser#comparesignals}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitComparesignals(@NotNull SSTParser.ComparesignalsContext ctx);
-
-	/**
 	 * Visit a parse tree produced by {@link SSTParser#read}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitRead(@NotNull SSTParser.ReadContext ctx);
+
+	/**
+	 * Visit a parse tree produced by {@link SSTParser#comparesignals}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitComparesignals(@NotNull SSTParser.ComparesignalsContext ctx);
 
 	/**
 	 * Visit a parse tree produced by {@link SSTParser#sstinput}.
@@ -87,25 +122,4 @@ public interface SSTVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitBrackets(@NotNull SSTParser.BracketsContext ctx);
-
-	/**
-	 * Visit a parse tree produced by {@link SSTParser#assignmentvalue}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx);
-
-	/**
-	 * Visit a parse tree produced by {@link SSTParser#quit}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitQuit(@NotNull SSTParser.QuitContext ctx);
-
-	/**
-	 * Visit a parse tree produced by {@link SSTParser#print}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitPrint(@NotNull SSTParser.PrintContext ctx);
 }

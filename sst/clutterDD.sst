@@ -1,0 +1,167 @@
+# SST run script to test clutter
+
+# $Id: clutterDD.sst 6882 2012-07-26 00:40:47Z rpg $
+
+# Various parameters
+new areComplex = bool:true
+new sampleRate = double:400
+new theFrequency = double:10000
+new endTime = double:4.0
+
+# Start the random numbers using the clock: different each time
+random.seed = -1
+
+### Define the source's transmitted signal ###
+# It's a long Taylor-weighted pure tone
+# Frequency width is about 4 Hz, or Doppler of 1500*4/10000 = 0.6 m/s
+new pulse = ModulatedTone {
+    isComplex = areComplex
+    frequency = theFrequency
+    frequencyModulation = ConstantFunction{ value=theFrequency }
+    startingPhase = 0
+    level = 200.0          # dB
+    # Effective pulse length is 250 ms
+    times = { first=0; last=0.5; rate=sampleRate }
+    envelope = TaylorWindow {start=0; end=0.05}
+}
+
+### Define the transmitter ###
+new source = Source {
+    signal = pulse
+    beams = ( OmniBeam )
+    trajectory = { time=0.0; position=( 0 0 25 ) }
+}
+
+
+# The receiver beams are two degrees FWHM wide and five degrees high
+new oneBeam = EBFTableBeam {
+    elevations = { first = -10; last = 10; interval = 5 }
+    bearings = { first = -2; last = 2; interval = 1 }
+    frequencies = { first = theFrequency; number = 1 }
+    isComplex = false
+    elevationOrder = 3
+    bearingOrder = 3
+    samples = (
+        0.0, 0.000, 0.000, 0.000, 0.0,
+        0.0, 0.500, 0.707, 0.500, 0.0,
+        0.0, 0.707, 1.000, 0.707, 0.0,
+        0.0, 0.500, 0.707, 0.500, 0.0,
+        0.0, 0.000, 0.000, 0.000, 0.0
+     )
+}
+# Four beams: #2 points at the surface clutter, #3 at the bottom clutter.
+new receiver = Sonar {
+    beams = (
+        RotatedBeam{ inBeam = oneBeam; orientation = ( -26.565, 0, 0 ) },
+        RotatedBeam{ inBeam = oneBeam; orientation = (  26.565, 0, 0 ) },
+        RotatedBeam{ inBeam = oneBeam; orientation = ( -26.565, 18.0169, 0 ) },
+        RotatedBeam{ inBeam = oneBeam; orientation = (  26.565, 18.0169, 0 ) }
+    )
+    trajectory = source.trajectory
+}
+
+### Define the ocean environment ###
+read "jacksonBottoms.sst"
+new ocean = Ocean {
+    depth = 400.0
+    soundspeed = 1500	# [m/s]
+    volumeAttenuation = 0.0
+    windspeed = 5   # m/s
+    surface = McDanielSurface{}
+    bottom = VeryFineSilt
+}
+
+### Define the eigenray model ###
+eigenrayModel = EigenrayModel {
+    # Direct path only
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+}
+
+### Both clutter objects are 200-m squares ###
+new lump = DbTableFunction2 {
+    table2 = (
+ # East [m] =
+            -100        -100           0         100         100
+ # North  decibels
+ -100       -999        -999        -999        -999        -999
+ -100       -999         -20         -20         -20        -999
+    0       -999         -20         -20         -20        -999
+  100       -999         -20         -20         -20        -999
+  100       -999        -999        -999        -999        -999
+ )
+}
+
+### The surface clutter object is NNE of the sonar, with 2 m/s RMS motion
+new surfaceLump = TableClutter {
+    rmsSpeed = 2.0  # m/s
+    trajectory = (
+        { time = 0; position = (2100, 1100, 0) }
+    )
+    clutterStrength = lump
+}
+	# Base class for distributed objects that reflect sound incoherently
+
+### The bottom clutter object is closer, NNW of the sonar, with no motion,
+# but with far fewer effective scatterers (more peaky distribution)
+new bottomLump = TableClutter {
+    scattererDensity = 0.001    # About 40 scatterers in the object
+    trajectory = (
+        { time = 0; position = (1050, -550, 0) }    # z is ignored
+    )
+    clutterStrength = lump
+    onBottom = true
+}
+	# Base class for distributed objects that reflect sound incoherently
+
+
+new clutterList = ClutterList( surfaceLump, bottomLump )
+
+### Specify reverb params ###
+new dopplerDensity = DirectionalDopplerDensity {
+    frequencies = (1000)
+    times = UniformGrid { first=0; last=endTime; rate=sampleRate }
+    dopplers = UniformGrid { first=0.98; last=1.02; interval=0.0005 }
+    isComplex = true
+    # 50 ms means 750*.05=37.5 meter range update interval
+    scatFunTimes = UniformGrid { first=0.5; last=endTime; interval=.05 }
+    # What type of reverberation?
+    doSurface = true
+    doBottom = true
+    doVolume = false
+    doClutter = true
+    maxSamples = 512    # next power of 2 > 360/maxAngleChange
+    maxAngleChange = 1  # degree => at least 5 samples in the beam width
+    tesselation = GriddedTesselation {} # default has 1 degree tiles
+}
+
+new clutterGenerator = DDReverbSignal { 
+    sourceSignal = source.signal 
+    isComplex = source.signal.isComplex 
+    frequency = source.signal.frequency 
+    # In a more realistic simulation, the reverb response would need to be
+    # sampled for a longer period of time than this, but to keep this timing
+    # experiment moving along, let's just generate a short output
+    times = { first=0.5; last=endTime; rate = sampleRate }
+} 
+
+### Generate file output ###
+clutterFile = SIOSignal { file="DDDclutter_long.sio" }
+CopySignal clutterGenerator clutterFile
+
+### Now do the same thing, but with a short pulse.
+new shortPulse = ModulatedTone {
+    isComplex = areComplex
+    frequency = theFrequency
+    frequencyModulation = ConstantFunction{ value=theFrequency }
+    startingPhase = 0
+    level = 200.0          # dB
+    times = { first=0; last=0.02; rate=sampleRate }
+    envelope = TaylorWindow {start=0; end=0.02}
+}
+source.signal = shortPulse
+dopplerDensity.scatFunTimes.interval=.01
+clutterFileShort = SIOSignal { file="DDDclutter_short.sio" }
+CopySignal clutterGenerator clutterFileShort
+
+

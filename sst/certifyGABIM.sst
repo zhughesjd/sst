@@ -1,0 +1,104 @@
+# Certification tests for SimpleGABIM and LayeredGABIM
+# $Id: certifyGABIM.sst 4951 2006-12-29 00:59:57Z rpg $
+
+### Standard GABIM test case 1 tests LayeredGABIM:
+print ""
+print "Running standard GABIM test case 1"
+# contents of f11.in (an OASES formatted input file) from GABIM test case 1:
+/*
+'OASES JASA v94 n1 p352 fig11 g=4' # title
+'N T'
+  3 
+    0.00     1545.00        0.00  0.1000E-09  0.1000E-09     1.026  0.0000E+00  0.0000
+    0.00     1854.00    -89254.56  0.1059E+01  0.0000E+00    2.185  0.0000E+00  0.0000
+  231.65    89254.56    0.0       0.1059E+01  1.0000E-10     2.185  0.0000E+00  0.0000
+*/
+# contents of gabim1.in (input for btmoas program) from GABIM test case 1:
+/*
+false       flag to indicate isovelity layers  
+false       flag to indicate field outputs
+0           flag to indicate inclusion of SED/Base scattering (1)
+0           flag to indicate an-isotropic voluming scattering (1)
+bss	        output file name
+1           option # , 1 is to input OASES file
+f11.in      OASES input file name
+6.51e-5     spectral strength (m^4 at 1 rad/m)
+3.25        spectral exponent
+5.11600E-04 sigma2
+1000        freq (Hz)
+1545        water sound speed (m/s)
+1           angular increment (degrees)
+35000       additional depth (m)	
+false       logical flag for sigma2 profile, if true, input file name
+*/
+
+new gabim1 = LayeredGABIM {
+    waterWaveSpeed = 1545.00; waterDensity = 1.026; sedimentLayers = (
+        # depth, cc, cs, ac, as, ro
+        0.00     1854.00    -89254.56  0.1059E+01  0.0000E+00    2.185
+        231.65    89254.56    0.0       0.1059E+01  1.0000E-10     2.185
+    )
+    spectralStrength = 6.51e-5
+    spectralExponent = 3.25
+    isotropicVolumeScatteringLayers = (
+        # depth, sigma2
+        0    5.11600E-04
+    )
+    additionalPenetrationDepth = 35000
+}
+read "gabim1_standard.sst"
+gabim1_standard {gabim = gabim1; doCompare = true}
+
+
+
+### Standard GABIM test case 2 tests SimpleGABIM:
+print ""
+print "Running standard GABIM test case 2"
+# test case 2 (gabim2nam.1000), SAND or MEDIUM SAND (equivalent)
+# compare to file oaml-gabimv1.2/test_input/comparison/gabim2nam.1000
+# freq = 1000
+# water speed = 1528
+# additional depth = 500
+# angle increment = 1 degree
+new s = SimpleGABIM {name = "MediumSand"; printBottomParameters = true}
+new l = LayeredGABIM {originalGABIM = s; originalGABIMFrequency = 1000; additionalPenetrationDepth = 500}
+
+read "gabim2nam_standard.sst"
+gabim2nam_standard {gabim = l; doCompare = true}
+
+
+### Standard GABIM test case 3 tests SimpleGABIM:
+print ""
+print "Running standard GABIM test case 3"
+# grainsize = -2
+# freq = 1000
+# water speed = 1528
+# additional depth = 500
+# angle increment = 1 degree
+new s3 = SimpleGABIM {grainSize = double:-2; printBottomParameters = true}
+new l3 = LayeredGABIM {originalGABIM = s3; originalGABIMFrequency = 1000; additionalPenetrationDepth = 500}
+
+read "gabim3mz_standard.sst"
+gabim3mz_standard {gabim = l3; doCompare = true}
+
+
+### Standard GABIM test case 4 tests SimpleGABIM:
+print ""
+print "Running standard GABIM test case 4"
+# porosity = 84
+# freq = 1000
+# water speed = 1528
+# additional depth = 1000
+# angle increment = 1 degree
+new s4 = SimpleGABIM {porosity = double:84; printBottomParameters = true}
+new l4 = LayeredGABIM {originalGABIM = s4; originalGABIMFrequency = 1000; additionalPenetrationDepth = 1000}
+
+read "gabim4por_standard.sst"
+print "***** Expect Maximum relative difference for backSamples up to 0.02"
+print "given the large range of values in the table *****"
+gabim4por_standard {gabim = l4; backTolerance = 0.02; doCompare = true}
+
+
+
+
+

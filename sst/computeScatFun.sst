@@ -1,0 +1,51 @@
+# computeScatFun.sst: Compute the scattering function
+
+# This sub-script must be invoked via SST's "read" command
+# after the scatFunSurGen object has been defined.
+# It uses that object to compute the scattering function for the surface.
+# Then it clones that object twice and modifies the clones to compute the
+# scattering function for bottom and volume reverberation.
+# Then it sums the result to compute the total reverberation.
+
+# NOTE: This is done in separate steps so that the components can be
+# plotted separately for diagnosis. In a production run, all three components
+# would normally be computed by a single object.
+
+# This script is used by the "reverb.sst" scripts in both the pursuit example
+# (in which scatFunSurGen is a BBBScatFun object)
+# and in the pursuit_dsf example
+# (in which scatFunSurGen is a BBBDirectionalScat object).
+
+# $Id: computeScatFun.sst 5364 2008-07-05 23:25:43Z rpg $
+
+new scatFunSur = SIOScatFun { file = "scatFunSur.sio" }
+
+# Compute the scattering function for the surface
+CopySignal scatFunSurGen scatFunSur
+
+# Do it again for the bottom.
+new scatFunBotGen = scatFunSurGen {
+	doSurface = false
+	doBottom = true
+	doVolume = false
+}
+new scatFunBot = scatFunSur { file = "scatFunBot.sio" }
+CopySignal scatFunBotGen scatFunBot
+
+# Do it again for the volume.
+new scatFunVolGen = scatFunSurGen {
+	doSurface = false
+	doBottom = false
+	doVolume = true
+}
+new scatFunVol = scatFunSur { file = "scatFunVol.sio" }
+CopySignal scatFunVolGen scatFunVol
+
+# Add them up.
+new scatFunTotal = SIOScatFun { file = "scatFunTotal.sio" }
+CopySignal {
+	inSignal = SumSignal {
+		inSignals = ( scatFunSur, scatFunBot, scatFunVol )
+	}
+	outSignal = scatFunTotal
+}

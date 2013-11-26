@@ -1,4 +1,4 @@
-// Generated from C:\Users\Joshua\Desktop\SST.g4 by ANTLR 4.1
+// Generated from C:\Users\hughes\git\sst\src\main\resources\SST.g4 by ANTLR 4.1
 package com.metsci.sst.parser;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -17,6 +17,19 @@ public class SSTBaseListener implements SSTListener {
 	 * <p/>
 	 * The default implementation does nothing.
 	 */
+	@Override public void enterIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void exitIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx) { }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
 	@Override public void enterClearsignal(@NotNull SSTParser.ClearsignalContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -30,13 +43,65 @@ public class SSTBaseListener implements SSTListener {
 	 * <p/>
 	 * The default implementation does nothing.
 	 */
-	@Override public void enterIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx) { }
+	@Override public void enterPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 * <p/>
 	 * The default implementation does nothing.
 	 */
-	@Override public void exitIdentifierbrackets(@NotNull SSTParser.IdentifierbracketsContext ctx) { }
+	@Override public void exitPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx) { }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void enterQuit(@NotNull SSTParser.QuitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void exitQuit(@NotNull SSTParser.QuitContext ctx) { }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void enterAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void exitAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx) { }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void enterPrint(@NotNull SSTParser.PrintContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void exitPrint(@NotNull SSTParser.PrintContext ctx) { }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void enterStatement(@NotNull SSTParser.StatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void exitStatement(@NotNull SSTParser.StatementContext ctx) { }
 
 	/**
 	 * {@inheritDoc}
@@ -56,13 +121,13 @@ public class SSTBaseListener implements SSTListener {
 	 * <p/>
 	 * The default implementation does nothing.
 	 */
-	@Override public void enterPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx) { }
+	@Override public void enterAssignmentstatement(@NotNull SSTParser.AssignmentstatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 * <p/>
 	 * The default implementation does nothing.
 	 */
-	@Override public void exitPrinteigenrays(@NotNull SSTParser.PrinteigenraysContext ctx) { }
+	@Override public void exitAssignmentstatement(@NotNull SSTParser.AssignmentstatementContext ctx) { }
 
 	/**
 	 * {@inheritDoc}
@@ -95,19 +160,6 @@ public class SSTBaseListener implements SSTListener {
 	 * <p/>
 	 * The default implementation does nothing.
 	 */
-	@Override public void enterComparesignals(@NotNull SSTParser.ComparesignalsContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation does nothing.
-	 */
-	@Override public void exitComparesignals(@NotNull SSTParser.ComparesignalsContext ctx) { }
-
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation does nothing.
-	 */
 	@Override public void enterRead(@NotNull SSTParser.ReadContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -115,6 +167,19 @@ public class SSTBaseListener implements SSTListener {
 	 * The default implementation does nothing.
 	 */
 	@Override public void exitRead(@NotNull SSTParser.ReadContext ctx) { }
+
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void enterComparesignals(@NotNull SSTParser.ComparesignalsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 * <p/>
+	 * The default implementation does nothing.
+	 */
+	@Override public void exitComparesignals(@NotNull SSTParser.ComparesignalsContext ctx) { }
 
 	/**
 	 * {@inheritDoc}
@@ -154,45 +219,6 @@ public class SSTBaseListener implements SSTListener {
 	 * The default implementation does nothing.
 	 */
 	@Override public void exitBrackets(@NotNull SSTParser.BracketsContext ctx) { }
-
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation does nothing.
-	 */
-	@Override public void enterAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation does nothing.
-	 */
-	@Override public void exitAssignmentvalue(@NotNull SSTParser.AssignmentvalueContext ctx) { }
-
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation does nothing.
-	 */
-	@Override public void enterQuit(@NotNull SSTParser.QuitContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation does nothing.
-	 */
-	@Override public void exitQuit(@NotNull SSTParser.QuitContext ctx) { }
-
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation does nothing.
-	 */
-	@Override public void enterPrint(@NotNull SSTParser.PrintContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 * <p/>
-	 * The default implementation does nothing.
-	 */
-	@Override public void exitPrint(@NotNull SSTParser.PrintContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

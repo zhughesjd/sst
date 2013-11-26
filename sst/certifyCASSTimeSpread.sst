@@ -1,0 +1,182 @@
+# certifyCASSTimeSpread: Certification tests for timespread algorithm
+# using CASS eigenray model.  In fact, this script generates signals
+# both with and without time spread.
+
+# This is a CASS-version of the certifyTimeSpread script which uses
+# data from the ASIAEX experiment.
+
+######   Ocean Environment Specification ###### 
+
+random.seed = 0
+
+read "jacksonBottoms.sst"
+
+new ocean = Ocean {
+	depth = 109.0
+    soundspeed = 1525
+	# Surface parameters
+##	windspeed = 4   # from Dahl Fig. 2 legend for S22 -> mss=0.023
+	windspeed = 3	# fits slope better
+    surface = McDanielSurface {}
+    bottom = FineSand {
+        rmsHeight = 0.012           # These are fit to the data by eye
+        meanSquareSlope = 0.045
+    }
+}
+
+new signal1 = ModulatedTone {
+    frequency = 9500
+    times = UniformGrid {
+        first = 0
+        rate = 10000
+        number = 30
+    }
+    frequencyModulation = ConstantFunction{ value = 8000 }
+    level = 58   # chosen to match data
+}
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = signal1
+	trajectory = Trajectory (  
+        {
+            time = 0.0                  # s
+            position = ( 0.0 0.0 26.0 ) # m
+        }
+    )
+}
+
+new beam1 = OmniBeam {
+    offset = ( 0, 0, -0.51 ) # m, from the center of the array
+}
+
+new beam4 = OmniBeam {
+    offset = ( 0, 0, 0.52 ) # m, from the center of the array
+}
+
+new receiver = Sonar {
+    beams = ( beam1, beam4  )
+
+    trajectory = Trajectory (  
+        {
+            time = 0.0                      # s
+            position = ( 0.0 494.0 52.51 )  # m
+        }
+    )
+}
+
+
+# Signal Attributes
+new sigFrequency = double:9500.0
+new sigTimes = UniformGrid {
+    first = 0.324
+    last =  0.364
+    rate = 10000
+}
+
+### NOTE:  Given the file i/o used by CASS and ingested by SST, we must do each
+###        type of sim (passive or reverb) separately
+
+##################### Do Passive (with & without TS) first #####################
+
+passiveEigenrayModel = CASSEigenrayRun {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        scenario = "Passive"
+        maximumSurfaceBounces = 1
+    	maximumBottomBounces = 1
+        sourceTrajectory = source.trajectory
+        receiverTrajectory = receiver.trajectory
+        frequencies = UniformGrid{ first=9500; last=9500; number=1 }
+        rangeReference = 1
+        doTimeSpread = false
+        maximumEigenrays = 30
+}
+
+print "\n ***** ASIAEX DirectSignal, CASS, No Time Spread ***** \n"
+new directGenerator = DirectSignal {
+    eigenrayModel = passiveEigenrayModel
+    frequency = sigFrequency
+    times = sigTimes
+}
+new outSignal = BareAsciiSignal { file = "asex22_direct_nots-cass.txt" }
+CopySignal directGenerator outSignal
+#new outSignal_sio = SIOSignal { file = "asex22_direct_nots-cass.sio" }
+#CopySignal directGenerator outSignal_sio
+CompareSignals {
+    signal = outSignal 
+    standard = BareAsciiSignal{file="$SSTHOME/standard/asex22_direct_nots-cass.txt"}
+    message = "certifyCASSTimeSpread -- ASIAEX DirectSignal, CASS, No Time Spread"
+}
+
+print "\n ***** ASIAEX DirectSignal, CASS, With Time Spread ***** \n"
+passiveEigenrayModel.doTimeSpread = true
+new outSignal = BareAsciiSignal { file = "asex22_direct_spread-cass.txt" }
+CopySignal directGenerator outSignal
+#new outSignal_sio = SIOSignal { file = "asex22_direct_spread-cass.sio" }
+#CopySignal directGenerator outSignal_sio
+CompareSignals {
+    signal = outSignal 
+    standard = BareAsciiSignal{file="$SSTHOME/standard/asex22_direct_spread-cass.txt"}
+    message = "certifyCASSTimeSpread -- ASIAEX DirectSignal, CASS, With Time Spread"
+}
+
+##################### Do Reverb (scattering function) #####################
+
+reverbEigenrayModel = CASSEigenrayRun {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        scenario = "Reverberation"
+        ocean = passiveEigenrayModel.ocean
+        maximumSurfaceBounces = passiveEigenrayModel.maximumSurfaceBounces
+    	maximumBottomBounces =  passiveEigenrayModel.maximumBottomBounces
+        maximumEigenrays = passiveEigenrayModel.maximumEigenrays
+        filterLength = passiveEigenrayModel.filterLength
+        verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+        receiverTrajectory = receiver.trajectory
+        sourceTrajectory = source.trajectory
+        ranges = UniformGrid { first = 0; last = 10000; interval = 10 }
+        frequencies = UniformGrid{ first=9500; last=9500; number=1 }
+        rangeReference = 1
+        # Isotropic environment - no bearing dependence
+        receiverBearingAngles = UniformGrid{ first=0; last=0; number=1 }
+        doVolume = false
+        doSurface = true
+        doBottom = true
+        doTimeSpread = false
+}
+
+print "\n***** ASIAEX BBBScatFun, CASS, No Time Spread ***** \n"
+new scatFunGenerator = BBBScatFun {
+    eigenrayModel = reverbEigenrayModel
+    times = UniformGrid { first = 0.30; last = 0.3705; interval = 0.0015 }
+    frequencies = UniformGrid { first = 8000; last = 8000; number = 1 }
+    doVolume = false
+}
+new scatFunction = AsciiScatFun { file = "asex22_scatfun_nots-cass.txt" }
+CopySignal scatFunGenerator scatFunction
+#new scatFunction_sio = SIOScatFun { file = "asex22_scatfun_nots-cass.sio" }
+#CopySignal scatFunGenerator scatFunction_sio
+CompareSignals {
+    signal = scatFunction
+    standard = AsciiScatFun { file = "$SSTHOME/standard/asex22_scatfun_nots-cass.txt"
+                               times = scatFunGenerator.times
+                               frequencies = scatFunGenerator.frequencies
+                }
+    message = "certifyCASSTimeSpread -- ASIAEX BBBScatFun, CASS, No Time Spread"
+}
+
+
+# Now do it again with time spread enabled
+print "\n***** ASIAEX BBBScatFun, CASS, With Time Spread ***** \n"
+reverbEigenrayModel.doTimeSpread = true
+scatFunction.file = "asex22_scatfun_spread-cass.txt"
+CopySignal scatFunGenerator scatFunction
+#scatFunction_sio.file = "asex22_scatfun_spread-cass.sio"
+#CopySignal scatFunGenerator scatFunction_sio
+CompareSignals {
+    signal = scatFunction
+    standard = AsciiScatFun { file = "$SSTHOME/standard/asex22_scatfun_spread-cass.txt"
+                               times = scatFunGenerator.times
+                               frequencies = scatFunGenerator.frequencies
+                }
+    message = "certifyCASSTimeSpread -- ASIAEX BBBScatFun, CASS, With Time Spread"
+}

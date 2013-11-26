@@ -1,0 +1,165 @@
+# genFig03.sst: Generate SST simulation corresponding to Cole Figure 3
+
+# $Id: genFig03.sst 6285 2009-11-02 18:03:43Z rpg $
+
+# Parameters
+new pulseLength = double:0.02
+new scatFunInterval = double:0.01
+new sampleRate  = double:500.0
+new centerFrequency = double:3500
+
+# The sonar is sitting still, at the depth specified by Cole
+new sonarTrajectory = Trajectory:(
+	{
+		time = 0.0  # s
+		position = ( 0.0,  0.0,  7.62 )  # m
+	}
+)
+
+# Pulse is CW at 3500 Hz
+new pulseFrequency = centerFrequency
+new tranPulse = ModulatedTone:{
+	isComplex = true
+    frequency = centerFrequency
+	times = UniformGrid:{
+        first = 0.0
+        last = pulseLength
+        rate = sampleRate
+    }
+	level = 231.0	# dB // uPa^2 m^2 (adjusted to match figure)
+    # Use just enough tapering to cut down edge transients
+	envelope = CosineWindow:{
+        start = 0
+        end = pulseLength
+        taperFraction = 0.05
+    }
+    frequencyModulation = ConstantFunction:{
+        value = pulseFrequency
+    }
+}
+
+# The sonar is monostatic, omnidirectional
+new source = Source:{
+	beams = ( OmniBeam )
+	signal = tranPulse
+	trajectory = sonarTrajectory
+}
+
+new receiver = Sonar:{
+	beams = ( OmniBeam )
+	trajectory = sonarTrajectory
+}
+
+# Define the ocean environment, as specified in Cole
+new ocean = Ocean {
+	depth = 50        # [m]
+	soundspeed = 1500	# [m/s]
+
+	# The surface is a perfect reflector
+	windspeed = 0		# [m/s]
+	surface = Boundary:{}
+
+	# Bottom parameters
+	bottom = Boundary:{
+        ##backStrength = ConstantDbFunction2:{ decibels = -27 }
+        backStrength = PowSineScat:{
+            strengthDB = -27
+            exponent = 1
+        }
+    }
+
+	# Volume attenuation unspecified; do something reasonable
+	volumeAttenuation = ThorpAttenuation:{}
+}
+
+# Isovelocity eigenray model
+new eigenrayModel = EigenrayModel {
+	maximumEigenrays = 2
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 0
+}
+
+# These objects compute the reverberation
+new doppDensity = DirectionalDopplerDensity {
+    isComplex = source.signal.isComplex
+    frequencies = UniformGrid { first=centerFrequency; number=1 }
+    times = UniformGrid { first=0; last=5; rate=sampleRate }
+    scatFunTimes = UniformGrid { first=0; last=5.1; interval=scatFunInterval }
+    # No doppler
+    dopplers = UniformGrid {
+            first = 1.0
+            last =  1.0
+            number = 1
+    }
+    maxAngleChange = 100    # for omni beams
+    maxSamples = 4          # ditto
+    # Do bottom only
+    doSurface = false
+    doBottom = true
+    doVolume = false
+    # Use a 1x1-Deg tesselation
+    tesselation = GriddedTesselation {
+        elevationInc = 5.0
+        azimuthIncEq = 5.0
+    }
+    
+    # Here is the key: Turn bottom coherence off
+    coherentBottom = false
+}
+
+new ddReverb = DDReverbSignal {
+	dopplerDensity = doppDensity
+	sourceSignal = source.signal
+    isComplex = source.signal.isComplex
+    frequency = source.signal.frequency
+    times = doppDensity.times{rate=source.signal.times.rate}
+}
+
+# Always use the same set of random numbers
+random.seed = 123456789
+
+# Do it, 20 times
+CopySignal ddReverb SIOSignal{ file="fig3u_01.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_02.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_03.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_04.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_05.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_06.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_07.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_08.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_09.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_10.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_11.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_12.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_13.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_14.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_15.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_16.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_17.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_18.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_19.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3u_20.sio" }
+
+# Now make it coherent and do it again
+doppDensity.coherentBottom = true
+
+CopySignal ddReverb SIOSignal{ file="fig3c_01.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_02.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_03.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_04.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_05.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_06.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_07.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_08.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_09.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_10.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_11.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_12.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_13.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_14.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_15.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_16.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_17.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_18.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_19.sio" }
+CopySignal ddReverb SIOSignal{ file="fig3c_20.sio" }

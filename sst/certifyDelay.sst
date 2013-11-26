@@ -1,0 +1,229 @@
+# certifyDelay.sst: Certify beam offset delays using DirectSignal.
+# $Id: certifyDelay.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Levels:
+#	  70.00 db source level
+#	- 60.00 dB = -20 log 1000 = spreading loss
+#	- 10.00 dB = 1.0 km * 10 dB/km = volume absorption
+#	-  0.00 dB = xmit beam pattern
+#	-  0.00 dB = receive beam pattern
+#	=  0.00 dB total => P = 1.000
+#
+# Time delay = 2/3 s to center.  delay*frequency = integer, so phase = 0.
+# sin( elevation ) = 0.6
+# vertical offset delay = 0.6*offset/ssp = 0.8 ms
+# sin( bearing )*cos( elevation ) = 0.3*0.8 = 0.24
+# horizontal offset delay = 0.24*offset/ssp = 0.32 ms
+# Channel delays: -0.8,+0.8,-2,+2,0 samples
+#
+# Phase = -2*Pi*frequency*delay mod 2*Pi
+# = +0.96 Pi, -0.96 Pi, +2.4 Pi, -2.4 Pi, 0
+# = +172.8, -172.8, +72, -72, 0 degrees
+
+### Test 1:  Complex signals
+
+new source = Source {
+	beams = ( OmniBeam )
+    trajectory = ( { time = 0; position = ( 800 0 100 ) } )
+	signal = ModulatedTone {
+		frequency = 1500.0
+		times = { first = 0.002; interval = 0.004; number = 1 }
+		order = 0	# nearest neighbor interpolation
+		level = 70
+	}
+}
+
+new receiver = Sonar {
+	beams = (
+		OmniBeam{ offset = (  0, -2,  0 ) }  # left
+		OmniBeam{ offset = (  0,  2,  0 ) }  # right
+		OmniBeam{ offset = (  0,  0, -2 ) }  # up
+		OmniBeam{ offset = (  0,  0,  2 ) }  # down
+		OmniBeam{ offset = (  0,  0,  0 ) }  # center
+	)
+    trajectory = ( {
+		time = 0.6666667
+		position = ( 0 0 700 )
+		orientation = {
+			heading = 17.4576	# degrees East of North = arcsine(0.3)
+			pitch = 0
+			roll = 0
+		}
+	} )
+}
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 1000.0 }
+	soundspeed = 1500
+	volumeAttenuation = -10	# dB/km; pressure * 0.1 for 1000 m trip
+}
+
+new eigenrayModel = EigenrayModel {
+    maximumEigenrays = 1
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+	filterLength = 1	# no filtering
+}
+
+new signalc0 = BareAsciiSignal { file = "delayc0.txt" }
+
+new dirsigc = DirectSignal {
+	times = { first = 0.6640; last = 0.6720; rate = 2500 }
+	frequency = 1500
+	isComplex = true
+	order = 0	# nearest neighbor interpolation
+}
+
+CopySignal dirsigc signalc0
+
+new standard = BareAsciiSignal {
+	file = "$SSTHOME/standard/delayc0.txt"
+	frequency = 1500
+	isComplex = true
+	times = dirsigc.times
+}
+
+print "***** DirectSignal Delay of Complex Signal, Order 0 *****"
+CompareSignals {
+   signal = signalc0
+   message = "certifyDelay -- DirectSignal Delay of Complex Signal, Order 0"
+}
+
+new signalc1 = BareAsciiSignal { file = "delayc1.txt" }
+dirsigc.order = 1
+CopySignal dirsigc signalc1
+standard.file = "$SSTHOME/standard/delayc1.txt"
+print "***** DirectSignal Delay of Complex Signal, Order 1 *****"
+CompareSignals {
+   signal = signalc1
+   message = "certifyDelay -- DirectSignal Delay of Complex Signal, Order 1"
+}
+
+new signalc2 = BareAsciiSignal { file = "delayc2.txt" }
+dirsigc.order = 2
+CopySignal dirsigc signalc2
+standard.file = "$SSTHOME/standard/delayc2.txt"
+print "***** DirectSignal Delay of Complex Signal, Order 2 *****"
+CompareSignals {
+   signal = signalc2
+   message = "certifyDelay -- DirectSignal Delay of Complex Signal, Order 2"
+}
+
+new signalc3 = BareAsciiSignal { file = "delayc3.txt" }
+dirsigc.order = 3
+CopySignal dirsigc signalc3
+standard.file = "$SSTHOME/standard/delayc3.txt"
+print "***** DirectSignal Delay of Complex Signal, Order 3 *****"
+CompareSignals signalc3
+
+new signalc4 = BareAsciiSignal { file = "delayc4.txt" }
+dirsigc.order = 4
+CopySignal dirsigc signalc4
+standard.file = "$SSTHOME/standard/delayc4.txt"
+print "***** DirectSignal Delay of Complex Signal, Order 4 *****"
+CompareSignals {
+   signal = signalc4
+   message = "certifyDelay -- DirectSignal Delay of Complex Signal, Order 4"
+}
+
+new signalc5 = BareAsciiSignal { file = "delayc5.txt" }
+dirsigc.order = 5
+CopySignal dirsigc signalc5
+standard.file = "$SSTHOME/standard/delayc5.txt"
+print "***** DirectSignal Delay of Complex Signal, Order 5 *****"
+CompareSignals {
+  signal = signalc5
+   message = "certifyDelay -- DirectSignal Delay of Complex Signal, Order 5"
+}
+
+
+### Test 2:  Real signals
+
+eigenrayModel.frequency = 0
+
+source.signal = ModulatedTone {
+	isComplex = false
+	frequency = 0.0
+	times = { first = 0.0; last = 0.004; rate = 2500 }	# 2.5x oversampled
+	order = 0	# nearest neighbor interpolation
+	level = 70
+	startingPhase = -90		# degrees (starts at zero, as sine)
+	frequencyModulation = ConstantFunction { value = 500 }
+}
+
+new signalr0 = BareAsciiSignal { file = "delayr0.txt" }
+
+new dirsigr = DirectSignal {
+	times = { first = 0.6640; last = 0.6760; rate = 2500 }
+	isComplex = false
+	order = 0	# nearest neighbor interpolation
+}
+
+CopySignal dirsigr signalr0
+
+standard = {
+	file = "$SSTHOME/standard/delayr0.txt"
+	frequency = 0
+	isComplex = false
+	times = dirsigr.times
+}
+print "***** DirectSignal Delay of Real Signal, Order 0 *****"
+CompareSignals {
+   signal = signalr0
+   message = "certifyDelay -- DirectSignal Delay of Real Signal, Order 0"
+}
+
+new signalr1 = BareAsciiSignal { file = "delayr1.txt" }
+source.signal.order = 1
+dirsigr.order = 1
+CopySignal dirsigr signalr1
+standard.file = "$SSTHOME/standard/delayr1.txt"
+print "***** DirectSignal Delay of Real Signal, Order 1 *****"
+CompareSignals {
+   signal = signalr1
+   message = "certifyDelay -- DirectSignal Delay of Real Signal, Order 1"
+}
+
+new signalr2 = BareAsciiSignal { file = "delayr2.txt" }
+source.signal.order = 2
+dirsigr.order = 2
+CopySignal dirsigr signalr2
+standard.file = "$SSTHOME/standard/delayr2.txt"
+print "***** DirectSignal Delay of Real Signal, Order 2 *****"
+CompareSignals {
+   signal = signalr2
+   message = "certifyDelay -- DirectSignal Delay of Real Signal, Order 2"
+}
+
+new signalr3 = BareAsciiSignal { file = "delayr3.txt" }
+source.signal.order = 3
+dirsigr.order = 3
+CopySignal dirsigr signalr3
+standard.file = "$SSTHOME/standard/delayr3.txt"
+print "***** DirectSignal Delay of Real Signal, Order 3 *****"
+CompareSignals {
+   signal = signalr3
+   message = "certifyDelay -- DirectSignal Delay of Real Signal, Order 3"
+}
+
+new signalr4 = BareAsciiSignal { file = "delayr4.txt" }
+source.signal.order = 4
+dirsigr.order = 4
+CopySignal dirsigr signalr4
+standard.file = "$SSTHOME/standard/delayr4.txt"
+print "***** DirectSignal Delay of Real Signal, Order 4 *****"
+CompareSignals {
+    signal = signalr4
+    message = "certifyDelay -- DirectSignal Delay of Real Signal, Order 4"
+}
+
+new signalr5 = BareAsciiSignal { file = "delayr5.txt" }
+source.signal.order = 5
+dirsigr.order = 5
+CopySignal dirsigr signalr5
+standard.file = "$SSTHOME/standard/delayr5.txt"
+print "***** DirectSignal Delay of Real Signal, Order 5 *****"
+CompareSignals {
+   signal = signalr5
+   message = "certifyDelay -- DirectSignal Delay of Real Signal, Order 5"
+}

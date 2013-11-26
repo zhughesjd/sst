@@ -1,0 +1,201 @@
+# Example and Test of the EBFTableSpectrum 
+#
+# Spectral density with respect to elevation and bearing,
+# as a function of elevation, bearing and frequency is
+# spectrum_eb(e, b, f) = \cos( e )^2 * \cos^2 ( b ) + f / 100
+new spectrum_ebf = FloatAutoArray : (
+  # e =   -90.000,  -60.000,  -30.000,    0.000,   30.000,   60.000,   90.000,
+  # f =   100.000, b =     0.000,
+    1.000,    1.250,    1.750,    2.000,    1.750,    1.250,    1.000,
+  # f =   100.000, b =    30.000,
+    1.000,    1.188,    1.563,    1.750,    1.563,    1.188,    1.000,
+  # f =   100.000, b =    60.000,
+    1.000,    1.062,    1.188,    1.250,    1.188,    1.062,    1.000,
+  # f =   100.000, b =    90.000,
+    1.000,    1.000,    1.000,    1.000,    1.000,    1.000,    1.000,
+  # f =   100.000, b =   120.000,
+    1.000,    1.062,    1.187,    1.250,    1.187,    1.062,    1.000,
+  # f =   100.000, b =   150.000,
+    1.000,    1.188,    1.563,    1.750,    1.563,    1.188,    1.000,
+  # f =   100.000, b =   180.000,
+    1.000,    1.250,    1.750,    2.000,    1.750,    1.250,    1.000,
+  # f =   100.000, b =   210.000,
+    1.000,    1.188,    1.562,    1.750,    1.562,    1.188,    1.000,
+  # f =   100.000, b =   240.000,
+    1.000,    1.063,    1.188,    1.250,    1.188,    1.063,    1.000,
+  # f =   100.000, b =   270.000,
+    1.000,    1.000,    1.000,    1.000,    1.000,    1.000,    1.000,
+  # f =   100.000, b =   300.000,
+    1.000,    1.062,    1.188,    1.250,    1.188,    1.062,    1.000,
+  # f =   100.000, b =   330.000,
+    1.000,    1.188,    1.562,    1.750,    1.562,    1.188,    1.000,
+  # f =   100.000, b =   360.000,
+    1.000,    1.250,    1.750,    2.000,    1.750,    1.250,    1.000,
+  # f =   200.000, b =     0.000,
+    2.000,    2.250,    2.750,    3.000,    2.750,    2.250,    2.000,
+  # f =   200.000, b =    30.000,
+    2.000,    2.188,    2.562,    2.750,    2.562,    2.188,    2.000,
+  # f =   200.000, b =    60.000,
+    2.000,    2.062,    2.188,    2.250,    2.188,    2.062,    2.000,
+  # f =   200.000, b =    90.000,
+    2.000,    2.000,    2.000,    2.000,    2.000,    2.000,    2.000,
+  # f =   200.000, b =   120.000,
+    2.000,    2.062,    2.188,    2.250,    2.188,    2.062,    2.000,
+  # f =   200.000, b =   150.000,
+    2.000,    2.188,    2.562,    2.750,    2.562,    2.188,    2.000,
+  # f =   200.000, b =   180.000,
+    2.000,    2.250,    2.750,    3.000,    2.750,    2.250,    2.000,
+  # f =   200.000, b =   210.000,
+    2.000,    2.188,    2.562,    2.750,    2.562,    2.188,    2.000,
+  # f =   200.000, b =   240.000,
+    2.000,    2.062,    2.188,    2.250,    2.188,    2.062,    2.000,
+  # f =   200.000, b =   270.000,
+    2.000,    2.000,    2.000,    2.000,    2.000,    2.000,    2.000,
+  # f =   200.000, b =   300.000,
+    2.000,    2.062,    2.188,    2.250,    2.188,    2.062,    2.000,
+  # f =   200.000, b =   330.000,
+    2.000,    2.188,    2.562,    2.750,    2.562,    2.188,    2.000,
+  # f =   200.000, b =   360.000,
+    2.000,    2.250,    2.750,    3.000,    2.750,    2.250,    2.000
+)
+#
+# Beam list
+new receiver_beam_list = BeamList : (
+    # Beam1
+    ConeBeam {
+        offset = ( 0 , 0 , 0 )
+        delay  = 0
+        axisElevation = 0   # level with surface of water
+        axisBearing   = 0   # in the North direction
+        halfAngle     = 90  # a semi-sphere
+    }
+    # Beam2
+    WeightedBeam {
+        offset = ( 0 , 0 , 1 )
+        delay  = 0
+        inBeam = ConeBeam {
+            offset = ( 0 , 0 , 0 )
+            delay  = 0
+            axisElevation = 0    # level with the surface of the water
+            axisBearing   = 90   # in the East direction
+            halfAngle     = 90   # a semi-sphere
+        }
+        weight = .5              # 1/2
+   }
+)    
+#
+# The default snapshot
+new receiver_trajectory = Trajectory ( # Only one Snapshot in this Trajectory
+    {
+        time  = 0.0
+        position      = ( 0.0, 0.0, 0.0 )
+        velocity      = ( 0.0, 0.0, 0.0 )
+        orientation      = ( 0.0, 0.0, 0.0 )
+        orientationRate  = ( 0.0, 0.0, 0.0 )
+    }
+)
+
+# Construct an EBFTableSpectrum object
+new spectrum = EBFTableSpectrum {
+
+    # frequency does not matter
+    frequency = 0
+
+    # Grid of slow times when the spectrum is sampled
+    times = { first  = 1; last   = 2; number = 2; }
+
+    # Is the signal complex baseband? (else real)
+    isComplex = true
+
+    # Order of time interpolation (samples used per interpolation - 1)
+    order = 1
+
+    # Print debugging dumps?
+    trace = false
+
+    # Acoustic frequencies where spectrum is calculated [Hz]
+    frequencies = { first = 100; last = 200; number = 3; }
+
+    # Power spectrum (amplitude squared) if true, else amplitude
+    isPower = true
+
+    # Are off-diagonal cross-power elements included?
+    isCorrelated = true
+
+    # Elevation angles, degrees down, where spectrum is tabulated
+    # (30 degree intervals)
+    tableElevations = { first = -90; last = +90; number = 7; }
+
+    # Bearing angles, degrees to starboard, where spectrum is tabulated
+    # (30 degree intervals)
+    tableBearings = { first = 0; last = 360; number = 13; }
+
+    # Acoustic frequencies where spectrum is tabulated
+    tableFrequencies = { first = 100; last = 200; number = 2; }
+
+    # Interpolation order (0-3) for elevation, bearing, and frequency
+    tableElevationOrder = 2
+    tableBearingOrder   = 2
+    tableFrequencyOrder = 1
+
+    # Grid for integrating spectrum_ebf w.r.t. (e,b)
+    tesselation = GriddedTesselation{ elevationInc = 3; azimuthIncEq = 3 }
+
+    # Spectrum data
+    tableSamples = spectrum_ebf
+
+    # Receive is a sonar object
+    receiver = {
+        trajectory = receiver_trajectory
+	beams      = receiver_beam_list
+   }
+}
+# \theta = elevation * \pi / 180
+# \phi   = bearing * \pi / 180            (if bearing < 180)  
+# \phi   = bearing * \pi / 180 - 2 * \pi  (if bearing > 180)
+#
+# integrating Beam1 * Beam1 with respect to elevation and bearing we have
+# spectrum  = \int_{-\pi/2}^{\pi/2} \cos(\theta) d \theta 
+#             \int_{-\pi/2}^{\pi/2}  d \phi
+#             \cos( e )^2 \cos^2 ( b ) + f / 100
+#           = pi * ( 2 / 3  + f / 50 )
+# integrating Beam1 * Beam2 with respect to elevation and bearing we have
+# spectrum  = \int_{-\pi/2}^{\pi/2} \cos(\theta) d \theta 
+#             \int_0^{\pi/2}  d \phi
+#             [ \cos( e )^2 \cos^2 ( b ) + f / 100 ] \exp[i a \sin( e ) ]
+#           = pi*(f/100)*sin(a)/a - pi*cos(a)/a^2 + pi*sin(a)/a^3
+# where a = 2 \pi f d / c, d = 1, c = 1500.
+# integrating Beam2 * Beam2 with respect to elevation and bearing we have
+# spectrum  =  \int_{-\pi/2}^{\pi/2} \cos(\theta) d \theta 
+#             \int_0^\pi  d \phi
+#             \cos( e ) \cos^2 ( b ) + f / 100
+#           = pi * ( 2 / 3  + f / 50 )
+new spectrum_check = InternalSpectrum{
+    frequency = 0
+    times = { first  = 1; last   = 2; number = 2; }
+    frequencies = { first = 100; last = 200; number = 3; }
+    isPower = true
+    isCorrelated = false
+    # Four values for each time, frequency pair, in the following order
+    # <Beam1, Beam1>, real<Beam1, Beam2>, imag<Beam1, Beam2>, <Beam2, Beam2>
+    samples = (
+    #  <B1,B1>, real<B1, B2>,  imag<B1,B2>,      <B2,B2>,  # t = 1
+         8.378,        2.040,        0.000,        2.094,  # t = 100
+        11.519,        2.707,        0.000,        2.880,  # t = 150
+        14.661,        3.275,        0.000,        3.665,  # t = 200
+    #  <B1,B1>, real<B1, B2>,  imag<B1,B2>,      <B2,B2>,  # t = 2
+         8.378,        2.040,        0.000,        2.094,  # t = 100
+        11.519,        2.707,        0.000,        2.880,  # t = 150
+        14.661,        3.275,        0.000,        3.665   # t = 200
+    )
+} 
+
+new spectrum_copy = InternalSpectrum{ }
+CopySignal ( spectrum , spectrum_copy )
+
+print spectrum_copy
+
+CompareSignals { 
+	signal =  spectrum_copy
+	standard = spectrum_check
+}

@@ -1,0 +1,123 @@
+# certifyCASSTarget: Certify a single SST scatterer with CASS eigenrays.
+# $Id: certifyCASSTarget.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Test 1:  Directly on a tabulated eigenray point.
+# Correct levels should be 200 dB - sum of dB eigenray losses.
+
+new target = PointTarget {
+    trajectory = ( { time = 0.0; position = ( 3000 0 885 ) } )
+    points = ( { strengthDB = 0 } )
+}
+
+new receiver = Sonar {
+	beams = ( OmniBeam )
+    trajectory = ( { time = 0.0; position = ( 0 0 150 ) } )
+}
+
+new source = Source {
+	beams = receiver.beams
+	trajectory = receiver.trajectory
+	signal = ModulatedTone {
+		frequency = 3500
+		times = { first = 0.0125; interval = 0.025; number = 1 }
+			# That's one sample extending from 0 to 0.025
+		order = 0	# nearest neighbor interpolation
+		level = 200
+	}
+}
+
+bathy= TableFunction2: {
+          order = 1
+          table2 = {
+            arg1 = ( -5000, 0, 5000 )
+            arg2 = ( -5000, 0, 5000 )
+            values = ( 1000 1000 1000
+                       2500 2500 2500
+                       1000 1000 1000 )
+          }
+        }
+#print bathy
+ocean = Ocean {
+        depth = bathy
+        volumeAttenuation = 0
+        soundspeed = TableFunction { table = (
+    0.0      1500
+ 2500.0      1500
+        ) }
+
+}
+tabOutFun2 = TableFunction2 {
+        originalFunction = bathy
+        table2.arg1 = { first = -5000; last = 5000; interval = 1000 }
+        table2.arg2 = { first = -5000; last = 5000; interval = 1000 }
+}
+#print tabOutFun2.table2.values
+
+new eigenrayModel = CASSEigenrayModel {
+    maximumEigenrays = 10
+    maximumSurfaceBounces = 3
+    maximumBottomBounces = 3
+    filterLength = 1        # Narrowband; no filtering
+    rangeReference = 1.0    # to match "RANGE REFERENCE = 1 M" in cass input
+    minimumRelativeStrength = -30
+#   Monostatic - only 1 eigenray file
+    receiverEigenrayFile = "CRCEIG"
+    receiverTrajectory = receiver.trajectory
+}
+#PrintEigenrays
+
+
+new signal = InternalSignal {}
+
+# tracepropagation = true	# Un-comment for eigenray dump
+new echoGenerator = TargetEcho {
+	frequency = 3500
+	isComplex = true
+	times = { first = 4.0; last = 7.0; interval = 0.005 }
+	order = 0	# nearest neighbor (no Doppler shift or beam delays)
+}
+CopySignal echoGenerator signal
+
+# Copy the result to ASCII form
+txtSignal = BareAsciiSignal { file = "cassTarget0.txt" }
+CopySignal signal txtSignal
+
+# Compare to pre-calculated results
+CompareSignals {
+        standard = BareAsciiSignal {
+                file = "$SSTHOME/standard/cassTarget0.txt"
+        }
+        signal = BareAsciiSignal {
+                file = "cassTarget0.txt"
+        }
+       message = "certifyCASSTarget, test 1"
+}
+
+# simulate another target at bearing angle 90 degrees
+target = PointTarget {
+    trajectory = ( { time = 0.0; position = ( 0 3000 885 ) } )
+    points = ( { strengthDB = 0 } )
+}
+new signal90 = InternalSignal {}
+echoGenerator = TargetEcho {
+        frequency = 3500
+        isComplex = true
+        times = { first = 4.0; last = 7.0; interval = 0.005 }
+        order = 0       # nearest neighbor (no Doppler shift or beam delays)
+}
+CopySignal echoGenerator signal90
+
+# Copy the result to ASCII form
+new txtSignal90 = BareAsciiSignal { file = "cassTarget90.txt" }
+CopySignal signal90 txtSignal90
+
+# Compare to pre-calculated results
+CompareSignals {
+        standard = BareAsciiSignal {
+                file = "$SSTHOME/standard/cassTarget90.txt"
+        }
+        signal = BareAsciiSignal {
+                file = "cassTarget90.txt"
+        }
+       message = "certifyCASSTarget, test 2"
+}

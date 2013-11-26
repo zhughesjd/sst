@@ -1,0 +1,161 @@
+# DDDReverbTest.sst: Test Directional Doppler Density reverb generation
+
+# $Id: DDDReverbTest.sst 4977 2007-01-25 22:35:39Z rpg $
+
+# Create source
+new source = Source {
+        beams = ( OmniBeam )
+        # Pure tone @ 3.5 kHz
+        signal = ModulatedTone {
+            level = 200.0
+            frequencyModulation = ConstantFunction{value=3500}
+            envelope = TaylorWindow{ start=0; end=0.1 }
+            # In complex envelope form
+            isComplex = true
+            frequency = 3500.0
+            times = {first=0; last=0.1; rate=100}  # 11 samples
+            # Real output
+/*
+            isComplex = false
+            frequency = 0
+            times = {first=0; last=0.02; rate=10000}  # 1.4x oversample
+*/
+        }
+        trajectory = ( { time = 0.0
+                         position = ( 0 0 250 ) # 250 meters down
+                         velocity = ( 0 0 0 )   # not moving
+                        } 
+                     )
+}
+
+# Receive beam patterns
+# 2 Piston Beams.
+#read "2PistonBeams.sst"
+#read "4UnitCookieBeams.sst"
+#read "2UnitCookieBeams.sst"
+
+# 2 Omni Beams, located 0.2 meters apart in Z (depth_
+# This is about 1/2 lambda at 3500 Hz
+rcvBeam = BeamList( OmniBeam{ offset=(0, 0,  0.1) },
+                    OmniBeam{ offset=(0, 0, -0.1) }
+                  )
+# 1 Omni Beam
+#rcvBeam = BeamList( OmniBeam )
+
+# Locate receiver:  Monostatic
+new receiver = Sonar {
+    beams = rcvBeam
+    trajectory = source.trajectory
+}
+
+# Iso-Everything Ocean
+new ocean = Ocean {
+        depth = 1000.0
+        surface = Boundary {
+                backStrength = ConstantDbFunction2 { decibels = -10 }
+        }
+  	    bottom  = Boundary {
+                backStrength = ConstantDbFunction2 { decibels = -5 }
+        }
+        soundspeed = 1500
+}
+
+# Simplest possible eigenray model 
+new eigModel = EigenrayModel {
+        maximumEigenrays = 1
+        maximumSurfaceBounces = 0
+        maximumBottomBounces = 0
+        max2waySurfaceBounces = 0
+        max2wayBottomBounces = 0
+        filterLength = 1
+}
+
+# Create the Doppler Density
+random.seed = 123456789
+new doppDensity = DirectionalDopplerDensity {
+        isComplex = source.signal.isComplex
+        frequencies = UniformGrid { first=3500; number=1 }
+        # The DopplerDensity (for now, anyway) needs to be at a rate
+        # near that of the DDReverbSignal which uses it.  And the
+        # latter must at a rate near that of the source signal.
+        times = UniformGrid { first=0; last=5; rate=source.signal.times.rate }
+        scatFunTimes = UniformGrid { first=0; last=5; interval= 0.1; }
+        # No doppler
+        dopplers = UniformGrid {
+                first = 1.0
+                last =  1.0
+                number = 1
+        }
+        ##maxAngleChange = 0.5    # make small compared to beamwidth
+        ##maxSamples = 1024       # next ^2 over (360/maxAngleChange)
+        maxAngleChange = 100    # for omni beams
+        maxSamples = 4          # ditto
+        # Do surface only
+        doSurface = true
+        doBottom = false
+        doVolume = false
+        eigenrayModel = eigModel
+        # Use a 1x1-Deg tesselation
+        tesselation = GriddedTesselation {
+                         elevationInc = 1.0
+                         azimuthIncEq = 1.0
+        }
+}
+# Copy out the Doppler Density
+new doppDensityFile = SIODopplerDensity{ file="doppDensity.sio" }
+CopySignal doppDensity doppDensityFile
+
+# Create reverberation from that
+random.seed = 123456789
+new ddReverb = DDReverbSignal {
+	dopplerDensity = doppDensity
+	sourceSignal = source.signal
+    isComplex = source.signal.isComplex
+    frequency = source.signal.frequency
+    times = doppDensity.times{rate=source.signal.times.rate}
+}
+##CopySignal ddReverb BareAsciiSignal{ file="ddReverb.txt" }
+new ddReverbFile = SIOSignal{ file="ddReverb.sio" }
+CopySignal ddReverb ddReverbFile
+
+# Do it again from the file
+new ddReverbFromFile = DDReverbSignal {
+	dopplerDensity = doppDensityFile
+	sourceSignal = source.signal
+    isComplex = source.signal.isComplex
+    frequency = source.signal.frequency
+    times = doppDensity.times{rate=source.signal.times.rate}
+}
+new ddReverbFromFileFile = SIOSignal{ file="ddReverbFromFile.sio" }
+CopySignal ddReverbFromFile ddReverbFromFileFile
+
+CompareSignals ddReverbFile ddReverbFromFileFile
+
+###########################################################################
+
+# Do it again via BBBScatFun
+new bbbScatFun = BBBScatFun {
+	isComplex = doppDensity.isComplex
+	times = doppDensity.scatFunTimes
+	frequencies = doppDensity.frequencies
+	dopplers = doppDensity.dopplers
+	isCorrelated = true
+	maxAngleChange = doppDensity.maxAngleChange
+	maxSamples = doppDensity.maxSamples
+    doSurface = doppDensity.doSurface
+    doBottom = doppDensity.doBottom
+    doVolume = doppDensity.doVolume
+    eigenrayModel = doppDensity.eigenrayModel
+    ##tesselation = doppDensity.tesselation
+}
+new bbbScatFunFile = SIOScatFun{ file = "bbbScatFun.sio" }
+CopySignal bbbScatFun bbbScatFunFile
+
+new bbbReverb = ReverbSignal {
+    scatFunction = bbbScatFunFile
+    sourceSignal = ddReverb.sourceSignal
+    isComplex = ddReverb.isComplex
+    frequency = ddReverb.frequency
+    times = ddReverb.times
+}
+CopySignal bbbReverb SIOSignal{ file="bbReverb.sio" }

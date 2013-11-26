@@ -1,0 +1,253 @@
+# genFig05.sst: Generate SST simulation corresponding to Cole Figure 5
+
+# $Id: genFig05.sst 6285 2009-11-02 18:03:43Z rpg $
+
+# Parameters
+new pulseLength = double:0.02
+new scatFunInterval = double:0.01
+new sampleRate  = double:500.0
+new centerFrequency = double:3500
+
+# The sonar is sitting still, at the depth specified by Cole
+new sonarTrajectory = Trajectory:(
+	{
+		time = 0.0  # s
+		position = ( 0.0,  0.0,  7.62 )  # m
+	}
+)
+
+# First pulse is 20-ms CW at 3500 Hz
+new pulseFrequency = centerFrequency
+new tranPulse_0020 = ModulatedTone:{
+	isComplex = true
+    frequency = centerFrequency
+	times = UniformGrid:{
+        first = 0.0
+        last = pulseLength
+        rate = sampleRate
+    }
+	level = 231.0	# dB // uPa^2 m^2 (adjusted to match figure)
+    # Use just enough tapering to cut down edge transients
+	envelope = CosineWindow:{
+        start = 0
+        end = pulseLength
+        taperFraction = 0.05
+    }
+    frequencyModulation = ConstantFunction:{
+        value = pulseFrequency
+    }
+}
+
+# The sonar is monostatic, omnidirectional
+new source_0020 = Source:{
+	beams = ( OmniBeam )
+	signal = tranPulse_0020
+	trajectory = sonarTrajectory
+}
+
+new receiver = Sonar:{
+	beams = ( OmniBeam )
+	trajectory = sonarTrajectory
+}
+
+# Define the ocean environment, as specified in Cole
+new ocean = Ocean {
+	depth = 50        # [m]
+	soundspeed = 1500	# [m/s]
+
+	# The surface is a perfect reflector
+	windspeed = 0		# [m/s]
+	surface = Boundary:{}
+
+	# Bottom parameters
+	bottom = Boundary:{
+        backStrength = PowSineScat:{
+            strengthDB = -27
+            exponent = 1
+        }
+    }
+
+	# Volume attenuation unspecified; do something reasonable
+	volumeAttenuation = ThorpAttenuation:{}
+}
+
+# Isovelocity eigenray model
+new eigenrayModel = EigenrayModel {
+	maximumEigenrays = 2
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 0
+}
+
+# These objects compute the reverberation
+new doppDensity_0020 = DirectionalDopplerDensity {
+    isComplex = source.signal.isComplex
+    frequencies = UniformGrid { first=centerFrequency; number=1 }
+    times = UniformGrid { first=0; last=5; rate=sampleRate }
+    scatFunTimes = UniformGrid { first=0; last=5.1; interval=scatFunInterval }
+    # No doppler
+    dopplers = UniformGrid {
+            first = 1.0
+            last =  1.0
+            number = 1
+    }
+    maxAngleChange = 100    # for omni beams
+    maxSamples = 4          # ditto
+    # Do bottom only
+    doSurface = false
+    doBottom = true
+    doVolume = false
+    source = source_0020
+    # Use a 5x5-Deg tesselation
+    tesselation = GriddedTesselation {
+        elevationInc = 5.0
+        azimuthIncEq = 5.0
+    }
+    
+    # All of these runs are coherent
+    coherentBottom = true
+}
+
+new ddReverb_0020 = DDReverbSignal {
+	dopplerDensity = doppDensity_0020
+	sourceSignal = tranPulse_0020
+    isComplex = tranPulse_0020.isComplex
+    frequency = tranPulse_0020.frequency
+    times = doppDensity_0020.times{rate=tranPulse_0020.times.rate}
+}
+
+# Always use the same set of random numbers
+random.seed = 123456789
+
+# Generate 20 pings for the 20-ms (short) pulse
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_01.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_02.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_03.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_04.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_05.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_06.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_07.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_08.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_09.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_10.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_11.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_12.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_13.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_14.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_15.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_16.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_17.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_18.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_19.sio" }
+CopySignal ddReverb_0020 SIOSignal{ file="fig3cs_20.sio" }
+
+# The medium-length pulse is 200 ms
+pulseLength = 0.2
+new tranPulse_0200 = ModulatedTone:{
+	isComplex = true
+    frequency = centerFrequency
+	times = UniformGrid:{
+        first = 0.0
+        last = pulseLength
+        rate = sampleRate
+    }
+	level = 221.0	# dB // uPa^2 m^2 (adjusted to match figure)
+    # Use just enough tapering to cut down edge transients
+	envelope = CosineWindow:{
+        start = 0
+        end = pulseLength
+        taperFraction = 0.05
+    }
+    frequencyModulation = ConstantFunction:{
+        value = pulseFrequency
+    }
+}
+new source_0200 = source_0020:{
+    signal = tranPulse_0200
+}
+new doppDensity_0200 = doppDensity_0020:{
+    source = source_0200
+}
+new ddReverb_0200 = DDReverbSignal {
+	dopplerDensity = doppDensity_0200
+	sourceSignal = tranPulse_0200
+    isComplex = tranPulse_0200.isComplex
+    frequency = tranPulse_0200.frequency
+    times = doppDensity_0200.times{rate=tranPulse_0200.times.rate}
+}
+
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_01.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_02.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_03.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_04.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_05.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_06.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_07.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_08.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_09.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_10.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_11.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_12.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_13.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_14.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_15.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_16.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_17.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_18.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_19.sio" }
+CopySignal ddReverb_0200 SIOSignal{ file="fig3cm_20.sio" }
+
+# The long pulse is 1 second
+pulseLength = 1.0
+new tranPulse_1000 = ModulatedTone:{
+	isComplex = true
+    frequency = centerFrequency
+	times = UniformGrid:{
+        first = 0.0
+        last = pulseLength
+        rate = sampleRate
+    }
+	level = 214.0	# dB // uPa^2 m^2 (adjusted to match figure)
+    # Use just enough tapering to cut down edge transients
+	envelope = CosineWindow:{
+        start = 0
+        end = pulseLength
+        taperFraction = 0.05
+    }
+    frequencyModulation = ConstantFunction:{
+        value = pulseFrequency
+    }
+}
+new source_1000 = source_0020:{
+    signal = tranPulse_1000
+}
+new doppDensity_1000 = doppDensity_0020:{
+    source = source_1000
+}
+new ddReverb_1000 = DDReverbSignal {
+	dopplerDensity = doppDensity_1000
+	sourceSignal = tranPulse_1000
+    isComplex = tranPulse_1000.isComplex
+    frequency = tranPulse_1000.frequency
+    times = doppDensity_1000.times{rate=tranPulse_1000.times.rate}
+}
+
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_01.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_02.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_03.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_04.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_05.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_06.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_07.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_08.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_09.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_10.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_11.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_12.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_13.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_14.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_15.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_16.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_17.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_18.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_19.sio" }
+CopySignal ddReverb_1000 SIOSignal{ file="fig3cl_20.sio" }

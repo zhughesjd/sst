@@ -1,0 +1,30 @@
+# listen.sst: resample received signal in Sound format at half-CD rate.
+# $Id: listen.sst 6036 2009-07-01 23:21:21Z rpg $
+
+new recSignal = SIOSignal {
+	isComplex = false
+	times = { 
+		first = 4
+		last = 8
+		rate = 3000	# 10% oversampling
+	}
+	file = "passiveCASS.sio"
+}
+
+new resampler = ResampleSignal {
+	isComplex = false
+    times = {
+        first = recSignal.times.first
+        last = recSignal.times.last
+        rate = 22050
+    }
+	inSignal = recSignal
+}
+
+new recSound = SoundSignal {
+    file = "passive.snd"
+    encoding = LINEAR_16
+    clipDB = -40	# dB // uPa^2
+}
+
+CopySignal resampler recSound

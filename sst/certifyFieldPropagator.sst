@@ -1,0 +1,83 @@
+# certifyFieldPropagator.sst: Certification tests for FieldPropagator subclasses
+# $Id: FieldPropagator.sst 4951 2006-12-29 00:59:57Z rpg $
+
+##echoInput = true
+#traceRay = true
+print ""
+print "Running standard FieldPropagator test case 1"
+
+# RAM field from file
+is = InternalSignal {}
+CopySignal BareAsciiSignal { file = "RAMfield.dat" } is
+fld = RZFTableField{frequencies = is.times; samples = is.buf};
+
+# Broadband impulse scaled by sqrt(rate) for unit area
+impulse = InternalSignal { times = UniformGrid { first = 0; rate = 2000; number = 3; };
+	isComplex = false; buf = ( 44.7214, 0.0, 0.0 ); order = 10 }
+
+# Band limited impulse scaled for unit area
+filt = BareAsciiSignal { file = "filt.txt" };
+CopySignal filt BareAsciiSignal { file = "tmp.txt" };
+filtRes = ResampleSignal {
+ inSignal = filt;
+ times = UniformGrid { first = -0.1; last = 0.1; rate = 4000 }; isComplex = false } 
+
+
+
+sig = DirectSignal { 
+	times = UniformGrid { first = 6.4; rate = 2000; last = 7.4 };
+	order = 10;
+#	times = std.times;
+	isComplex = false;
+	source = Source {
+		beams = ( OmniBeam {} );
+		signal = impulse; 
+		trajectory = Trajectory ( { position = ( 0, 0, 10 ); } );
+	}
+	receiver = Sonar {
+		beams = ( OmniBeam {} );
+		trajectory = Trajectory ( { position = ( 9751, 0, 10 ); } ); }
+	eigenrayModel = FieldPropagator {
+		field = fld;
+		filterLength = 4760;
+	}
+}
+
+# run
+CopySignal sig BareAsciiSignal { file = "sig.txt" }
+
+# The standard was created from the dispersion example using:
+# WriteRamImpulse( 'disp_hook_9750m_allz.txt', 'ram_impulse.sio', ...
+#    185, 45, 0.1, 6.4, 0.7 );
+# Then converted to ascii:
+# CopySignal SIOSignal { file = "ram_impulse.sio"; isComplex = false } BareAsciiSignal { file = "ram_impulse.txt" }
+ramImpulse = BareAsciiSignal { file = "ram_impulse.txt" }
+# Scale the reference by sqrt(df/nfft)*sqrt(rate)=sqrt(.124969/16384)*sqrt(2047.49)=df because of the fact
+# that rate=df*nfft
+std = ScaleSignal { inSignal = ramImpulse; scale = 0.124969 }
+CopySignal std BareAsciiSignal { file = "std.txt" }
+
+res = ResampleSignal {
+# inSignal = ScaleSignal { inSignal = sig; scale = 675 }; 
+ inSignal = ScaleSignal { inSignal = sig; scale = 1 }; 
+ times = std.times; isComplex = sig.isComplex }
+
+CopySignal res SIOSignal { file = "tmp.sio" }
+
+CompareSignals {
+  signal = SIOSignal { file = "tmp.sio" } 
+  standard = std
+  tolerance = .5
+  message = "certifyFieldPropagator -- Comparing DirectSignal using RAM field impulse response to the dispersion example signal"
+}
+
+sig.source.signal = filtRes
+CopySignal res SIOSignal { file = "tmp.sio" }
+CompareSignals {
+  signal = SIOSignal { file = "tmp.sio" } 
+  standard = std
+  tolerance = .25
+  message = "certifyFieldPropagator -- Comparing DirectSignal using RAM field with band limited impulse to the dispersion example signal"
+}
+
+

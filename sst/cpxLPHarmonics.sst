@@ -1,0 +1,74 @@
+# cpxLPHarmonics.sst: Low-Pass FIR Filter on complex HarmonicFamily signal
+# $Id: cpxLPHarmonics.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+sigTimes = UniformGrid:{ first = 0; last = 1; rate = 1000 }
+
+# The test signal contains 9 equal cosines covering 80% of Nyquist band.
+new charfam = HarmonicFamily {
+	isComplex = true
+	frequency = 2000
+	times = sigTimes
+	fundamental = 100
+	harmonics = (
+  # number	ampDB	phaseDeg
+	16		0.0		0
+	17		0.0		0
+	18		0.0		0
+	19		0.0		0
+	20		0.0		0
+	21		0.0		0
+	22		0.0		0
+	23		0.0		0
+	24		0.0		0
+	)
+}
+new charmonics = SIOSignal {
+	file = "CLPHarmonics.sio"
+}
+CopySignal charfam charmonics
+
+# The test:  Filter out components over 200 Hz from center (40% Nyquist),
+# varying length.
+new cfilter_09 = VarFirFilter {
+    inSignal = charmonics
+    coefBuf = LPFirCoefBuf {
+		filterLength = 9
+		bandFraction = 0.4
+	}
+}
+
+new cfiltered_09 = SIOSignal {
+	file = "CLPFiltered_09.sio"
+}
+
+CopySignal cfilter_09 cfiltered_09
+
+new cfilter_15 = VarFirFilter {
+    inSignal = charmonics
+    coefBuf = LPFirCoefBuf {
+		filterLength = 15
+		bandFraction = 0.4
+	}
+}
+
+new cfiltered_15 = SIOSignal {
+	file = "CLPFiltered_15.sio"
+}
+
+CopySignal cfilter_15 cfiltered_15
+
+new cfilter_31 = VarFirFilter {
+    inSignal = charmonics
+    coefBuf = LPFirCoefBuf {
+		filterLength = 31
+		bandFraction = 0.4
+	}
+}
+
+new cfiltered_31 = SIOSignal {
+	file = "CLPFiltered_31.sio"
+}
+
+CopySignal cfilter_31 cfiltered_31

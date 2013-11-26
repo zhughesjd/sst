@@ -1,0 +1,164 @@
+# grids.sst:  Various Grids needed in a lot of places
+# $Id: grids.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# logRatio for 16 steps per halftone
+new logRatio16PerHalftone = double: 0.001567864551
+new logRatioThirdOctave = double: 0.100343331
+
+
+# NOTE:  Two different scenarios can be used, long or short.
+# To switch between them, just comment out the one you don't want
+# using a /* .... */ pair.
+
+
+############# Long Scenario #############
+
+# Listening times for the reverberation output
+new listenTimes =  UniformGrid:{
+    first = 0.1
+	last = 5
+    rate = 8000     # CODEC rate for listening (2.5x oversampled)
+}
+
+# A very long transmit signal
+new tranTimes = UniformGrid:{
+    first = 0.0
+    last = 1.4
+    rate = 8000     # CODEC rate for listening (2.5x oversampled)
+}
+
+# Times for spectra covering the whole pulse.
+new tranSpectTimes = UniformGrid:{
+    first = tranTimes.first
+    last = tranTimes.last
+    interval = 0.1  # Two per chirp (so each FFT is 1 chirp long)
+}
+
+# A very broadband transmit signal.
+# This frequency grid is used for the transmit pulse,
+# and in this example it's used for the reverberation power spectrum too.
+new tranFreqs =  GeometricGrid:{
+    first = 391.995     # Whole tone below first chirp
+    last =  1864.65     # Half tone above last chirp
+    logRatio = logRatio16PerHalftone
+        # Match tranSpect.frequencies & scatFun.dopplers
+}
+
+# Propagation times covering a substantial listening interval
+new scatFunTimes =  UniformGrid:{
+    first = listenTimes.first   # Recommended if pulse starts at 0
+	last =  listenTimes.last    # ditto
+	interval = tranSpectTimes.interval  # Must agree
+}
+
+# ScatFun frequencies for the whole pulse
+# This need not agree with other grids, but should cover important frequencies
+new scatFunFreqs = GeometricGrid: {
+    first = 440     # first chirp
+    last = 1760     # last chirp
+    logRatio = logRatioThirdOctave  # Typical for most situations
+}
+
+# Dopplers for scattering function
+new scatFunDopplers = GeometricGrid {
+    first = 1.0         # Back hemisphere is excluded in this case
+    last =  1.029302236 # > 1 + 2*v/c
+    logRatio = tranFreqs.logRatio   # must agree
+}
+
+# Times for reverberation spectra
+new reverbSpectTimes =  UniformGrid:{
+    first = listenTimes.first
+	last = listenTimes.last
+	interval = tranSpectTimes.interval  # must agree
+}
+
+#   From rules in SignalFromSpectrum page:
+# NFFT > reverbSig.times.rate * gaussSpect.times.interval
+#   = 8000 * 0.1 = 800
+# Next power of 2 = 1024
+# Therefore gaussSpect.frequencies.interval = reverbSig.times.rate/(2*NFFT)
+#   = 8000/(2*1024) = 3.90625
+new gaussSpectFreqs = UniformGrid {
+    first = 250         # < reverbSpect.frequencies.first
+    last = 2000         # > reverbSpect.frequencies.last
+    interval = 3.90625  # See rules above
+}
+
+
+
+############# Short Scenario #############
+
+/* ************* Commented out
+
+# Listening times for the reverberation output
+new listenTimes =  UniformGrid:{
+    first = 0.2
+	last = 0.6
+    rate = 8000     # CODEC rate for listening (2.5x oversampled)
+}
+
+# A short transmit signal (first chirp only)
+new tranTimes = UniformGrid:{
+    first = 0.0
+    last = 0.2
+    rate = 8000     # CODEC rate for listening (2.5x oversampled)
+}
+
+# Times for spectra covering the first chirp only
+new tranSpectTimes = UniformGrid:{
+    first = 0.1     # Center of the first chirp
+    last = 0.1      # ditto
+    interval = 0.2  # One chirp
+}
+
+# A tight grid around the first A (G to B)
+# This frequency grid is used for the transmit pulse,
+# and in this example it's used for the reverberation power spectrum too.
+new tranFreqs = GeometricGrid:{
+    first = 391.995 # E flat (whole tone below first chirp)
+    last =  493.883 # G (whole tone above first chirp)
+    logRatio = logRatio16PerHalftone
+}
+
+# A shorter propagation time interval for debugging
+new scatFunTimes =  UniformGrid:{
+    first = 0.1     # listenTimes.first - tranSpectTimes.first
+	last = 0.5      # Half step before listen end
+	interval = tranSpectTimes.interval  # Must agree
+}
+
+# ScatFun A frequency grid for debugging
+new scatFunFreqs = GeometricGrid: {
+    first = 440
+    last = 440
+    logRatio = logRatioThirdOctave
+}
+
+# The back hemisphere is not included in these Dopplers.
+new scatFunDopplers = GeometricGrid {
+    first = 1.0
+    last =  1.029302236 # > 1 + 2*v/c
+    logRatio = tranFreqs.logRatio   # must agree
+}
+
+# Times for reverberation spectra
+new reverbSpectTimes =  UniformGrid:{
+    first = listenTimes.first
+	last = listenTimes.last
+	interval = tranSpectTimes.interval  # must agree
+}
+
+#   From rules in SignalFromSpectrum page:
+# NFFT > reverbSig.times.rate * gaussSpect.times.interval
+#   = 8000 * 0.2 = 1600
+# Next power of 2 = 2048
+# Therefore gaussSpect.frequencies.interval = reverbSig.times.rate/(2*NFFT)
+#   = 8000/(2*2048) = 1.953125
+new gaussSpectFreqs = UniformGrid {
+    first = 250         # < reverbSpect.frequencies.first
+    last =  500         # > reverbSpect.frequencies.last
+    interval = 1.953125 # See rules above
+}
+
+ ************* Commented out */

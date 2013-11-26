@@ -1,0 +1,139 @@
+# cassBistaticReverb.sst:  SST sample script demonstrating the use of Cass
+# eigenrays for generation of bistatic reverberation
+#
+# $Id: bistaticReverbRun.sst 6424 2010-06-30 18:51:55Z julia $
+
+# Source is omnidirectional
+new source = Source {
+        beams = ( OmniBeam )
+        signal = ModulatedTone {
+                frequency = 15000.0     # Hz
+                level = 200.0           # dB // uPa^2 m^2
+                times = { first = 0.05; interval = 0.1; number = 1 }
+        }
+# Locate transmitter
+        trajectory = ( { time = 0.0; position = ( 0 0 150 ) } )
+}
+
+# Locate receiver:  also omnidirectional
+new receiver = Sonar {
+    beams = ( OmniBeam )    
+    trajectory = ( { time = 0.0; position = ( 5000 0 150 ) } )
+}
+
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+    
+        # Bottom depth.  You can use a 2D table function, or a depthFile here,
+        # however these will preclude use of the internal eigenray model below.
+        # If you wish to compare reverb to that from Cass, be sure SST's bathymetry 
+        # matches.
+        depth = 2000.0   # constant (meters)
+
+        # Surface and bottom scattering and reflection are isotropic
+        surface = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+                backStrength = ConstantDbFunction2 { decibels = -40 }
+        }
+        
+        bottom  = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+                backStrength = ConstantDbFunction2 { decibels = -20 }
+        }
+        
+        # One volume reverb layer from 700-900 meters
+        volume = ReverbList (
+                ReverbLayer {
+                        minDepth = 700          # m
+                        maxDepth = 900          # m
+                        strengthDB = -50.0      # dB // m^-1
+                }
+        )
+        soundspeed = 1500       # m/s
+        # Volume attenuation:  Use zero if you wish to compare reverb with an
+        # analytic expression that is ignorant of attenuation.
+        volumeAttenuation = ThorpAttenuation
+        #volumeAttenuation = 0
+}
+
+cassEigenrayModel = CASSEigenrayRun {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        scenario = "Reverberation"
+        ocean = ocean
+        maximumSurfaceBounces = 0
+    	maximumBottomBounces = 0
+        maximumEigenrays = 4
+        filterLength = 1        # Narrowband; no filtering
+        verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+        receiverTrajectory = receiver.trajectory
+        sourceTrajectory = source.trajectory
+        ranges = UniformGrid { first = 10; 
+                               last = 20000; 
+                               interval = 10 }
+        frequencies = UniformGrid:{
+            first = source.signal.frequency
+            last = source.signal.frequency
+            number = 1
+        }
+        rangeReference = 1
+        sourceBearingAngles = UniformGrid{ first=0; last=0; number=1 }
+        receiverBearingAngles = UniformGrid{ first=0; last=0; number=1 }
+        endfile = "reverb.cass"
+        doVolume = true
+        doSurface = true
+        doBottom = true
+        maximumEigenraysPerSignature = 2
+        match = CASSMatch: {
+           dsaFactor            =   1.5
+           dsaGrad              =   0.0003
+           dsaMin               =   0.002
+           timeFactor           =   1.5
+           timeGrad             =   0.0003
+           timeMin              =   0.002
+           bearingTimeWeight    =   1
+           bearingAngleWeight   =   1
+           missingRangePenality =   0.01
+    }
+}
+
+# As a check, use the internal SST eigenray model also
+new internalEigenrayModel = EigenrayModel {
+        maximumEigenrays = cassEigenrayModel.maximumEigenrays
+        maximumSurfaceBounces = cassEigenrayModel.maximumSurfaceBounces
+        maximumBottomBounces = cassEigenrayModel.maximumBottomBounces
+        max2waySurfaceBounces = cassEigenrayModel.max2waySurfaceBounces
+        max2wayBottomBounces = cassEigenrayModel.max2wayBottomBounces
+        filterLength = cassEigenrayModel.filterLength
+}
+
+###### Simulation Parameters ######
+
+new cassScatFunGenerator = BBBScatFun {
+        frequencies = cassEigenrayModel.frequencies
+        times = UniformGrid { first = 0; interval = 0.01; number = 1500 }
+        dopplers = UniformGrid {
+                first = 1.0
+                last =  1.0
+                interval = 1.0
+                number = 1
+        }
+        # What type of reverberation?  Only bottom and/or surface will permit 
+        # comparison with analytic results.  If you wish to compare volume 
+        # reverb with that from Cass, turn them on here and in the Cass runstream.
+        doVolume = true
+        doSurface = true
+        doBottom = true
+        eigenrayModel = cassEigenrayModel
+}
+# Duplicate w/internal model too (inherit most from Cass model)
+new internalScatFunGenerator = cassScatFunGenerator {
+        eigenrayModel = internalEigenrayModel
+}
+
+# Print the scattering function
+new cassBbScatFun = BareAsciiSignal { file = "CassScatFun.txt" }
+CopySignal cassScatFunGenerator cassBbScatFun
+new internalBbScatFun = BareAsciiSignal { file = "InternalScatFun.txt" }
+CopySignal internalScatFunGenerator internalBbScatFun

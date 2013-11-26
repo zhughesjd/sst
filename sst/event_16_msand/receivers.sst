@@ -1,0 +1,26 @@
+# Vertical Receiver Array for Event 16
+
+# APMS hydrophones are deployed from the Kalkgrund at depths
+# of 8, 13, 18, and 23 m, according to bistatic/readme.txt.
+# For Event 16, range from tower is 670 m, bearing 179.
+# That's North = -670, East = +12.
+
+# Model each hydrophone as a separate single-channel omnidirectional receiver.
+new recBeam = OmniBeam{}
+
+new receiver_1 = Sonar:{
+	beams  = ( recBeam )
+	trajectory = ( { position = ( -670, +12, 8 ) } )
+}
+new receiver_2 = Sonar:{
+	beams  = ( recBeam )
+	trajectory = ( { position = ( -670, +12, 13 ) } )
+}
+new receiver_3 = Sonar:{
+	beams  = ( recBeam )
+	trajectory = ( { position = ( -670, +12, 18 ) } )
+}
+new receiver_4 = Sonar:{
+	beams  = ( recBeam )
+	trajectory = ( { position = ( -670, +12, 23 ) } )
+}

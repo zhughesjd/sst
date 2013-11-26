@@ -1,0 +1,170 @@
+ ##########################################################################
+# Generate a scenario which drives SST to simulate bounces from
+# multiple surfaces and bottoms in a positionally-dependent environment.  
+#
+# This exersizes SST's propagation model's use of range-dependent
+# forward loss.
+#
+# The result should be different energy levels reaching each of 2 
+# receivers, for which bounces see different loss profiles
+#
+# NOTE: This script differs from certifyGriddedLoss in that that script
+#       uses CASS to generate eigenrays - in this test, SST does that.
+#       Also, here we test both surface and bottom variability.
+#
+# $Id: certifyGriddedSSTLoss.sst 4951 2006-12-29 00:59:57Z rpg $
+##########################################################################
+
+# Create 4-point surface grid.
+# Wind increases from southwest to northeast
+new surfaceOceanSW = Ocean{ surface=McDanielSurface{}; windspeed=4 }
+new surfaceOceanNW = Ocean{ surface=McDanielSurface{}; windspeed=5 }
+new surfaceOceanSE = Ocean{ surface=McDanielSurface{}; windspeed=6 }
+new surfaceOceanNE = Ocean{ surface=McDanielSurface{}; windspeed=7 }
+
+# Construct the gridded boundary locales
+surfaceSW = BoundaryLocale { x=-2000; y=-2000.0; boundary=surfaceOceanSW.surface }
+surfaceNW = BoundaryLocale { x=2000; y=-2000.0; boundary=surfaceOceanNW.surface }
+surfaceSE = BoundaryLocale { x=-2000; y=2000.0; boundary=surfaceOceanSE.surface }
+surfaceNE = BoundaryLocale { x=2000; y=2000.0; boundary=surfaceOceanNE.surface }
+
+
+# Likewise for bottoms
+read "jacksonBottoms.sst"
+new bottomOceanSW = Ocean{ bottom=SandyGravel }
+new bottomOceanNW = Ocean{ bottom=MediumSand }
+new bottomOceanSE = Ocean{ bottom=SandyMud }
+new bottomOceanNE = Ocean{ bottom=Clay }
+bottomSW = BoundaryLocale { x=-2000; y=-2000.0; boundary=bottomOceanSW.bottom }
+bottomNW = BoundaryLocale { x=2000; y=-2000.0; boundary=bottomOceanNW.bottom }
+bottomSE = BoundaryLocale { x=-2000; y=2000.0; boundary=bottomOceanSE.bottom }
+bottomNE = BoundaryLocale { x=2000; y=2000.0; boundary=bottomOceanNE.bottom }
+
+
+################################################
+# tabulate angle vs. loss for use with matlab script BounceLoss.m
+# copy data from coherent strength
+
+#new freqs = UniformGrid{ first=3000; last=3000; number=1 }
+#new angs =  UniformGrid{ first=0; last=90; interval=1 }
+
+#print "SouthWest Surface"
+#TabulateBoundary { boundary=surfaceOceanSW.surface; frequencies=freqs; angles=angs }
+#print "NorthWest Surface"
+#TabulateBoundary { boundary=surfaceOceanNW.surface; frequencies=freqs; angles=angs }
+#print "SouthEast Surface"
+#TabulateBoundary { boundary=surfaceOceanSE.surface; frequencies=freqs; angles=angs }
+#print "NorthEast Surface"
+#TabulateBoundary { boundary=surfaceOceanNE.surface; frequencies=freqs; angles=angs }
+
+#print "SouthWest Bottom"
+#TabulateBoundary { boundary=bottomOceanSW.bottom; frequencies=freqs; angles=angs }
+#print "NorthWest Bottom"
+#TabulateBoundary { boundary=bottomOceanNW.bottom; frequencies=freqs; angles=angs }
+#print "SouthEast Bottom"
+#TabulateBoundary { boundary=bottomOceanSE.bottom; frequencies=freqs; angles=angs }
+#print "NorthEast Bottom"
+#TabulateBoundary { boundary=bottomOceanNE.bottom; frequencies=freqs; angles=angs }
+#################################################
+
+
+
+# Create an Ocean with the 4 surface & bottom models defined above
+# NOTE: YOU MUST DEFINE THE GRIDDED SURFACE OUTSIDE THE "ocean=Ocean" BLOCK
+griddedSurface = GriddedBoundary {
+                    boundaryList = BoundaryLocaleList( surfaceNW, surfaceNE,
+                                                       surfaceSW, surfaceSE )
+} 
+griddedBottom = GriddedBoundary {
+                    boundaryList = BoundaryLocaleList( bottomNW, bottomNE,
+                                                       bottomSW, bottomSE )
+} 
+ocean = Ocean {
+        surface = griddedSurface
+        bottom = griddedBottom
+        depth = 3000.0   # constant (meters)
+        soundspeed = 1500       # m/s
+        volumeAttenuation = 0   # ThorpAttenuation
+}
+
+### Source & Receivers are located to guarantee unique closest gridded
+### environment points, i.e. to avoid cases where multiple gridpoints
+### are equidistant from bounce locations.
+
+# Source is located at bottom center of grid, 500 meters down
+new source = Source {
+        beams = ( OmniBeam )
+        signal = ModulatedTone {    # complex baseband by default
+                frequency = 3000.0
+                level = 600.0
+                times = { first=0.05; interval=0.1; number=1 }
+        }
+        trajectory = ( { time = 0.0; position = ( -2000 0 500 ) } )
+}
+
+# First receiver located halfway across a latitude 90% to the top of 
+# the grid, 1500 meters deep.
+receiverNE = Sonar {
+    beams = ( OmniBeam )    
+    trajectory = ( { time = 0.0; position = ( 1800 1000 1500 ) } )
+}
+# Second receiver symmetrically located to the west
+receiverNW = receiverNE {
+    trajectory = ( { time = 0.0; position = ( 1800 -1000 1500 ) } )
+}
+
+##### Direct signal from source-->receivers #####
+
+# To northwest receiver
+signalNW = DirectSignal {
+    receiver = receiverNW
+	isComplex = true
+    frequency = source.signal.frequency
+    # Interval to just catch all paths
+	times = { first=2.5; last=8; rate=2000 }
+}
+
+# To northeast receiver
+signalNE = signalNW {
+    receiver = receiverNE
+}
+
+######################### Eigenray Model #########################
+# Permit 2 surface & 2 bottom bounces: each should 
+# "snap-to" a different environment (of the 4 specified).
+# NOTE that Cass interpolates environments - we select
+# the nearest neighbor.
+iem = EigenrayModel{
+    doTimeSpread = false
+    frequency = source.signal.frequency;
+    maximumSurfaceBounces = 2
+    maximumBottomBounces = 1
+    maximumEigenrays = 30
+}
+
+# Generate the signals
+signalNW.eigenrayModel = iem;
+signalFileNW = BareAsciiSignal{ file="GriddedLossNW.txt" }
+CopySignal signalNW signalFileNW
+signalNE.eigenrayModel = iem;
+signalFileNE = BareAsciiSignal{ file="GriddedLossNE.txt" }
+CopySignal signalNE signalFileNE
+
+new signalFileNE_sio = SIOSignal { file = "sigNE.sio" }
+CopySignal signalNE signalFileNE_sio
+
+new signalFileNW_sio = SIOSignal { file = "sigNW.sio" }
+CopySignal signalNW signalFileNW_sio
+
+
+# The "standard" signals below have been validated using the Matlab
+# script BounceLoss.m, with location-dependent loss profiles from
+# file dumps of the surfaces used here.
+CompareSignals { signal=signalFileNW
+                 standard =  BareAsciiSignal{file="$SSTHOME/standard/griddedSSTLossNW.txt"}
+                 message = "certifyGriddedSSTLoss -- griddedSSTLossNW"
+}
+CompareSignals { signal = signalFileNE
+                 standard =  BareAsciiSignal{file="$SSTHOME/standard/griddedSSTLossNE.txt"}
+                 message = "certifyGriddedSSTLoss -- griddedSSTLossNE"
+}

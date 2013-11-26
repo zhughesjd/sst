@@ -1,0 +1,181 @@
+# certifyPlaidSSP: Test location dependent SSP
+
+# $Id: certifyPlaidSSP.sst 5212 2008-02-05 20:31:48Z billk $
+
+#traceEigenrayModel = true
+
+print "\n***** Test location dependent SSP "
+
+read "jacksonBottoms.sst"
+
+#SSP one location
+new sspA = FunctionLocale {
+	x = 0
+	y = 0
+	function = TableFunction {
+		table = (
+			0	1500
+			500	1500
+		)
+	}
+}
+
+#SSP one location
+new sspB = FunctionLocale {
+	x = 1500
+	y = 0
+	function = TableFunction {
+		table = (
+			0	1450
+			500	1450
+		)
+	}
+}
+
+#SSP one location
+new sspC = FunctionLocale {
+	x = 0
+	y = 1600
+	function = TableFunction {
+		table = (
+			0	1400
+			500	1400
+		)
+	}
+}
+
+#SSP one location
+new sspD = FunctionLocale {
+	x = 1500
+	y = 1600
+	function = TableFunction {
+		table = (
+			0	1350
+			500	1350
+		)
+	}
+}
+
+#Plaid SSP
+new ssp = PlaidFunction3 {
+	functionList = FunctionLocaleList (
+		sspA, sspB, sspC, sspD
+	)
+}
+
+pulse = ModulatedTone {
+	frequency = 30000
+	order = 0
+	times = {       # One sample extending from 0 to 10 ms
+		first = 0.005
+		interval = 0.01
+		number = 1
+	}
+	level = 200	     # dB // uPa^2 m^2
+ }
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+ 
+	depth = 500.0   # constant (meters)
+
+	# Surface is isotropic
+	surface = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+		backStrength = ConstantDbFunction2 { decibels = -40 }
+	}
+       
+	bottom  = Clay
+	
+	soundspeed3D = ssp       # m/s
+	
+	# Volume attenuation:  Use zero if you wish to compare reverb with an
+	# analytic expression that is ignorant of attenuation.
+	volumeAttenuation = ThorpAttenuation
+}
+
+new source1 = Source {
+	beams  = ( OmniBeam )
+	signal = pulse
+	trajectory = Trajectory (  	
+	     {
+		time = 0.0			 # s
+		position = ( 0.0 0.0 60.0 )	# m
+	}
+   )
+}
+
+new receiver1 = Sonar {
+	beams = ( OmniBeam )
+	trajectory = Trajectory (  	
+	     {
+		time = 0.0			 # s
+		position = ( 1500.0 0.0 60.0 )	# m
+	}
+   )
+}
+
+eigenrayModel1 = CASSOnDemand {
+	startfile = "$SSTHOME/input/flatEarth.cass"
+	#cassBottom = SandyGravel
+	maximumSurfaceBounces = 0
+	maximumBottomBounces = 0
+	maximumEigenrays = 20
+	filterLength = 9
+	minimumRelativeStrength = -50
+	verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+	ranges = UniformGrid { first=10; last=700; interval=10 }
+	frequencies = UniformGrid{ first=28000; last=32000; number=3 }
+	maximumEigenraysPerSignature = 2
+	doTimeSpread = false
+	printEigenrays = true
+}
+
+
+directGenerator1 = DirectSignal {
+	eigenrayModel = eigenrayModel1
+	times = {
+		first = .95
+		last = 1.09
+		rate = 4000
+	}
+	frequency = 30000
+	source = source1
+	receiver = receiver1
+}
+
+new locDependentSSP_1 = BareAsciiSignal { file = "locDependentSSP_cass_1.txt" }
+CopySignal directGenerator1 locDependentSSP_1
+CompareSignals {
+	signal = locDependentSSP_1
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/locDependentSSP_cass_1.txt"
+	}
+	message = "certifyPlaidSSP_1, first test"
+}
+
+new receiver2 = Sonar {
+	beams = (OmniBeam)
+	trajectory = Trajectory (  	
+	     {
+		time = 0.0			 # s
+		position = ( 0.0 1500.0 60.0 )	# m
+	}
+   )
+}
+
+directGenerator2 = directGenerator1 {
+	eigenrayModel = eigenrayModel1
+	receiver = receiver2
+}
+new locDependentSSP_2 = BareAsciiSignal { file = "locDependentSSP_cass_2.txt" }
+CopySignal directGenerator2 locDependentSSP_2
+
+CompareSignals {
+	signal = locDependentSSP_2
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/locDependentSSP_cass_2.txt" 
+	}
+	message = "locDependentSSP_2, second test"
+}

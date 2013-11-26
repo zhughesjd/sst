@@ -1,0 +1,55 @@
+# UTF Step 3: Apply bbn integral as a variable delay of a harmonic family
+
+# harmonic family with 7 harmonics
+hFam = HarmonicFamily {
+    isComplex = false
+    fundamental = 220
+    times = { first = 0; last = 6; rate = 8000 }
+
+    # can use a much smaller order (3-5) and still achieve reasonable results
+    order = 9
+    harmonics = (
+    # -3.0103 for amp of 1: 20*log10(1/sqrt(2))
+    # number	ampDB	phaseDeg
+        1       -6          0
+        2       -12          0
+        3       -18         0
+        4       -24         0
+    ) #see input/certifySource      
+}
+hFam_out = SIOSignal { file = "utf_harmonics.sio" }
+CopySignal hFam hFam_out
+
+bbn_integrated = BareAsciiSignal {
+    file = "utf_bbn_integrated.txt"
+    isComplex = false
+}
+
+# Perform the time delay
+final_sig = VarDelay {
+    isComplex = false
+    times = hFam.times{ last = 5 }
+    inSignal = hFam_out
+    channelDelayBuf = bbn_integrated
+}
+
+### Generate file output ###
+final_sig_out = SIOSignal { file="utf_final_signal.sio" }
+CopySignal final_sig final_sig_out
+
+###########################################################
+#generate sound output
+
+new hfam_sound = SoundSignal {
+    file = "hfam_sound.snd"
+    clipDB = 20
+}
+CopySignal hFam_out hfam_sound
+
+
+new utf_sound = SoundSignal {
+    file = "utf_sound.snd"
+    clipDB = 20
+}
+CopySignal final_sig_out utf_sound
+

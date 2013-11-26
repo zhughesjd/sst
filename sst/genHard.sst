@@ -1,0 +1,76 @@
+# genHard.sst: Generate reverberation using genEasy's verbose output
+# $Id: genHard.sst 4951 2006-12-29 00:59:57Z rpg $
+
+read "grids.sst"
+
+# Specify the transmit pulse in the time domain: tranPulse
+read "arpeggio.sst"
+
+# Specify the scattering function: scatFun
+read "scatFun.sst"
+
+# Specify the output reverberation signal
+new reverbSignal = SIOSignal {
+    file = "hardSig.sio"
+    times = listenTimes     # see grids.sst
+    isComplex = false
+}
+
+new scatFunction = scatFun
+new sourceSignal = tranPulse
+
+##### ReverbSignal Equivalent Processing Chain #####
+# Implicit inputs: scatFunction, sourceSignal
+new extendTimes = bool:false
+new reverbSigTimes = UniformGrid:{
+    first = 0.100; last = 5.000; rate = 8000.000; number = 39201; }
+
+# ReverbSignal Internal Grids:
+new tranSpectTimes = UniformGrid:{
+    first = -0.000; last = 1.400; interval = 0.10000; number = 15; }
+new reverbSpectTimes = UniformGrid:{
+    first = 0.100; last = 6.400; interval = 0.10000; number = 64; }
+new gaussSpectTimes = UniformGrid:{
+    first = 0.100; last = 6.400; interval = 0.10000; number = 64; }
+new gaussSpectFreqs = UniformGrid:{
+    first = 3.906; last = 4000.000; interval = 3.90625; number = 1024; }
+new reverbSpectFreqs = GeometricGrid:{
+    first = 3.90625; last = 4014.47; logRatio = 0.00156786; number = 1922; }
+new tranSpectFreqs = GeometricGrid:{
+    first = 3.79505; last = 4014.47; logRatio = 0.00156786; number = 1930; }
+
+# ReverbSignal Processing Nodes:
+new sourceSpectrum = SpectrumFromSignal:{
+    inSignal = sourceSignal;
+    times = tranSpectTimes;
+    frequencies = tranSpectFreqs;
+    isPower = true; isComplex = false; order = 1;
+    overlapFraction = 0.5;
+    window = MitchellMcPhersonWindow:{ taperFraction = 0.5; };
+}
+new reverbSpect = ReverbSpectrum:{
+    scatFunction = scatFunction;
+    pulseSpectrum = sourceSpectrum;
+    times = reverbSpectTimes;
+    frequencies = reverbSpectFreqs;
+    isCorrelated = scatFunction.isCorrelated;
+    order = 1; spectThreshold = 2.000e-03;
+}
+new factorSpect = FactorSpectrum:{ powerSpectrum = reverbSpect; }
+new gaussSpect = GaussianSpectrum:{
+    factoredSpectrum = factorSpect;
+    times = gaussSpectTimes;
+    frequencies = gaussSpectFreqs;
+    order = 1;
+}
+new sigFromSpect = SignalFromSpectrum:{
+    spectrum = gaussSpect;
+    times = reverbSigTimes;
+    frequency = 0.0; isComplex = false;
+    nfft = 2048; order = 5;
+    overlapFraction = 0.5;
+    window = MitchellMcPhersonWindow:{ taperFraction = 0.5; }
+}
+##### End ReverbSignal Equivalent Processing Chain #####
+
+CopySignal sigFromSpect reverbSignal

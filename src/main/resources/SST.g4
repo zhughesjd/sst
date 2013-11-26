@@ -1,25 +1,29 @@
 grammar SST;
 
 //parser
-sstinput : (read
+sstinput : statement*;
+statement : (read
            | print
-           | assignment
+           | assignmentstatement
            | copysignal
            | comparesignals
            | clearsignal
            | identifierbrackets
            | printeigenrays
            | quit
-            )*;
+            );
+
 read : Read String;
 print : Print (Identifier | String);
-assignment : New? Identifier Equals assignmentvalue;
+clearsignal : ClearSignal Identifier;
+quit : Quit;
 copysignal : CopySignal copysignalvalue;
+assignmentstatement : assignment;
 comparesignals : CompareSignals ((Identifier Identifier) | brackets | parenthesis);
 identifierbrackets : Identifier (Identifier | parenthesis | brackets);
-clearsignal : ClearSignal Identifier;
 printeigenrays : (PrintEigenrays | PrintGSMEigenrays) brackets?;
-quit : Quit;
+
+assignment : New? Identifier Equals assignmentvalue;
 
 assignmentvalue : (Identifier | String)
       | ((Double | Float) Colon)? Number

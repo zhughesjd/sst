@@ -1,0 +1,77 @@
+# demon.sst; Generate DEMOdulated Noise
+
+# BroadbandNoise: Real Gaussian noise from 100 to 2000 Hz
+# with a red spectrum decreasing 3 dB per octave
+bbn = BroadbandNoise {
+    isComplex = false
+    frequency = 0
+    # small duration for plotting purposes
+    times = { first = 0; last = 5; rate = 8000 }    
+    spectrumDB = TableFunction {
+        order = 1
+    	table = (
+	    # f       dB
+        100     -200
+        125     -10
+        250     -13
+        500     -16
+        1000    -19
+        2000    -21
+        2100    -200
+	    )
+    }
+    updateInterval = 0.02  # just under 2048 samples for FFT
+}
+
+### Generate broadband noise file output for Matlab ###
+bbn_out = SIOSignal { file="demon_bbn.sio" }
+CopySignal bbn bbn_out
+
+# Harmonic family with fundamental and third harmonic
+# Models a screw with 3 blades
+hFam = HarmonicFamily {
+    isComplex = false
+    fundamental = 3
+    times = bbn.times:{rate = 1000} # 50x oversampling
+    harmonics = (
+        # control fractional modulation
+        # -3.0103 for amplitude of 1: 20*log10(1/sqrt(2))
+        # number   ampDB   phaseDeg
+            1       -20        0      
+     	    3       -10        0   
+    )  # see input/certifySource
+}
+
+# Create a signal with constant values = 1.0, follows standard AM equation
+cSig = ModulatedTone {
+    frequencyModulation = ConstantFunction{ value=0 }
+    times = hFam.times
+    isComplex = false
+    level = -3.01029995663981  # amplitude of 1
+}
+
+
+# Add constant 1 to harmonic family
+mod = SumSignal { inSignals = ( cSig, hFam ) }
+new mod_out = SIOSignal { file = "mod.sio" }
+CopySignal mod mod_out
+
+# Multiply the signals together
+new demon_sig = VarFirFilter {
+    inSignal = bbn_out
+    coefBuf = mod_out
+}
+
+### Generate file output ###
+demon_sig_out = SIOSignal { file="demon.sio" }
+CopySignal demon_sig demon_sig_out
+
+########################################################
+#create audio file
+
+demonSound = SoundSignal {
+    file = "demonSound.snd"
+    clipDB = 34
+}
+
+CopySignal demon_sig_out demonSound

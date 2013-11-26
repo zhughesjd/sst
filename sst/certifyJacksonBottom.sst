@@ -1,0 +1,46 @@
+# Certification tests for JacksonBottom
+# except bistatic scattering strength, which is tested in certifyBistatic.
+# $Id: certifyJacksonBottom.sst 6017 2009-06-10 00:25:05Z rpg $
+
+# For now, this includes only the test that often fails the "diff" test
+
+print "\n***** JacksonBottom certification tests *****"
+
+read "jacksonBottoms.sst"
+
+print "\n***** Monostatic Mourad&Jackson JASA 94(1993) Fig 13a *****"
+new hinesBarry900 = JacksonBottom {
+	soundSpeedGradient = 10.0		# g
+	densityRatio = 1.83				# rho
+	soundSpeedRatio = 1.0692		# nu
+	lossParameter = 0.00193			# delta
+	volumeParameter = 0.00015		# sigma2
+	spectralExponent = 3.25			# gamma
+	spectralStrength = 0.00019		# w2
+	lengthUnit = 1.0				# U
+}
+/*
+TabulateBoundary {
+    boundary = hinesBarry900
+    frequencies = ListGrid:(900)
+    angles = { first = 5; last = 45; interval = 5 }
+}
+*/  
+new hinesBarry900Table = TableBoundary:{
+    originalBoundary = hinesBarry900
+    frequencies = ListGrid:(900)
+    angles = { first = 5; last = 45; interval = 5 }
+    doCompare = true
+    meanSquareSlopeSamples = ( 0 )
+    forwardSamples = (
+     -0.647771,  -0.748373,  0.00655473, -0.983603,  0.545361,  -0.813275,
+      0.884521,  -0.39288,   0.380569,   -0.473108,  0.757123,  -0.0282781,
+     -0.0138957,  0.0195993, 0.632903,    0.123535,  0.0518725, -0.180173
+    )
+    backSamples = (
+      5.87076e-06, 5.07498e-05, 0.000127135,
+      0.000207411, 0.000864796, 0.000508055,
+      0.0014574,   0.000926554, 0.00172098
+    )
+}
+##print hinesBarry900Table

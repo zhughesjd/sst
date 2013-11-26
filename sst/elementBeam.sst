@@ -1,0 +1,56 @@
+# The ConeBeam in this ProductBeam limits the response to the forward
+# hemisphere.  To be more realistic, the cutoff should be more gradual
+# (use an EBFTableBeam instead of the ConeBeam for the cutoff).
+new elementBeam = ProductBeam {
+	inBeams = (
+		ConeBeam { 
+			axisElevation = 0
+			axisBearing = 0
+			halfAngle = 90
+		},
+		PistonBeam {
+			axisElevation = 0
+			axisBearing = 0
+			radius = 0.0375
+		}
+	)
+}
+
+# Make a different version of elementBeam which tapers the response better than a ConeBeam.
+# This tapered beam will be constructed in pieces, first a EBFTableBeam, then a rotated EBFTableBeam, finally, the RotatedBeam applied to (ProductBeam) a PistonBeam, as previous done with a ConeBeam, above.
+new eBFTableBeam = EBFTableBeam {
+	elevations = ListGrid ( -90, -10, 10, 90 )
+	isComplex = false
+	samples = ( 0 0 1 1 )
+}
+
+new rotateEBFTableBeam = RotatedBeam {
+	inBeam = eBFTableBeam
+	orientation = {
+		heading = 30
+		pitch = 30
+		roll = 0
+	}
+}
+
+# Make a different version of elementBeam which tapers the response better than a ConeBeam
+new elementBeamTapered = ProductBeam {
+	inBeams = (
+		rotateEBFTableBeam,
+		PistonBeam {
+			axisElevation = 0
+			axisBearing = 0
+			radius = 0.0375
+		}
+	)
+}
+
+# Read elmSumBeam
+# A SumBeam would be the simplest representation, but the following form
+# is faster when the beams to be summed have identical shape (differ only
+# in offset, weight, and delay).
+read "../verticalPlanarArray/beamLevelSearchBeam-8x8-52.sst"
+
+new beamLevelSearchBeam = ProductBeam {
+	inBeams = ( elementBeam elmSumBeam )
+}

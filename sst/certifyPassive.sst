@@ -1,0 +1,121 @@
+# certifyPassive.sst: Certify SST narrowband passive simulation.
+# $Id: certifyPassive.sst 4951 2006-12-29 00:59:57Z rpg $
+
+#echoInput = true
+
+#	The resulting level should be (range = 806.6 m):
+#	 100.00 db source level
+#	- 58.13 dB = -20 log 806.6 = spreading loss
+#	-  5.64 dB = 0.8066*6.9897 = volume absorption
+#	-  0.00 dB = xmit beam pattern (omni)
+#	-  0.69 dB = receive beam pattern #1
+#	= 35.54 dB total
+
+# A high-frequency, 5-beam monostatic sonar with offset beams.
+read "SonarHF5.sst"
+
+######   Ocean Environment Specification ###### 
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 500.0 }
+	soundspeed   = 1500
+
+	# Surface parameters
+	surface = Boundary {
+		coherentForwardStrength = ConstantDbFunction2 { decibels = -3.0103 }
+			# 50% loss per surface bounce
+	}
+
+	# Bottom parameters
+	bottom = Boundary {
+		coherentForwardStrength = ConstantDbFunction2 { decibels = -1.2494 }
+			# 25% loss per bottom bounce
+	}
+
+	# Volume parameters
+	volumeAttenuation = -6.9897    	# 80% loss per km
+}
+
+# Specify isovelocity eigenray model parameters
+new eigenrayModel = EigenrayModel {
+	maximumEigenrays = 1
+	maximumSurfaceBounces = 0
+	maximumBottomBounces = 0
+	movingSourceIterations = 6	# lots
+	timeTolerance = 1e-7		# stringent
+	filterLength = 1	# No propagation filtering
+}
+
+
+######   Source Specification ######
+
+# Slowness at source: (6.6121348e-4, -0.4134584e-4, 0.7438652e-4)
+# Delay derivative at source:   -0.00662867
+# Delay derivative at receiver: -0.01322426
+# Time dilation multiplier: (1-ddr)/(1+dds) = 1.01998541
+new sourceTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+    {
+        time = -0.5377                       # s
+        position = ( 800 -50 150 )          # m
+        velocity = ( -10.4, 6, 0.0 )       # m/s
+        orientation = ( 150.0, 0, 0 )       # deg
+        orientationRate = ( 0.0 0.0 0.0 )   # deg/s
+    }
+)
+
+# The source spectrum is a 100-dB tone designed to arrive Doppler-shifted
+# to 30 kHz.
+# Make sure that the source signal is long enough to cover all paths.
+new tone = ModulatedTone {
+	frequency = 30000
+	times = {
+		first = -1.0
+		last = 1.0
+		rate = 1849
+	}
+    level = 100	# dB // uPa m
+	frequencyModulation = ConstantFunction { value = 29412.1854 }
+	order = 11	# This is needed to reduce ripple under 1%
+}
+
+new sourceSignal = SIOSignal { file = "source.sio" }
+
+CopySignal tone sourceSignal
+
+print "***** Expect WARNING re replacing source *****"
+new source = Source {
+	beams = ( OmniBeam )
+	signal = sourceSignal
+    trajectory = sourceTrajectory
+}
+
+###### Simulation Parameters ######
+
+# Build the "machine" that will do the work.  No filtering in this example.
+# The result is in baseband complex form.
+new dirsig = DirectSignal {
+    isComplex = true
+	frequency = 30000
+	times = {
+		first = 0.0005408
+		last =  0.1081666 ## 200 samples
+		rate = 1849
+	}
+	order = 11
+}
+
+new signal =  BareAsciiSignal { file = "passive.txt" }
+
+# Generate the response.  The work is done here.
+CopySignal dirsig signal
+
+# Compare the result with the standard "correct" answer.
+CompareSignals {
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/passive.txt"
+		isComplex = true
+		frequency = signal.frequency
+		times = signal.times
+	}
+   message = "certifyPassive"
+}

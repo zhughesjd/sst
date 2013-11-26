@@ -1,0 +1,100 @@
+# certifyLevel.sst: Test reverb levels for SST scattering functions.
+# $Id: certifyLevel.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+## Test 1:  Carefully chosen round numbers.  R = 1000 m.
+# Answer: Intensity =
+#	* 1e-2 (absorption) * 1e-9 (R^-3) * (2*pi) (azimuth range)
+#	* 750 (sound speed/2 = pulse length multiplier for strip width)
+#	* (scattering strength = (.031622776, 1e-2, .0031622776) sur
+#		+ 1e-3 bot + 4e-4 vol) 
+# = (1.556161685e-9, 5.372123437e-10, 2.149922697e-10)
+
+new receiver = Sonar {
+	beams = ( OmniBeam )
+    trajectory = ( { time = 0.0; position = ( 0 0 100 ) } )
+}
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = ModulatedTone {
+		frequency = 15000.0	# Hz
+		level = 200.0		# dB // uPa^2 m^2
+		times = { first = 0.0; interval = 0.1; number = 1 }
+	}
+	trajectory = receiver.trajectory
+}
+
+######   Ocean Environment Specification ######
+new fgrid = UniformGrid:{ first=14000; last=16000; number=3 }
+
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 400.0 }  	# m
+
+	# Surface and bottom scattering and reflection are isotropic
+	surface = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+		backStrength = DbDegHzTableFunction2 {
+			tableDegreeHzDB = {
+				frequencies = fgrid
+				angles = { first=0; last=0; number=1 }
+				decibels = ( -15, -20, -25 )
+			}
+		}
+	}
+	
+	bottom  = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+		backStrength = ConstantDbFunction2 { decibels = -30 }
+	}
+	
+	# One volume reverb layer at mid-depth
+	volume = ReverbList (
+		ReverbLayer {
+			minDepth = 0		# m
+			maxDepth = ocean.depth.value
+			strengthDB = -60.0	# dB // m^-1
+		}
+	)
+	soundspeed = 1500		# m/s
+	volumeAttenuation = -10    # dB/km
+}
+
+new eigenrayModel = EigenrayModel {
+    maximumEigenrays = 1
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+	filterLength = 1	# Narrowband; no filtering
+}
+
+
+###### Simulation Parameters ######
+
+# traceScatFun = true  # un-comment to get voluminous dumps
+
+new scatFunGenerator = BBBScatFun {
+	frequencies = fgrid
+	times = {
+		first = 1.33333333333333
+		interval = 0.01
+		number = 1
+	}
+	maxSamples = 4
+}
+new bbscatFunction = InternalScatFun{}
+CopySignal scatFunGenerator bbscatFunction
+##print bbscatFunction
+new bbstandard = InternalScatFun {
+	frequencies = scatFunGenerator.frequencies
+	times = scatFunGenerator.times
+	buf = ( 1.556161685e-9, 5.372123437e-10, 2.149922697e-10 )
+}
+
+print "\n***** Testing normalization of BBBScatFun result"
+CompareSignals {
+   signal = bbscatFunction 
+   standard = bbstandard
+   message = "certifyLevel"
+}

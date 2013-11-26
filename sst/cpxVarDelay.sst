@@ -1,0 +1,57 @@
+# cpxVarDelay.sst: Variable delay on complex HarmonicFamily signal
+# $Id: cpxVarDelay.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+# The test signal is one tone 20% from the bottom of the Nyquist band.
+new ctone = HarmonicFamily {
+	isComplex = true
+	frequency = 2000
+	times = { first = 0; last = 1.1; rate = 1000 }
+	order = 15
+	fundamental = 1600
+	harmonics = (
+  # number	ampDB	phaseDeg
+	1		0.0		0
+	)
+}
+
+# The delay is designed to play "do re me do" in G major (approx.).
+# The frequencies are 1600, 1796, 2016, 1600
+new delay1 = InternalSignal {
+	isComplex = false
+	order = 1
+	times = { first = 0; last = 1; number = 5 }
+	buf = ( 0.0 0.0 -0.0306155 -0.0955958 -0.0955958 )
+}
+
+new cdelay = VarDelay {
+	isComplex = true
+	frequency = ctone.frequency
+	times = { first = 0; last = 1; rate = 1000 }
+	order = ctone.order
+    inSignal = ctone
+    commonDelayBuf = delay1
+}
+
+new cdelayed = SIOSignal { file = "CVDelayed.sio" }
+
+CopySignal cdelay cdelayed
+
+# Make listenable sound
+# This object converts its input signal to real samples and samples it
+# at the standard CODEC rate.
+new soundMaker = ResampleSignal {
+	isComplex = false
+	times = {
+		first = 0
+		last = 1.000022
+		rate = 8012.8210513
+	}
+	inSignal = cdelayed
+}
+new delayedSound = SoundSignal {
+	file = "CVDelayed.snd"
+	clipDB = 15
+}
+CopySignal soundMaker delayedSound

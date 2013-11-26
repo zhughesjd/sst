@@ -1,0 +1,241 @@
+##########################################################################
+# $Id: certifyCASSGriddedLoss.sst 5266 2008-04-10 18:57:46Z billk $
+#
+# Generate a scenario which drives SST to simulate surface bounces
+# from 2 different surfaces.  The result should be different energy
+# levels reaching each of 2 receivers:  One a low loss (higher 
+# energy) from a low-wind surface, the other a high loss (lower 
+# energy) from a high-wind surface.
+#
+# Since SST itself is not cognizant of positionally-dependent fwd 
+# loss, we use CASS to generate the eigenrays
+#
+# Interpolation needs to happen in both geography (lat/lon) and angle, 
+# as the grazing angle and bottom reflection both change in this example. 
+# There is much going on in this example, as SST will creating a 
+# interpolated table in 1-degree intervals to pass to CASS, using the 
+# (interpolating in sin of intensity) interpolation method. CASS appears 
+# to interpolate loss-vs-angle in DB-space but geographically in intensity 
+# space.
+# 
+# CASS Interpolation in angle space:
+#
+# CASS was run directly on a hand-generated run-stream (no SST) with the 
+# following properties
+#
+# Constant loss profile in space:
+#
+#   BOTTOM REFLECTION COEFFICIENT TABLE
+#   DEG       HZ        DB
+#         0.00   3000.00   -10.000
+#        90.00   3000.00   -20.000
+#   EOF
+#
+#  Ranges as follows:
+# 
+#   RANGE MINIMUM = 000.00 M
+#   RANGE MAXIMUM = 20000.00 M
+#   RANGE INCREMENT = 1000.00 M
+#
+#  Interpolation appears to be linear in DB space.
+#
+# SST Interpolation in angle space:
+#
+# SST also performs an interpolation in creating the length-90 bottom 
+# reflection table from what is specified (in this case, only 0 and 
+# 90 degrees). 
+#
+# This interpolation appears to be linear with respect to sin of the angle 
+# and the intensity conversion (using the 10*log10( I ) definition of dB).
+#
+# SST and CASS Interpolation in angle and position
+#
+# When SST wraps CASS to understand a positionally-dependent ocean, a 
+# few steps occur in the interpolation of the environment. Because SST 
+# sends a bottom loss table defined at 90 different angles at 1-degree 
+# increments, the behavior of interpolation along the angle dimension 
+# is dominated by SSTs scheme; though CASS interpolates between the values 
+# defined by SST at integral angles, the effect is not significant. 
+# The angle interpolation step occurs first, as the CASS run stream 
+# contains the interpolated table. CASS then applies the interpolation 
+# in space as it generates bounce information.
+#
+# The experiment in question involves setting up a high loss bottom 
+# profile at +5000m and a low loss bottom at -5000m. The source lies in 
+# the center at position 0m. Bottom losses are defined at 0 and 90 
+# degrees only:
+#
+# Angle	Low Loss	High Loss
+#  0	 10dB	         20dB
+# 90	 0dB	         10dB
+#
+# There are no sources of loss other than bottom loss and spreading loss.
+# 
+# Bounce Location (m)	Angle	Observered Loss, DB	Calculated Loss
+# -4000	                14.03	 5.5884	                 5.589
+# -2000	                26.5651	 4.98	                 5.3143
+# -1500         	33.6901	 4.6	                 4.73
+# -1000         	45	 4.1043	                 4.22
+#  1000          	45	 5.916	                 6.035
+#  1500	                33.6901	 7.3269	                 7.46
+#  2000	                26.5651	 8.646	                 8.9774
+#  4000	                14.03	 13.2729	         13.274
+#
+##########################################################################
+
+# Source is omni, located at center of grid, 2000 meters down
+new source = Source {
+        beams = ( OmniBeam )
+        signal = ModulatedTone {    # complex baseband by default
+                frequency = 3000.0
+                level = 200.0
+                times = { first=0.05; interval=0.1; number=1 }
+        }
+        trajectory = ( { time = 0.0; position = ( 0 0 2000 ) } )
+}
+ 
+# Locate receivers 2 km north & south of source; this implies
+# that the reflected pulse should strike the bottom at an
+# angleof about 45 degrees.
+receiverN = Sonar {
+    beams = ( OmniBeam )    
+    trajectory = ( { time = 0.0; position = ( 2000 0 2000 ) } )
+}
+receiverS = Sonar {
+    beams = ( OmniBeam )    
+    trajectory = ( { time = 0.0; position = ( -2000 0 2000 ) } )
+}
+
+
+# Define 2 types of bottoms, with tabulated forward loss values
+highLossBottom = Boundary{ coherentForwardStrength = DbDegHzTableFunction2 {
+		originalFunction = DbDegHzTableFunction2 {
+                              tableDegreeHzDB = {
+                                frequencies = { first=3000; last=3000; number=1 }
+                                angles = { first=0; last=90; number=2 }
+	                        decibels = ( -20, -10 )
+                              }
+                            }
+        tableDegreeHzDB.angles = { first=0; last=90; number=3 }
+        tableDegreeHzDB.frequencies = ( 3000 )
+    }
+    totalForwardStrength = DbDegHzTableFunction2 {
+		originalFunction = DbDegHzTableFunction2 {
+                              tableDegreeHzDB = {
+                                frequencies = { first=3000; last=3000; number=1 }
+                                angles = { first=0; last=90; number=2 }
+	                        decibels = ( -20, -10 )
+                              }
+                            }
+        tableDegreeHzDB.angles = { first=0; last=90; number=3 }
+        tableDegreeHzDB.frequencies = ( 3000 )
+    }
+}
+lowLossBottom = Boundary{ coherentForwardStrength = DbDegHzTableFunction2 {
+		originalFunction = DbDegHzTableFunction2 {
+                              tableDegreeHzDB = {
+                                frequencies = UniformGrid{ first=3000; last=3000; number=1 }
+                                angles = { first=0; last=90; number=2 }
+                                decibels = (  -10, 0 )
+                              }
+                            }
+        tableDegreeHzDB.angles = { first=0; last=90; number=3 }
+        tableDegreeHzDB.frequencies = ( 3000 )
+    }
+    totalForwardStrength = DbDegHzTableFunction2 {
+		originalFunction = DbDegHzTableFunction2 {
+                              tableDegreeHzDB = {
+                                frequencies = UniformGrid{ first=3000; last=3000; number=1 }
+                                angles = { first=0; last=90; number=2 }
+                                decibels = (  -10, 0 )
+                              }
+                            }
+        tableDegreeHzDB.angles = { first=0; last=90; number=3 }
+        tableDegreeHzDB.frequencies = ( 3000 )
+    }
+}
+# Create 4-point bottom grid using the above.
+# High loss to the north, Low loss to the south
+bottomNW = BoundaryLocale{ x=5000; y=-5000.0; boundary=highLossBottom }
+bottomNE = BoundaryLocale{ x=5000; y=5000.0; boundary=highLossBottom }
+bottomSW = BoundaryLocale{ x=-5000; y=-5000.0; boundary=lowLossBottom }
+bottomSE = BoundaryLocale{ x=-5000; y=5000.0; boundary=lowLossBottom }
+
+# Create an Ocean with the bottom defined above
+ocean = Ocean {
+        depth = 3000.0   # constant (meters)
+        bottom = GriddedBoundary {
+                     boundaryList = BoundaryLocaleList( bottomNW, bottomNE,
+                                                        bottomSW, bottomSE )
+        } 
+        soundspeed = 1500       # m/s
+        #volumeAttenuation = ThorpAttenuation
+        volumeAttenuation = 0
+}
+
+# Use CASS eigenray model
+# Permit 1 bottom bounce
+eigenrayModel = CASSEigenrayRun {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        scenario = "Passive"
+        maximumSurfaceBounces = 0
+    	maximumBottomBounces = 1
+        sourceTrajectory = source.trajectory
+        receiverTrajectory = receiverN.trajectory
+        frequencies = UniformGrid{ first=3000; last=3000; number=1 }
+        rangeReference = 1
+	doTimeSpread = false
+}
+
+##### Generate direct signal from source-->receivers #####
+
+# To southern receiver
+eigenrayModel.receiverTrajectory = receiverS.trajectory
+signalS = DirectSignal {
+    receiver = receiverS
+	times = { first=0; last=8; rate=10000 }
+	isComplex = false
+}
+signalFileS = BareAsciiSignal { file="GriddedLossS.txt" }
+CopySignal signalS signalFileS
+#signalFileS2 = SIOSignal { file="GriddedLossS.sio" }
+#CopySignal signalS signalFileS2
+
+# To northern receiver
+eigenrayModel.receiverTrajectory = receiverN.trajectory
+signalN = DirectSignal {
+    receiver = receiverN
+	isComplex = false
+	times = { first=0; last=8; rate=10000 }
+}
+signalFileN = BareAsciiSignal { file="GriddedLossN.txt" }
+CopySignal signalN signalFileN
+#signalFileN2 = SIOSignal { file="GriddedLossN.sio" }
+#CopySignal signalN signalFileN2
+
+# Compare the result with the standard "correct" answer.
+CompareSignals {
+    signal = signalFileN
+        standard = BareAsciiSignal {
+                file = "$SSTHOME/standard/GriddedLossN.txt"
+                isComplex = false
+                frequency = signalFileN.frequency
+                times = signalFileN.times
+        }
+    message = "certifyCASSGriddedLoss -- GriddedLossN"
+}
+
+CompareSignals {
+    signal = signalFileS
+        standard = BareAsciiSignal {
+                file = "$SSTHOME/standard/GriddedLossS.txt"
+                isComplex = false
+                frequency = signalFileS.frequency
+                times = signalFileS.times
+        }
+    message = "certifyCASSGriddedLoss -- GriddedLossS"
+}
+
+
+
+

@@ -1,0 +1,374 @@
+# certifyTarget.sst: Certification input for SST TargetEcho object.
+# $Id: certifyTarget.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Mathematica analysis script: $SSTSRC/support/analysis/certifyTarget.nb.
+
+# Range is 802.122 m, one-way time 0.5347 s.
+# Doppler time compression factor is 0.9857, frequency shift 214.5 Hz,
+# Phase shift per sample is 77.22 degrees.
+
+# Echo from center would peak at 1.0695 s.
+# Angle from target bow toward sonar is atan( sqrt( 50^2 + 30^2 ) / 800 )
+# = 25.83 deg; cos = 0.9001
+# Tail highlight is 30*0.9001*0.9857/750 s later, at 1.1050.
+# Sail highlight is 10*0.9001*0.9857/750 s earlier, at 1.0577.
+# Bow highlight is 40*0.9001*0.9857/750 s earlier, at 1.0222.
+
+# Transmitter beam pattern value is 0.9688.
+# Receiver beam pattern value is 0.9733.
+# Propagation loss factor is 0.001247 spreading, 0.8237 absorption each way,
+# for a total of 1.0551e-6 two ways (pressure ratio).
+# Pulse amp of 220 dB is 1e11 uPa pressure at 1 m.
+# Highlight pressure multipliers are 0.2, 0.3, and 0.7.
+
+# Direct-path echo amps:
+#   tail    19898
+#   sail    29847
+#   bow     69643
+
+# Left-right phase difference:
+# Phase = (360*Frequency*Separation/SoundSpeed)*sin(Azimuth)
+#       = 180*sin(Azimuth) (degrees)
+#                    Azimuth    Phase   (both in degrees)
+# to target center:  -3.576     -11.23
+# to tail            -4.500     -14.12
+# to sail            -3.255     -10.22
+# to bow             -2.245      -7.05
+
+# The test includes seven different calculations:
+# 1.  3-highlight target, commonCenter = false.
+# 2.  3-highlight target, commonCenter = true.
+# 2.1.  Same but omit the unreflected eigenrays.
+# 3.  3 separate targets, common trajectory, commonCenter = true.
+# 4.  3 separate targets, common trajectory, commonCenter = false.
+# 5.  3 separate targets with separate offset trajectories.
+# 6.  3 separate targets with CombinedTraject trajectories.
+
+# Tests 1, 4, 5, and 6 should give identical results (standardST).
+# Tests 2 and 3 should give identical results (standardCC).
+# Test 2.1 is unique in that it leaves out direct paths.
+
+# echoInput = true
+
+######   Environment Specification ######
+
+read "isoOcean.sst"
+
+######   Sonar Specification ######
+
+# Since this is a monostatic sonar, the source and receiver use the
+# same trajectory:
+new sonarTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+    {
+        time = 0.0                          # s
+        position = ( 0.0 0.0 120.0 )        # m
+        velocity = ( 0.0 0.0 0.0 )          # m/s
+        orientation = ( 0.0 -5.0 0.0 )      # deg
+        orientationRate = ( 0.0 0.0 0.0 )   # deg/s
+    }
+)
+
+new source = Source {
+	beams  = ( RecPistonBeam { width = 0.1; height = 0.1 } )
+	trajectory = sonarTrajectory
+	signal = ModulatedTone {
+		frequency = 15000.0
+		level = 220
+		# Over-sample the envelope and reduce order to save time
+		times = { first = -0.004; last = 0.004; number = 129 }
+		order = 1
+		# Use a Hann (cosine squared) pulse centered at time 0.
+		envelope = HannWindow { start = -0.004; end = 0.004 }
+	}
+}
+new pulseSignal = BareAsciiSignal { file = "targetPulse.txt" }
+CopySignal source.signal pulseSignal
+
+new receiver = Sonar {
+    # Two offset rectangular pistons, half wave spacing and width
+    beams = (
+		RecPistonBeam {
+			offset = ( 0, -0.025, 0 )
+			width = 0.05
+			height = 0.1
+		},
+		RecPistonBeam {
+			offset = ( 0, 0.025, 0 )
+			width = 0.05
+			height = 0.1
+		}
+	)
+    trajectory = sonarTrajectory
+}
+print receiver
+
+# The output signal is recorded in baseband complex form, sampled every
+# millisecond, convering the interval from 1.0 to 1.17 s after transmission.
+
+######   Standards   ######
+
+# The standards are from SPARC, which uses IEEE floating point arithmetic.
+# These are subject to significant roundoff error, so non-IEEE computers
+# (e.g. Intel) should expect errors of a few percent.
+
+new standardST = BareAsciiSignal {
+	file = "$SSTHOME/standard/targetST.txt"
+	frequency =         15000   # Hz
+}
+new standardCC = BareAsciiSignal {
+	file = "$SSTHOME/standard/targetCC.txt"
+	frequency =         15000   # Hz
+}
+new standardCCR = BareAsciiSignal {
+	file = "$SSTHOME/standard/targetCCR.txt"
+	frequency =         15000   # Hz
+}
+
+######   Test 1   ######
+
+print "\n***** Target 1: 3-highlight target, commonCenter = false."
+new targetTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+    {
+        time = 0.535                        # s at pulse leading edge arrival
+        position = ( 800 -50 150 )          # m
+        velocity = ( -10.392, 6, 0.0 )      # m/s
+        orientation = ( 150.0, 0, 0 )       # deg
+        orientationRate = ( 0.0 0.0 0.0 )   # deg/s
+    }
+)
+new target = PointTarget {
+    trajectory = targetTrajectory
+    points = (
+#    strength [dB]    position [m]    velocity [m/s]
+        -13.9794,    (-30, 0, 0 ),     ( 0, 0, 0 )	# tail
+        -10.457575,  ( 10, 0, 0 ),     ( 0, 0, 0 )	# sail
+         -3.0980392, ( 40, 0, 0 ),     ( 0, 0, 0 )	# bow
+    )
+}
+print target
+new echoGenerator = TargetEcho {
+    isComplex = true
+	times = {
+		interval =      0.001   # s
+    	first =         1.0     # s
+		last =			1.17	# s
+	}
+    frequency =         15000   # Hz
+	order = 3
+}
+
+new signalSC = BareAsciiSignal { file =	"targetSC.txt" }
+CopySignal echoGenerator signalSC
+# Compare the result with the standard "correct" answer.
+print "\n***** Target 1: On Intel expect max rel diff = 0.028"
+CompareSignals {
+  signal = signalSC 
+  standard = standardST
+  message = "certifyTarget -- Target 1"
+  tolerance = 0.028
+}
+
+######   Test 2   ######
+
+print "\n***** Target 2: 3-highlight target, commonCenter = true"
+target.commonCenter = true
+new signalCC = BareAsciiSignal { file =	"targetCC.txt" }
+CopySignal echoGenerator signalCC
+print "\n***** Target 2: On Intel expect max rel diff = 0.019"
+CompareSignals {
+  signal = signalCC 
+  standard = standardCC
+  message = "certifyTarget -- Target 2"
+  tolerance = 0.019
+}
+
+######   Test 2.1   ######
+
+print "\n***** Target 2.1: Same but omit the unreflected eigenrays."
+eigenrayModel {
+	minimumSurfaceBounces = 1
+	minimumBottomBounces = 1
+}
+new signalCCR = BareAsciiSignal { file =	"targetCCR.txt" }
+CopySignal echoGenerator signalCCR
+print "\n***** Target 2.1: On Intel expect max rel diff = 0.042"
+CompareSignals {
+  signal = signalCCR 
+  standard = standardCCR
+  message = "certifyTarget -- Target 2.1"
+  tolerance = 0.042
+}
+eigenrayModel {
+	minimumSurfaceBounces = 0
+	minimumBottomBounces = 0
+}
+
+######   Test 3   ######
+
+print "\n***** Target 3: 3 targets, common trajectory, commonCenter = true."
+new target1CC = PointTarget { trajectory = targetTrajectory
+    points = (
+# strength [dB]    position [m]    velocity [m/s]
+      -13.9794,    (-30, 0, 0 ),     ( 0, 0, 0 )
+    )
+	commonCenter = true
+}
+new echo1CC = echoGenerator { target = target1CC }
+new target2CC = target1CC { points = (
+  -10.457575,  ( 10, 0, 0 ),     ( 0, 0, 0 )
+) }
+new echo2CC = echo1CC { target = target2CC }
+new target3CC = target1CC { points = (
+  -3.0980392, ( 40, 0, 0 ),     ( 0, 0, 0 )
+) }
+new echo3CC = echo1CC { target = target3CC }
+new echoSumCC = SumSignal { inSignals = ( echo1CC, echo2CC, echo3CC ) }
+new signalSumCC = BareAsciiSignal { file =	"targetSumCC.txt" }
+CopySignal echoSumCC signalSumCC
+print "\n***** Target 3: On Intel expect max rel diff = 0.019"
+CompareSignals {
+  signal = signalSumCC 
+  standard = standardCC
+  message = "certifyTarget -- Target 3"
+  tolerance = 0.019
+}
+
+######   Test 4   ######
+
+print "\n***** Target 4: 3 targets, common trajectory, commonCenter = false."
+new target1CT = target1CC { commonCenter = false }
+new echo1CT = echo1CC { target = target1CT }
+##signal.file = "target1CT.txt"
+##CopySignal echo1CT signal
+
+new target2CT = target2CC { commonCenter = false }
+new echo2CT = echo2CC { target = target2CT }
+##signal.file = "target2CT.txt"
+##CopySignal echo2CT signal
+
+new target3CT = target3CC { commonCenter = false }
+new echo3CT = echo3CC { target = target3CT }
+##signal.file = "target3CT.txt"
+##CopySignal echo3CT signal
+
+new echoSumCT = SumSignal { inSignals = ( echo1CT, echo2CT, echo3CT ) }
+new signalCT = BareAsciiSignal { file =	"targetCT.txt" }
+CopySignal echoSumCT signalCT
+print "\n***** Target 4: On Intel expect max rel diff = 0.028"
+CompareSignals {
+  signal = signalCT 
+  standard = standardST
+  message = "certifyTarget -- Target 4"
+  tolerance = 0.028
+}
+
+######   Test 5   ######
+
+print "\n***** Target 5: 3 targets with separate offset trajectories."
+new tar1Traj = Trajectory ( {
+	time = 0.535                        # s at pulse leading edge arrival
+	position = ( 825.9807621 -65 150 )       # m
+	velocity = ( -10.392, 6, 0.0 )       # m/s
+	orientation = ( 150.0, 0, 0 )       # deg -- no longer matters
+} )
+new target1ST = PointTarget { trajectory = tar1Traj
+    points = (
+#    strength [dB]    position [m]    velocity [m/s]
+	    -13.9794,    (  0, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+new echo1ST = echoGenerator { target = target1ST }
+##signal.file = "target1ST.txt"
+##CopySignal echo1ST signal
+
+new tar2Traj = Trajectory (
+    {
+        time = 0.535
+        position = ( 791.3397459 -45 150 )
+        velocity = ( -10.392, 6, 0.0 )
+        orientation = ( 150.0, 0, 0 )
+    }
+)
+new target2ST = PointTarget { trajectory = tar2Traj
+    points = (
+	   -10.457575,    (  0, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+new echo2ST = echo1ST { target = target2ST }
+##signal.file = "target2ST.txt"
+##CopySignal echo2ST signal
+
+new tar3Traj = Trajectory (
+    {
+        time = 0.535
+        position = ( 765.3589838 -30 150 )
+        velocity = ( -10.392, 6, 0.0 )
+        orientation = ( 150.0, 0, 0 )
+    }
+)
+new target3ST = PointTarget { trajectory = tar3Traj
+    points = (
+	   -3.0980392,    (  0, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+new echo3ST = echo1ST { target = target3ST }
+##signal.file = "target3ST.txt"
+##CopySignal echo3ST signal
+new echoSumST = SumSignal { inSignals = ( echo1ST, echo2ST, echo3ST ) }
+new signalST = BareAsciiSignal { file =	"targetST.txt" }
+CopySignal echoSumST signalST
+print "\n***** Target 5: On Intel expect max rel diff = 0.028"
+CompareSignals {
+  signal = signalST 
+  standard = standardST
+  message = "certifyTarget -- Target 5"
+  tolerance = 0.028
+}
+
+######   Test 6   ######
+
+print "\n***** Target 6: 3 targets with CombinedTraject trajectories."
+new comb1Traj = CombinedTraject {
+	localTraject = Trajectory ( { position = (-30, 0, 0 ) } )
+	globalTraject = targetTrajectory
+}
+new target1SCT = PointTarget { trajectory = comb1Traj
+    points = (
+#    strength [dB]    position [m]    velocity [m/s]
+	    -13.9794,    (  0, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+new echo1SCT = echoGenerator { target = target1SCT }
+
+new comb2Traj = CombinedTraject {
+	localTraject = Trajectory ( { position = ( 10, 0, 0 ) } )
+	globalTraject = targetTrajectory
+}
+new target2SCT = PointTarget { trajectory = comb2Traj
+    points = (
+	   -10.457575,    (  0, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+new echo2SCT = echo1SCT { target = target2SCT }
+
+new comb3Traj = CombinedTraject {
+	localTraject = Trajectory ( { position = ( 40, 0, 0 ) } )
+	globalTraject = targetTrajectory
+}
+new target3SCT = PointTarget { trajectory = comb3Traj
+    points = (
+	   -3.0980392,    (  0, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+new echo3SCT = echo1SCT { target = target3SCT }
+
+new echoSumSCT = SumSignal { inSignals = ( echo1SCT, echo2SCT, echo3SCT ) }
+new signalSCT = BareAsciiSignal { file =	"targetSCT.txt" }
+CopySignal echoSumSCT signalSCT
+print "\n***** Target 6: On Intel expect max rel diff = 0.028"
+CompareSignals {
+   signal = signalSCT 
+   standard = standardST
+   message = "certifyTarget -- Target 6"
+   tolerance = 0.028
+}

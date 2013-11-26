@@ -1,0 +1,44 @@
+# passive.sst: SST Passive Sonar Example
+# $Id: passiveCASS.sst 6429 2010-07-03 19:52:23Z julia $
+
+### Generate the signal transmitted by the source.
+# Run "sst sourcegen.sst" first.
+read "source.sst"
+
+### Step 2:  Define the simulation parameters common to subsequent steps.
+read "sourceTraject.sst" # Defines the source trajectory
+read "receiver.sst"		# Defines sonar
+read "ocean.sst"		# Defines ocean
+
+# The times structure sets listen interval and sample rate for
+# the output time signal
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = sourceSignal 
+	trajectory = sourceTrajectory
+}
+
+# Specify eigenray parameters
+new eigenrayModel = CASSOnDemand {
+	maximumEigenrays = 10
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 1
+	filterLength = 9
+    frequencies = UniformGrid:{ first=200; last=1600; interval=200 }
+    verticalAngles = UniformGrid:{ first = -89.9; last = 89.9; interval = 0.05 }
+}
+
+
+new recSignal = SIOSignal { file = "passiveCASS.sio" }
+
+# Do the simulation.  By default, the filter length is 9.
+passiveGenerator = DirectSignal {
+	isComplex = false
+	times = { 
+		first = 4
+		last = 8
+		rate = 3000	# 10% oversampling
+	}
+}
+CopySignal passiveGenerator recSignal

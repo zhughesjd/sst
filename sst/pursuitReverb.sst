@@ -1,0 +1,258 @@
+# pursuitReverb.sst:  Run the reverberation portion of the
+# "pursuit" example using both BBBScatFun and BBBDirectionalScat.
+#
+# The latter is performed near the end of this script, since it
+# inherits nearly all scenario information from the former.
+#
+# Only the active sonar's reverberation is calculated here.
+# $Id: pursuitReverb.sst 5364 2008-07-05 23:25:43Z rpg $
+
+######################### Sonar Specification #########################
+
+# Define a 120-ms 70-dB order-9 Taylor-weighted pulse
+new pulseTimes = UniformGrid {
+	first = 0.00025
+	last  = 0.11975
+	rate = 2000
+}
+new tranPulse = ModulatedTone {
+	isComplex = true
+	frequency = 29200.0     # Hz (ODN corrected for 40 knots)
+	times = pulseTimes
+	level = 210.0	# dB // uPa^2 m^2
+	envelope = TaylorWindow {
+		start = 0
+		end = 0.120
+		sidelobeRatioDB = 70
+		numTerms = 9
+	}
+}
+
+# The sonar has four cylindrical piston transducers with diameters of
+# 5 cm each, placed adjacent to one another in a "plus" configuration.
+# The "detection" beam is the sum of the four transducers.
+# Only the "down" transducer is used for transmission.
+
+# The ConeBeam in this ProductBeam limits the response to the forward
+# hemisphere.  To be more realistic, the cutoff should be more gradual
+# (use an EBFTableBeam instead of the ConeBeam for the cutoff).
+elementBeam = ProductBeam {
+	inBeams = (
+		ConeBeam { 
+			axisElevation = 0
+			axisBearing = 0
+			halfAngle = 90
+		},
+		PistonBeam {
+			axisElevation = 0
+			axisBearing = 0
+			radius = 0.05 # D=2*lambda => 30 degree beam (-3dB)
+		}
+	)
+}
+
+leftBeam = elementBeam {
+	offset = (0, -.025, 0)	# [meter]
+}
+
+rightBeam = elementBeam {
+	offset = (0, +.025, 0)
+}
+
+upBeam = elementBeam {
+	offset = (0, 0, -.025)
+}
+
+downBeam = elementBeam {
+	offset = (0, 0, +.025)
+}
+
+# The "detection beam" is the sum of the other four.
+# A SumBeam would be the simplest representation, but the following form
+# is faster when the beams to be summed have identical shape (differ only
+# in offset, weight, and delay).
+detBeam = ProductBeam {
+	inBeams = (
+		elementBeam,
+		ElementSumBeam {
+			elements = (
+				# offset [m]    amp    delay
+				0, -.025, 0    0.25     0.0     # left
+				0,  .025, 0    0.25     0.0     # right
+				0, 0, -.025    0.25     0.0     # up
+				0, 0,  .025    0.25     0.0     # down
+			)
+		}
+	)
+}
+
+# Since this is a monostatic sonar, the transmitter and receiver use the
+# same trajectory.  It's diving toward the target.
+
+sonarTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+	{
+		time = 0.0  # s
+		position =        ( 0.0,  0.0, 120.0 )  # m
+		velocity =       ( 20.0,  0.0,   2.0 )  # m/s
+		orientation =     ( 0.0, 10.0,   0.0 )  # deg
+		orientationRate = ( 0.0,  0.0,   0.0 )  # deg/s
+	}
+)
+
+tranSource = Source {
+	beams  = ( downBeam )
+	signal = tranPulse
+	trajectory = sonarTrajectory
+}
+
+receiver = Sonar {
+	beams = ( detBeam, leftBeam, rightBeam, upBeam, downBeam )
+	trajectory = sonarTrajectory
+}
+
+#######################################################################
+
+######################### Ocean Specification #########################
+
+read "jacksonBottoms.sst"
+
+ocean = Ocean {
+	depth = 500.0
+	soundspeed = 1500	# [m/s]
+
+	# Surface parameters
+	windspeed = 10		# [m/s]
+	surface = APLSurface
+
+	# Bottom parameters
+	bottom = MediumSand
+
+	# Volume parameters
+	volumeAttenuation = -7.0    	# dB/km
+	volume = ReverbList(
+		# Use one volume scattering layer between surface and bottom depth
+		{
+			minDepth = 0.0
+			maxDepth = 500.
+			northVeloc = 0
+			eastVeloc = 0
+			rmsSpeed = 0
+			strengthDB = -80.
+		}
+	)
+}
+
+# Isovelocity eigenray model
+eigenrayModel = EigenrayModel {
+	maximumEigenrays = 5
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 1
+	max2waySurfaceBounces = 1
+	max2wayBottomBounces = 1
+	filterLength = 1	# Narrowband; no filtering
+}
+
+#######################################################################
+
+# Define the Scattering Function for the surface, volume, and bottom
+scatFunGen = BBBScatFun {
+	frequencies = ( 30000 )
+	times = {
+		first = 0.1		# Starts before listening interval
+		last = 3.1		# Ends after listening interval
+		##interval = 0.2	# Just under 2 pulse lengths
+        interval = 0.06 # 1/2 pulse length
+	}
+	# The Doppler grid is coarser than the "natural" generation grid.
+	# The back hemisphere is not included.
+	dopplers = {
+		interval = 0.0005
+			# natural = 2.604166667e-4 = sampling_freq/(nfft*pulse_freq)
+		first = 1.00025		# 1 + interval/2
+		last =  1.02775		# > 1 + 2*v/c
+	}
+	isCorrelated = true
+	isComplex = true
+	source = tranSource
+	doSurface = true
+	doBottom = true
+	doVolume = true
+    maxAngleChange = 1.0    # to do better at short range
+}
+
+#######################################################################
+
+###### Simulation Parameters ######
+
+# Initialize the random number generator.  0 means standard; always the same.
+random.seed = 0
+
+# Generate ping 1
+time = double:0.0
+reverbGenerator = ReverbSignal {
+	frequency = 30000
+	times = { first=0.060; last=3.160; rate=2000 }
+	scatFunction = scatFunGen
+	sourceSignal = tranPulse
+	#verbose = true		# Print equivalent processing chain
+}
+reverbSigFile = BareAsciiSignal{ file = "reverb_1.txt" };
+CopySignal reverbGenerator reverbSigFile
+
+# For subsequent pings, everything remains the same except the time and the
+# filenames.  The random number generator retains its state as of the end
+# of the previous ping, so each ping is independent.
+
+# Generate ping 2
+time = 4
+reverbSigFile = BareAsciiSignal{ file = "reverb_2.txt" };
+CopySignal reverbGenerator reverbSigFile
+
+# Generate ping 2
+time = 8
+reverbSigFile = BareAsciiSignal{ file = "reverb_3.txt" };
+CopySignal reverbGenerator reverbSigFile
+
+
+#######################################################################
+#######################################################################
+
+### Now repeat using BBBDirectionalScat ###
+
+# Define the tesselation.  A finer elevation/azimuth grid will reduce
+# granularity in the result, but take more memory and runtime.
+new tess = GriddedTesselation{ elevationInc=1.0; azimuthIncEq=1.0 }
+
+# Everything gets copied from the BBBScatFun object
+# !! This is where a common base class would be useful !!
+scatFunGenDS = BBBDirectionalScat {
+	frequencies = scatFunGen.frequencies
+	times = scatFunGen.times
+	dopplers = scatFunGen.dopplers
+	isCorrelated = scatFunGen.isCorrelated
+	isComplex = scatFunGen.isComplex
+	source = scatFunGen.source
+	doSurface = scatFunGen.doSurface
+	doBottom = scatFunGen.doBottom
+	doVolume = scatFunGen.doVolume
+    maxAngleChange = 1.0    # to do better at short range
+    # The only additional parameter
+    tesselation = tess
+}
+
+# Ping 1
+time = double:0.0
+# Copy everything from the reverbGenerator except the scattering function
+new reverbGeneratorDS = reverbGenerator{ scatFunction = scatFunGenDS }
+reverbSigFile = BareAsciiSignal{ file = "reverbDS_1.txt" };
+CopySignal reverbGeneratorDS reverbSigFile
+
+# Ping 2
+time = 4
+reverbSigFile = BareAsciiSignal{ file = "reverbDS_2.txt" };
+CopySignal reverbGeneratorDS reverbSigFile
+
+# Ping 3
+time = 8
+reverbSigFile = BareAsciiSignal{ file = "reverbDS_3.txt" };
+CopySignal reverbGeneratorDS reverbSigFile

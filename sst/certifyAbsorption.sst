@@ -1,0 +1,125 @@
+# certifyAbsorption.sst: Certify SST implementation of volume attenuation.
+# $Id: certifyAbsorption.sst 4951 2006-12-29 00:59:57Z rpg $
+
+#echoInput = true
+
+#	The resulting level should be (range = 10000 m):
+#	 200.00 db source level
+#	-  80.0 dB = -20 log 10^4 = spreading loss
+#     Volume Attenuation (at 10 km):
+#	  -  1.15697 = volume absorption at 1760 Hz,  Total = 81.15697
+#	  -  2.32994 = volume absorption at 3520 Hz,  Total = 82.32994
+#	  -  6.29675 = volume absorption at 7040 Hz,  Total = 86.29675
+#	-  0.00 dB = xmit beam pattern (omni)
+#	-  0.00 dB = receive beam pattern (omni)
+#    Resulting level:
+#	=  118.84303 db for 1760 Hz, peak 1237846 at 6.671667 sec
+#	=  117.67006 db for 3520 Hz, peak 1081479 at 6.681667 sec
+#	=  113.70325 db for 7040 Hz, peak  684979 at 6.691667 sec
+
+# A single-beam monostatic sonar
+new receiver = Sonar: {
+  beams = ( OmniBeam )
+  trajectory = ( 
+    { time=0
+      position=(0,0,100)
+    }
+  )
+}
+
+# The Transmit signal
+new tranTimes = UniformGrid:{
+    first = 0.0
+    last = 0.03
+    rate = 17600     # Listening rate (25% oversampled)
+}
+
+# 3 octaves of "A"
+freq1 = double:1760
+freq2 = double:3520
+freq3 = double:7040
+
+new chirp1 = ModulatedTone {
+	isComplex = false
+	times = tranTimes
+	level = 200.0	# dB // uPa^2 m^2
+    order = 31      # ridiculously careful
+    startingPhase = 72  # deg, so phase = 0 at 0.005 sec
+	envelope = TaylorWindow { start = 0; end = 0.01 }
+    frequencyModulation = ConstantFunction { value = freq1 }    # A
+}
+new chirp2 = chirp1 {
+    startingPhase = 72  # deg, so phase = 0 at 0.015 sec
+	envelope = TaylorWindow { start = 0.01; end = 0.02 }
+    frequencyModulation = ConstantFunction { value = freq2 }
+}
+new chirp3 = chirp1 {
+    startingPhase = 0  # deg, so phase = 0 at 0.025 sec
+	envelope = TaylorWindow { start = 0.02; end = 0.03 }
+    frequencyModulation = ConstantFunction { value = freq3 }
+}
+
+new tranPulse = SumSignal {
+    inSignals = ( chirp1 chirp2 chirp3 )
+}
+
+# Source
+new source = Source: {
+  beams = ( OmniBeam )
+  trajectory = ( 
+    { time=0
+      position=(10000,0,100)
+    }
+  )
+  signal= tranPulse
+}
+
+######   Ocean Environment Specification ###### 
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 500.0 }
+	soundspeed   = 1500
+	# Volume parameters
+	volumeAttenuation = ThorpAttenuation
+}
+
+# Specify isovelocity eigenray model parameters
+new eigenrayModel = EigenrayModel {
+	maximumEigenrays = 1
+	maximumSurfaceBounces = 0
+	maximumBottomBounces = 0
+	filterLength = 15
+}
+
+# Build the "machine" that will do the work.
+# The receiver starts listening before the source signal arrives.
+new dirsig = DirectSignal {
+	isComplex = false
+	times = UniformGrid: { 
+		first = 6.6666666666667          # first receive time
+		last = 6.69672
+		rate = 17600  	# 25% oversampling
+	}
+	order = 13
+	updateInterval = 0.1
+}
+
+# The output signal is in Bare Ascii form for comparison to the standard.
+new receiveSignal = BareAsciiSignal {
+	file = "realAbsorption.txt"
+}
+# Generate the response.  The work is done here.
+CopySignal dirsig receiveSignal
+
+# Compare the result with the standard "correct" answer.
+CompareSignals {
+    signal = receiveSignal
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/realAbsorption.txt"
+		isComplex = false
+		frequency = receiveSignal.frequency
+		times = receiveSignal.times
+	}
+   message = "certifyAbsorption"
+}
+

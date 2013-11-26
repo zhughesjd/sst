@@ -1,0 +1,36 @@
+# reverb.sst:  High frequency, high speed, 5 offset beams, monostatic active.
+# This first run does the long part, computing and factoring the scattering
+# function for reverberation.
+# $Id: reverb.sst 5364 2008-07-05 23:25:43Z rpg $
+
+# A high-frequency, 5-beam monostatic sonar with offset beams.
+read "sonar.sst"
+
+# Specify the ocean environment.
+read "ocean.sst"
+
+# Define the Scattering Function for the surface.
+new scatFunSurGen = BBBScatFun {
+	frequencies = ( 10000 )
+	times = {
+		first = 0.1     # Starts before listening interval
+		last = 5.7		# Ends after listening interval
+		interval = 0.20	# Half of a pulse length
+	}
+	# The Doppler grid is coarser than the "natural" generation grid.
+	# The back hemisphere is not included.
+	dopplers = {
+		interval = 0.0005
+			# natural = 0.00025 = 1/(pulse_length*pulse_freq)
+		first = 1.0
+		last =  1.03		# > 1 + 2*v/c
+	}
+	isCorrelated = true
+	isComplex = true
+	source = tranSource
+	doSurface = true
+	doBottom = false
+	doVolume = false
+}
+
+read "computeScatFun.sst"

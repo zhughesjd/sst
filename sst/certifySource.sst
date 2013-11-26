@@ -1,0 +1,420 @@
+# certifySource.sst: Certify source signal generators.
+# $Id: certifySource.sst 6079 2009-07-17 23:35:43Z kwiley $
+
+random.seed = 0
+
+print "\n***** ModulatedTone: Complex rectangular single tone using 1 sample"
+new complexRectTone = ModulatedTone {
+	frequency = 400
+	isComplex = true
+	times = { first = 0.06; interval = 0.1; number = 1 }
+	order = 0	# nearest neighbor interpolation
+	level = 200	# dB
+	startingPhase = -45	# degrees
+}
+new crtStandard = InternalSignal {
+	frequency = complexRectTone.frequency
+	times = complexRectTone.times
+	isComplex = complexRectTone.isComplex
+	order = complexRectTone.order
+	buf = (   7.071068e+09,  -7.071068e+09 )
+}
+CompareSignals {
+  signal = complexRectTone 
+  standard = crtStandard
+  message = "certifySource -- ModulatedTone: Complex rectangular single tone using 1 sample"
+}
+
+print "\n***** ModulatedTone: Real rectangular single tone"
+new realRectTone = ModulatedTone {
+	isComplex = false
+		 # 4 cycles, 5x oversampled:
+	times = { first = 0.0; last = 0.01; rate = 4000 }
+	level = 100	# dB
+	startingPhase = -90	# degrees:  Sine wave
+	frequencyModulation = ConstantFunction { value = 400 }
+}
+new rrtSignal = InternalSignal{}
+CopySignal realRectTone rrtSignal
+new rrtStandard = rrtSignal {	buf = (
+ 8.659275e-12,   8.312539e+04,   1.344997e+05,   1.344997e+05,   8.312539e+04,
+ 8.659275e-12,  -8.312539e+04,  -1.344997e+05,  -1.344997e+05,  -8.312539e+04,
+-2.597782e-11,   8.312539e+04,   1.344997e+05,   1.344997e+05,   8.312539e+04,
+ 8.659275e-12,  -8.312539e+04,  -1.344997e+05,  -1.344997e+05,  -8.312539e+04,
+-2.597782e-11,   8.312539e+04,   1.344997e+05,   1.344997e+05,   8.312539e+04,
+ 8.659275e-12,  -8.312539e+04,  -1.344997e+05,  -1.344997e+05,  -8.312539e+04,
+-2.597782e-11,   8.312539e+04,   1.344997e+05,   1.344997e+05,   8.312539e+04,
+ 8.659275e-12,  -8.312539e+04,  -1.344997e+05,  -1.344997e+05,  -8.312539e+04,
+-2.597782e-11
+}
+CompareSignals {
+  signal = rrtSignal 
+  standard = rrtStandard
+  message = "certifySource -- ModulatedTone: Real rectangular single tone"
+}
+
+
+print "\n***** ModulatedTone: Complex shaded linear FM sweep"
+new complexFM = ModulatedTone {
+	isComplex = true
+	frequency = 15000
+	times = {	# Over-sampled by a factor of 10
+		first = -0.0045
+		last  =  0.1045
+		rate  = 1000
+	}
+	level = 200		# dB // uPa^2 m^2
+	frequencyModulation = TableFunction {	# Sweep width = 100 Hz
+		order = 1	# Linear interpolation
+		table = (
+		  # time	frequency
+			-0.01	14940
+			0.11	15060
+		)
+	}
+	envelope = TableFunction {	# 10-ms fade at the ends
+		order = 3	# Cubic interpolation: Continuous slope.
+		table = (	# Note: Spacing need not be uniform.
+		  # time	amplitude
+			-0.0051	0.00
+			-0.005	0.00
+			-0.004	0.04
+			0.000	0.50	# Nominal pulse start at t = 0
+			0.004	0.96
+			0.005	1.00
+			0.0051	1.00		# Make sure top is flat
+			0.0949	1.00
+			0.095	1.00
+			0.096	0.96
+			0.100	0.50	# Nominal pulse end at t = 0.1
+			0.104	0.04
+			0.105	0.00
+			0.1051	0.00
+		)
+	}
+}
+new cfmSignal = BareAsciiSignal{ file = "complexFM.txt" }
+CopySignal complexFM cfmSignal
+new cfmStandard = cfmSignal { file = "$SSTHOME/standard/complexFM.txt" }
+CompareSignals {
+  signal = cfmSignal 
+  standard = cfmStandard
+  message = "certifySource -- ModulatedTone: Complex shaded linear FM sweep"
+}
+
+
+print "\n***** ModulatedTone: Real shaded linear FM sweep"
+new realFM = ModulatedTone {
+	isComplex = false
+	times = {	# Over-sampled by a factor of 5
+		first = -0.01
+		last  =  0.05
+		rate  = 4000
+	}
+	level = 100		# dB // uPa^2 m^2
+	startingPhase = -90		# deg (so it starts at 0 as a sine)
+	frequencyModulation = TableFunction {	# Sweep width = 100 Hz
+		order = 1	# Linear interpolation
+		table = (
+		  # time	frequency
+			-0.01	150
+			 0.05	450
+		)
+	}
+	envelope = TableFunction {	# 50 ms nominal, 10-ms trapezoid at the ends
+		order = 1	# Linear interpolation
+		table = (	# Note: Spacing need not be uniform.
+		  # time	amplitude
+			-0.005	0.00
+			0.005	1.00
+			0.035	1.00
+			0.045	0.00
+		)
+	}
+}
+new rfmSignal = BareAsciiSignal{ file = "realFM.txt" }
+CopySignal realFM rfmSignal
+new rfmStandard = rfmSignal { file = "$SSTHOME/standard/realFM.txt" }
+CompareSignals {
+  signal = rfmSignal 
+  standard = rfmStandard
+  message = "certifySource -- ModulatedTone: Real shaded linear FM sweep"
+}
+
+
+print "\n***** ModulatedTone: Real Frequency Hopping Code"
+new realHopCode = ModulatedTone {
+	isComplex = false
+	times = {	# Over-sampled by a factor of 5
+		first = 0.0
+		last  = 0.05
+		rate  = 4000
+	}
+	level = 200		# dB // uPa^2 m^2
+	startingPhase = -90		# deg (so it starts at 0 as a sine)
+	frequencyModulation = TableFunction {	# Sweep width = 100 Hz
+		order = 0	# Nearest neighbor (constant segments)
+		table = (
+		  # time	frequency
+			0.005	200
+			0.015	250
+			0.025	300
+			0.035	350
+			0.045	400
+		)
+	}
+}
+new rhcSignal = BareAsciiSignal{ file = "realHopCode.txt" }
+CopySignal realHopCode rhcSignal
+new rhcStandard = rhcSignal { file = "$SSTHOME/standard/realHopCode.txt" }
+CompareSignals {
+  signal = rhcSignal 
+  standard = rhcStandard
+  message = "certifySource -- ModulatedTone: Real Frequency Hopping Code"
+}
+
+
+print "\n***** HarmonicFamily: Sawtooth wave built up from harmonics"
+new realSawtooth = HarmonicFamily {
+	isComplex = false
+	times = {	# Over-sampled by a factor of 5
+		first = 0.0
+		last  = 1.0
+		rate  = 32
+	}
+	fundamental = 2.0
+	harmonics = (	# Sawtooth:  ampDB = 20 log( 8/(Pi*number)^2 )
+  # number	ampDB	phaseDeg
+	1    -1.8242	0
+	3    -20.909	0
+	5    -29.783	0
+	7    -35.6281	0
+	)
+}
+new rstSignal = BareAsciiSignal{ file = "realSawtooth.txt" }
+CopySignal realSawtooth rstSignal
+new rstStandard = rstSignal { file = "$SSTHOME/standard/realSawtooth.txt" }
+CompareSignals {
+  signal = rstSignal 
+  standard = rstStandard
+  message = "certifySource -- HarmonicFamily: Sawtooth wave built up from harmonics"
+}
+
+
+print "\n***** HarmonicFamily: Complex FM slide built from harmonicsm"
+new complexFM_HF = HarmonicFamily {
+	isComplex = true
+	frequency = 300
+	times = {
+		first = 0
+		last  = 0.06
+		rate  = 500
+	}
+	fundamental = 16.666666666
+	harmonics = (	# Coefficients from Mathematica FFT of realFM.txt
+# number ampDB phaseDeg
+#0    39.1963   0.
+#1    48.6863   0.591444
+#2    53.1179   -23.5367
+#3    52.3424   -83.1656
+4    55.5042   -140.963
+5    54.3184   -168.165
+6    52.122    174.674
+7    58.8875   162.954
+8    64.584    125.634
+9    69.4221   63.9806
+10   74.4066   4.04803
+11   77.912    -61.5281
+12   81.4416   -135.108
+13   84.2674   144.328
+14   86.7161   52.9591
+15   87.7466   -51.2155
+16   88.183    -175.454
+17   87.4001   36.1633
+18   87.2335   -133.478
+19   87.4002   36.1555
+20   88.1774   -175.483
+21   87.7405   -51.1443
+22   86.7218   53.0207
+23   84.2751   144.346
+24   81.4427   -135.124
+25   77.8919   -61.6265
+26   74.3269   3.986
+27   69.2746   63.8954
+28   64.2531   125.474
+29   58.4578   163.046
+30   51.8727   175.071
+31   53.5096   -164.379
+32   54.1036   -134.479
+#33   50.2579   -75.1358
+#34   50.217    -12.6172
+#35   44.8279   13.095
+#36   33.5244   14.4087
+#37   42.1685   16.9551
+#38   44.6673   38.3283
+#39   39.4387   111.053
+#40   43.104    177.313
+#41   37.747    -163.554
+#42   22.0136   -161.929
+#43   36.1292   -165.297
+#44   39.2814   -149.128
+#45   31.9775   -66.2991
+#46   38.5879   1.22128
+#47   33.2254   15.6604
+#48   13.6462   18.9019
+#49   32.1319   12.7992
+#50   35.6189   25.1508
+)}
+new cfmhfSignal = BareAsciiSignal{ file = "complexFM_HF.txt" }
+CopySignal complexFM_HF cfmhfSignal
+new cfmhfStandard = cfmhfSignal { file = "$SSTHOME/standard/complexFM_HF.txt" }
+CompareSignals {
+  signal = cfmhfSignal 
+  standard = cfmhfStandard
+  message = "certifySource -- HarmonicFamily: Complex FM slide built from harmonicsm"
+}
+
+
+print "\n***** Harmonics used for HarmonicFamily came from FFT of real FM sweep."
+print "***** Convert that original real FM sweep to complex, and use it as"
+print "***** the standard to compare to the complex HarmonicFamily result."
+print "***** Note: High order is required for filtering out negative frequencies.
+print "***** Expect max rel diff = 0.029.
+new realStandard = BareAsciiSignal{
+	file = "$SSTHOME/standard/realFM.txt"
+	isComplex = false
+	times = {	# Over-sampled by a factor of 5
+		first = 0
+		last  = 0.06
+		rate  = 4000
+	}
+	order = 41		# Needed for filtering out the negative frequencies!
+}
+new standardMaker = ResampleSignal {
+	inSignal = realStandard
+	times = complexFM_HF.times
+	frequency = complexFM_HF.frequency
+}
+new complexStandard = BareAsciiSignal { file = "complexFM_std.txt" }
+CopySignal standardMaker complexStandard
+CompareSignals {
+  signal = cfmhfSignal 
+  standard = complexStandard
+  message = "certifySource -- Harmonics used for HarmonicFamily came from FFT of real FM sweep."
+  tolerance = 0.029
+}
+
+
+print "\n***** Now go the other way, and convert the complex HarmonicFamily result"
+print "***** to real form, and compare it to the original real FM sweep."
+print "***** A much lower order (11) works because no filtering is required."
+print "***** Expect max rel diff = 0.052."
+cfmhfSignal.order = 11
+new backToReal = ResampleSignal {
+	inSignal = cfmhfSignal
+	isComplex = false
+	times = realStandard.times
+}
+new realVersion = BareAsciiSignal{ file = "realFM_HF.txt" }
+CopySignal backToReal realVersion
+CompareSignals {
+  signal = realVersion 
+  standard = realStandard
+  message = "certifySource --Convert the complex HarmonicFamily result"
+  tolerance = 0.052
+}
+
+
+print "\n***** BroadbandNoise: Complex Gaussian noise from 1600 to 2400 Hz"
+print "***** (80% Nyquist). Total level = 29.0 dB."
+new cbbn = BroadbandNoise {
+	isComplex = true
+	frequency = 2000
+	times = { first = 0; last = 0.1; rate = 1000 }
+    spectrumDB = TableFunction {
+	    order = 1
+    	table = (
+		# f     dB
+		1580	-100
+		1600	0
+		2400	0
+		2420	-100
+		)
+	}
+    updateInterval = 0.25	# just under 256 samples; 256 complex FFT
+}
+new cbroadband = BareAsciiSignal { file = "cbbn.txt" }
+CopySignal cbbn cbroadband
+new cbbnStandard = cbroadband { file = "$SSTHOME/standard/cbbn.txt" }
+CompareSignals {
+  signal = cbroadband 
+  standard = cbbnStandard
+  message = "certifySource -- BroadbandNoise: Complex Gaussian noise from 1600 to 2400 Hz"
+}
+
+
+print "\n***** BroadbandNoise: Real Gaussian noise from 200 to 3200 Hz"
+print "***** (80% Nyquist). Total level = 34.8 dB."
+random.seed = 0		# Re-start randoms at standard value
+new rbbn = BroadbandNoise {
+	isComplex = false
+	times = { first = 0; last = 0.02; rate = 8000 }
+    spectrumDB = TableFunction {
+	    order = 1
+    	table = (
+		# f     dB
+		 180	-100
+		 200	0
+		3200	0
+		3220	-100
+		)
+	}
+    updateInterval = 0.08	# just under 512 samples; 256 complex FFT
+}
+new rbroadband = BareAsciiSignal { file = "rbbn.txt" }
+CopySignal rbbn rbroadband
+new rbbnStandard = rbroadband { file = "$SSTHOME/standard/rbbn.txt" }
+CompareSignals {
+  signal = rbroadband 
+  standard = rbbnStandard
+  message = "certifySource -- BroadbandNoise: Real Gaussian noise from 200 to 3200 Hz"
+}
+
+
+print "\n***** KNoise:  Generate a complex signal, shape < 1"
+random.seed = 0		# Re-start randoms at standard value
+new cknoise = KNoise {
+	isComplex = true
+	frequency = 2000
+	times = { first = 0; last = 0.1; rate = 1000 }
+	levelDB = -30.0 # = -10*log(1000) so kScale == 1.0
+	kShape = 0.5
+}
+
+new ckn = BareAsciiSignal { file = "cknoisestd.txt" }
+CopySignal cknoise ckn
+new cknStandard = ckn { file = "$SSTHOME/standard/cknoisestd.txt" }
+CompareSignals {
+  signal = ckn 
+  standard = cknStandard
+  message = "certifySource -- KNoise:  Generate a complex signal, shape < 1"
+}
+
+print "\n***** KNoise:  Generate a real signal, shape > 1"
+
+random.seed = 0		# Re-start randoms at standard value
+new rknoise = KNoise {
+	isComplex = false
+	times = { first = 0; last = 0.02; rate = 8000 }
+	levelDB = -39.031   # = -10*log(8000) so kScale == 1.0
+	kShape = 1.2
+}
+
+new rkn = BareAsciiSignal { file = "rknoisestd.txt" }
+CopySignal rknoise rkn
+new rknStandard = rkn { file = "$SSTHOME/standard/rknoisestd.txt" }
+CompareSignals { 
+  signal = rkn 
+  standard = rknStandard
+  message = "certifySource -- KNoise:  Generate a real signal, shape > 1"
+}

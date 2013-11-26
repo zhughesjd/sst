@@ -1,0 +1,143 @@
+# Testing MultiFileSignal
+#
+# The basic approach is to create a multichannel signal, the copy it
+# to a MultiFileSignal. We then check that the MFS can be read in again
+# as a MFS and compares against the original. We then check the stored 
+# components of the MFS as separate signals and make sure the appear
+# as they should.
+
+# First, create the 4 channel test signal
+new noiseSpectrum = TableFunction {
+    order = 1
+    table = (
+        10.000000 0.000000
+        20.433597 147.000000
+        221.221629 147.000000
+        400.000000 0.000000
+    )
+}
+
+firstTime = double: -5
+lastTime = double: 5
+
+new BBNoise = BroadbandNoise {
+    times = {
+        first = firstTime
+        last = lastTime
+        rate = 1000
+    }
+    isComplex = false
+    order = 11
+    spectrumDB = noiseSpectrum
+}
+
+# Save each of the channels
+storedNoise1 = SIOSignal{ file="noise1.sio" }
+storedNoise2 = SIOSignal{ file="noise2.sio" }
+storedNoise3 = SIOSignal{ file="noise3.sio" }
+storedNoise4 = SIOSignal{ file="noise4.sio" }
+
+CopySignal BBNoise storedNoise1
+CopySignal BBNoise storedNoise2
+CopySignal BBNoise storedNoise3
+CopySignal BBNoise storedNoise4
+
+# Merge the channels into a 4 channel signal
+new fourChannelNoise = MergeSignal{
+    inSignals = ( storedNoise1, storedNoise2, storedNoise3, storedNoise4 )
+}
+
+storedNoiseAll = SIOSignal{ file="noiseAll.sio" }
+CopySignal fourChannelNoise storedNoiseAll
+
+new proto = SIOSignal{ 
+    file="mfs-noise-%ci-%si.sio"
+    isComplex=false 
+}
+
+# Write the signal to a MFS
+new noiseMFSOut = MultiFileSignal {
+    times = { first = firstTime; last = lastTime; rate = 1000 }
+    numChannels = 4
+    numChannelsPerFile = 1
+    numTimesPerFile = 10001
+    prototype = proto
+}
+
+CopySignal storedNoiseAll noiseMFSOut
+
+# Read in the MFS and compare
+new noiseMFSIn = MultiFileSignal {
+    times = { first = firstTime; last = lastTime; rate = 1000 }
+    isComplex = false
+    numChannels = 4
+    numChannelsPerFile = 1
+    numTimesPerFile = 10001
+    prototype = proto
+}
+CompareSignals noiseMFSIn storedNoiseAll
+  
+# Read in the components of the MFS and compare
+mfsComponent1 = SIOSignal{ file="mfs-noise-1-1.sio"
+                           isComplex=false }
+mfsComponent2 = SIOSignal{ file="mfs-noise-2-1.sio" 
+                           isComplex=false }
+mfsComponent3 = SIOSignal{ file="mfs-noise-3-1.sio" 
+                           isComplex=false }
+mfsComponent4 = SIOSignal{ file="mfs-noise-4-1.sio" 
+                           isComplex=false }
+
+CompareSignals mfsComponent1 storedNoise1
+CompareSignals mfsComponent2 storedNoise2
+CompareSignals mfsComponent3 storedNoise3
+CompareSignals mfsComponent4 storedNoise4
+
+# Now do MFS divided by time
+
+# Write the signal to a MFS
+new noiseMFSOutTime = MultiFileSignal {
+    times = { first = firstTime; last = lastTime; rate = 1000 }
+    numChannels = 4
+    numChannelsPerFile = 4
+    numTimesPerFile = 5000
+    prototype = proto
+}
+
+CopySignal storedNoiseAll noiseMFSOutTime
+
+# Read in the MFS and compare
+new noiseMFSInTime = MultiFileSignal {
+    times = { first = firstTime; last = lastTime; rate = 1000 }
+    isComplex = false
+    numChannels = 4
+    numChannelsPerFile = 4
+    numTimesPerFile = 5000
+    prototype = proto
+}
+CompareSignals noiseMFSInTime storedNoiseAll
+
+new fourChannelNoise5000 = MergeSignal{
+    times = { first = firstTime; rate = 1000; number=5000 }
+    inSignals = ( storedNoise1, storedNoise2, storedNoise3, storedNoise4 )
+}
+new fourChannelNoise10000 = MergeSignal{
+    times = { first = 0; rate = 1000; number=5000 }
+    inSignals = ( storedNoise1, storedNoise2, storedNoise3, storedNoise4 )
+}
+new fourChannelNoise10001 = MergeSignal{
+    times = { first = 5; rate = 1000; number=1 }
+    inSignals = ( storedNoise1, storedNoise2, storedNoise3, storedNoise4 )
+}
+
+mfsComponent5000 = SIOSignal{ file="mfs-noise-1-1.sio"
+                           isComplex=false }
+mfsComponent10000 = SIOSignal{ file="mfs-noise-1-2.sio"
+                           isComplex=false }
+mfsComponent10001 = SIOSignal{ file="mfs-noise-1-3.sio"
+                           isComplex=false }
+
+
+
+CompareSignals mfsComponent5000 fourChannelNoise5000
+CompareSignals mfsComponent10000 fourChannelNoise10000
+CompareSignals mfsComponent10001 fourChannelNoise10001

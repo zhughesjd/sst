@@ -1,0 +1,291 @@
+# reverb.sst: 
+#  A version of the pursuit example that uses CASS eigenrays
+#  and CASSEigenrayRun to run the scenario.
+#
+# $Id$
+
+# A high-frequency, 5-beam monostatic sonar with offset beams.
+read "sonar.sst"
+
+# Specify the ocean environment.
+read "ocean.sst"
+
+#echoInput = true
+
+# Define objects.  There is an object which defines the sound
+# that can be heard for the passive noise.
+  
+# Specify the active target.  It's running away, right and turning left.
+targetTrajectory = Trajectory(	# One Snapshot. Circular arc.
+	{
+		time = 0                         # s
+		position = ( 800 -50 200 )          # m
+		velocity = ( 10.4, 6, 0.0 )         # m/s
+		orientation = ( 30.0, 0, 0 )       # deg
+		orientationRate = ( -2.0 0.0 0.0 )   # deg/s
+	}
+)
+target = PointTarget {
+	trajectory = targetTrajectory
+    points = (		# Three highlights in an 80-meter line.
+#    strength [dB]    position [m]    velocity [m/s]
+        -14,         ( 40, 0, 0 ),     ( 0, 0, 0 )
+        -10,         ( 10, 0, 0 ),     ( 0, 0, 0 )
+         -3,        ( -40, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+
+# Initialize the random number generator.
+random.seed = 1234567890
+
+sourceSignal = SIOSignal { file = "source.sio" }
+
+# Specify the target's passive emissions.  Broadband, from near the tail.
+# The source spectrum is rectangular, with a total level of 100 dB in a
+# band 960 Hz wide.
+# Make sure that the source signal is long enough to cover all paths.
+sourceGenerator = BroadbandNoise {
+	frequency = 30000
+	times = {
+		first = -5.0
+		last = 12.0
+		interval = 0.0005	# no oversampling
+	}
+	spectrumDB = TableFunction {
+	    order = 1
+    	table = (
+		# f     dB
+		29400	-300
+		29520	70.18
+		30480	70.18
+		30600	-300
+		)
+	}
+}
+
+# Fill the sourceSignal file with broadband Gaussian random noise having the
+# specified power spectrum.  This is where BroadbandNoise's work is done.
+CopySignal sourceGenerator sourceSignal
+
+# The broadband noise source has the same trajectory as the active target.
+# The emission center is near the target's stern.
+targetSource = Source {
+	beams = ( OmniBeam{ offset = ( -30, 0, 0 ) } )
+	signal = sourceSignal
+	trajectory = targetTrajectory
+}
+
+# Isovelocity eigenray model.  
+# Use this model to create Internal Eigenray Model (IEM) results
+internalEigenrayModel = EigenrayModel {
+	maximumEigenrays = 5
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 1
+	max2waySurfaceBounces = 1
+	max2wayBottomBounces = 1
+	filterLength = 1	# Narrowband; no filtering
+}
+
+# There is ONLY ONE eigenray model object when using CASSOnDemand
+cassEigenrayModel = CASSOnDemand {
+    startfile = "$SSTHOME/input/flatEarth.cass"
+    maximumSurfaceBounces = 1
+    maximumBottomBounces = 1
+    maximumEigenrays = 5
+    verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+    filterLength = 1	    # Narrowband; no filtering
+    receiverBearingAngles = UniformGrid{ first=0; last=0; number=1 }
+    ranges = UniformGrid { first = 10; 
+                           last = 10000; 
+                           interval = 10 }
+}
+
+# Choose your eigenray model here
+#eigenrayModel = internalEigenrayModel
+eigenrayModel = cassEigenrayModel
+
+
+# Now make the objects which will use this model.
+
+# For reverberation, we need an object to build the
+# scattering function (which is a BBBScatFun object),
+# an object to produce reverberation from the scattering
+# function (ReverbSignal) and an object to write out
+# the signal that has been generated (BareAsciiSignal)
+
+# Define the Scattering Function for reverberation
+scatFunGen = BBBScatFun {
+	frequencies = ( 30000 )
+	times = {
+		first = 0.1		# Starts before listening interval
+		last = 3.1		# Ends after listening interval
+		interval = 0.2	# Just under 2 pulse lengths
+    }
+    dopplers = UniformGrid {
+                first = 1.0
+                last =  1.0
+                interval = 1.0
+                number = 1
+    }
+	source = tranSource
+	doSurface = true
+	doBottom = true
+	doVolume = true
+}
+
+# This writes the scattering function to a file.  Uncomment if
+# you need an ascii file of the scattering function
+#scatFunTotal = AsciiScatFun { file = "reverbScatFunRun_1.txt" }
+
+# The signal writer
+reverbSigFile = BareAsciiSignal {
+	file = "reverb_1.txt"
+	frequency = 30000
+	times = {
+		first = 0.060
+		last = 3.160
+		rate = 2000
+	}
+}
+
+# The signal generator
+reverbGenerator = ReverbSignal {
+	frequency = reverbSigFile.frequency
+	times = reverbSigFile.times
+	scatFunction = scatFunGen
+	sourceSignal = tranPulse
+#	verbose = true		# Print equivalent processing chain
+}
+
+
+# For the passive noise we need 2 objects, the generator
+# and the writer.  We also need a source of the noise.
+
+passiveGenerator = DirectSignal {
+	times = reverbSigFile.times
+	frequency = reverbSigFile.frequency
+	source = targetSource
+}
+
+passiveSignal = BareAsciiSignal { file = "passive_1.txt" }
+
+# For the target echo we also need a generator & a writer
+
+targetGenerator = TargetEcho {
+	isComplex = reverbSigFile.isComplex
+	frequency = reverbSigFile.frequency
+	times = reverbSigFile.times
+	source = tranSource
+}
+
+targetSignal = BareAsciiSignal { file = "target_1.txt" }
+
+# And finally something with which to write the total
+totalSignal = BareAsciiSignal { file = "total_1.txt" }
+
+
+# Now generate the various signals for 3 times, 0, 4 s & 8 s
+# The steps are to generate reverberation, generate the passive
+# noise, generate the target echo & then add them all up.
+
+# Initialize the random number generator.  0 means standard; always the same.
+# This makes it easier to compare outputs from different runs
+random.seed = 0
+
+# Start at time 0
+time = double:0.0
+
+# Generate reverberation   This is done by generating the
+# scattering function, then the reverberation
+
+# Write the scattering function to a file
+#CopySignal scatFunGen scatFunTotal
+
+# Generate the reverberation and write it to a file
+CopySignal reverbGenerator reverbSigFile
+
+# Generate the passive noise
+CopySignal passiveGenerator passiveSignal
+
+# Generate the target signal
+CopySignal targetGenerator targetSignal
+
+# Add them all together
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}
+
+# Repeat for times 4 & 8 seconds later
+# We need to update the time, regenerate the eigenrays
+# and change the filenames before regenerating the signals.
+
+# First reset the time
+time = 4
+
+# Generate reverberation.  
+
+# Reset the output files.
+#scatFunTotal { file = "reverbScatFunRun_2.txt" }
+reverbSigFile {	file = "reverb_2.txt" }
+
+# The signal is generated & written to disk by the CopySignal commands
+#CopySignal scatFunGen scatFunTotal
+CopySignal reverbGenerator reverbSigFile
+
+# Generate the passive signal -- 
+# reset the file name, then generate the signal
+passiveSignal { file = "passive_2.txt" }
+targetSource { trajectory = targetTrajectory }
+
+CopySignal passiveGenerator passiveSignal
+
+# Generate the target signal
+targetSignal.file = "target_2.txt"
+targetGenerator { source = tranSource }
+
+CopySignal targetGenerator targetSignal
+
+# Add them all together
+totalSignal { file = "total_2.txt" }
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}
+
+
+# Repeat at 8 sec.   Everything is the same as for time = 4, 
+# except the time parameter
+
+time = 8
+
+# Reverberation.  
+#scatFunTotal { file = "reverbScatFunRun_3.txt" }
+reverbSigFile {	file = "reverb_3.txt" }
+#CopySignal scatFunGen scatFunTotal
+CopySignal reverbGenerator reverbSigFile
+
+# Passive 
+passiveSignal { file = "passive_3.txt" }
+targetSource { trajectory = targetTrajectory }
+CopySignal passiveGenerator passiveSignal
+
+# Target 
+targetSignal.file = "target_3.txt"
+targetGenerator { source = tranSource }
+CopySignal targetGenerator targetSignal
+
+# Sum ... 
+totalSignal { file = "total_3.txt" }
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}
+
+# Th'that's all folks!

@@ -1,0 +1,67 @@
+# certifyDirectSignalEigenrayModel.sst: 
+# $Id: certifyDirectSignalEigenrayModel.sst 5878 2009-04-23 17:57:19Z kwiley $
+
+new signal = ModulatedTone {
+	frequency = 1000
+	order = 0
+	times = {
+		first = 0
+		last = 0.01
+		rate = 400
+	}
+	level = 200
+}
+
+source = Source {
+	signal = signal
+	trajectory = ( {
+		time = 0.0
+		position = (0 1000.0 200.0)
+	} )
+}
+
+receiver = Sonar {
+	beams = ( OmniBeam )
+	trajectory = ( {
+		time = 0.0
+		position = (0 0 100.0)
+	} )
+}
+
+ocean = Ocean {
+	depth = 400
+	soundspeed = 1500
+	bottom = JacksonBottom
+}
+#traceEigenrayModel = true
+
+new eigenrayModel = EigenrayModel {
+	maximumEigenrays = 10
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 1
+	doTimeSpread = false
+	printEigenrays = true
+}
+
+passiveGenerator = DirectSignal {
+	frequency = signal.frequency
+	times = {
+		first = .6
+		last = 1
+		rate = signal.times.rate
+	}
+	eigenrayModel = eigenrayModel
+	source = source
+	receiver = receiver
+}
+
+txtSignal = BareAsciiSignal { file = "DirectSignalEigenrayModelOut.txt" }
+CopySignal passiveGenerator txtSignal
+
+CompareSignals {
+	signal = txtSignal
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/DirectSignalEigenrayModelStd.txt"
+	}
+	message = "certifyDirectSignalEigenrayModel"
+}

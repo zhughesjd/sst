@@ -1,0 +1,189 @@
+# Certification tests for Boundary bistatic scattering strengths
+# $Id: certifyBistatic.sst 6017 2009-06-10 00:25:05Z rpg $
+
+print "\n***** JacksonBottom bistatic scattering strength *****"
+read "jacksonBottoms.sst"
+
+new check = JacksonBottom {
+	soundSpeedRatio = 1.1782		# nu
+	densityRatio = 1.845			# rho
+	lossParameter = 0.01624			# delta
+	inhomogeneityExponent = 3.0		# gamma3
+	inhomogeneityStrength = 0.00035901	# w3
+	fluctuationRatio = -1.0			# mu
+	spectralExponent = 3.25			# gamma
+	spectralStrength = 0.004446		# w2
+}
+
+print "\n***** Check value should be -19.419458 *****"
+TabulateBistatic {
+	boundary = check
+	soundspeed = 1528
+	incidentAngles = ( 45 )
+	scatteredAngles = ( 45 )
+	bistaticAngles = ( 40 )
+	frequencies = ( 20000 )
+}
+
+new silty = JacksonBottom {
+	soundSpeedRatio = 0.988			# nu
+	densityRatio = 1.390			# rho
+	lossParameter = 0.00553			# delta
+	inhomogeneityExponent = 3.0		# gamma3
+	inhomogeneityStrength = 0.000306 # w3
+	fluctuationRatio = -1.0			# mu
+	spectralExponent = 3.18			# gamma
+	spectralStrength = 0.00318		# w2
+}
+
+print "\n***** APL-UW TR 9407 Figures 5(a) & 5(b) *****"
+TabulateBistatic {
+	boundary = silty
+	soundspeed = 1528
+	incidentAngles = ( 10, 45 )
+	scatteredAngles = UniformGrid:{ first=90; last=180; interval=10; number=-1 }
+	bistaticAngles = ( 180 )
+	frequencies = ( 40000 )
+}
+
+print "\n***** Figure 5(c) *****"
+TabulateBistatic {
+	incidentAngles = ( 45 )
+	scatteredAngles = ( 45 )
+	bistaticAngles = UniformGrid:{ first=0; last=60; interval=10; number=-1 }
+}
+
+print "\n***** Figure 5(d) *****"
+TabulateBistatic {
+	incidentAngles = ( 10 )
+	scatteredAngles = ( 10 )
+}
+
+print "\n***** Monostatic strengths for MediumSand: Similar to APLBottom *****"
+TabulateBoundary {
+	boundary = MediumSand
+    frequencies = { first = 15000; last = 35000; interval = 10000 }
+    angles = { first = 0; last = 90; interval = 10 }
+}
+
+print "\n***** Monostatic strengths for low-vol Silt: Similar to APLBottom *****"
+TabulateBoundary { boundary = SandyMud:{ volumeParameter = 0.0003 } }
+
+
+print "\n\n******** JacksonBottom lower-frequency tests with gradient ********"
+print "\n***** Monostatic Mourad&Jackson JASA 94(1993) Fig 9 *****"
+new MJfig9 = JacksonBottom {
+	soundSpeedGradient = 1.0		# g
+	densityRatio = 1.72				# rho
+	soundSpeedRatio = 0.987			# nu
+	lossParameter = 0.00164			# delta
+	volumeParameter = 0.00045		# sigma2
+	spectralExponent = 3.25			# gamma
+	spectralStrength = 1.65e-5		# w2
+	lengthUnit = 1.0				# U
+}
+TabulateBoundary {
+	boundary = MJfig9
+    frequencies = ListGrid:(1200, 4800)
+    angles = { first = 5; last = 90; interval = 5 }
+}
+
+print "\n***** Monostatic Mourad&Jackson JASA 94(1993) Fig 10 (solid curve) *****"
+new MJfig10 = JacksonBottom {
+	soundSpeedGradient = 18.0		# g
+	densityRatio = 2.13				# rho
+	soundSpeedRatio = 1.2			# nu
+	lossParameter = 0.01941			# delta
+	volumeParameter = 0.001			# sigma2
+	spectralExponent = 3.25			# gamma
+	spectralStrength = 6.5e-5		# w2
+	lengthUnit = 1.0				# U
+}
+TabulateBoundary {
+	boundary = MJfig10
+    frequencies = ListGrid:(300)
+    angles = { first = 5; last = 90; interval = 5 }
+}
+
+print "\n***** Same but focus on oscillation *****"
+TabulateBoundary {
+	boundary = MJfig10
+    frequencies = ListGrid:(300)
+    angles = { first = 40; last = 50; interval = 1 }
+}
+
+print "\n***** Monostatic Mourad&Jackson JASA 94(1993) Fig 12 *****"
+new MJfig12 = JacksonBottom {
+	soundSpeedGradient = 4.0		# g
+	densityRatio = 2.13				# rho
+	soundSpeedRatio = 1.2			# nu
+	lossParameter = 0.01941			# delta
+	volumeParameter = 0.001			# sigma2
+	spectralExponent = 3.25			# gamma
+	spectralStrength = 6.5e-5		# w2
+	lengthUnit = 1.0				# U
+}
+TabulateBoundary {
+	boundary = MJfig12
+    frequencies = ListGrid:(300, 1200, 4800)
+    angles = { first = 5; last = 90; interval = 5 }
+}
+
+print "\n***** Monostatic Mourad&Jackson JASA 94(1993) Fig 13b *****"
+new hinesBarry2300 = JacksonBottom {
+	soundSpeedGradient = 10.0		# g
+	densityRatio = 1.83				# rho
+	soundSpeedRatio = 1.0192		# nu
+	lossParameter = 0.00193			# delta
+	volumeParameter = 0.0001		# sigma2
+	spectralExponent = 3.25			# gamma
+	spectralStrength = 7.2e-5		# w2
+	lengthUnit = 1.0				# U
+}
+TabulateBoundary {
+	boundary = hinesBarry2300
+    frequencies = ListGrid:(2300)
+    angles = { first = 5; last = 45; interval = 5 }
+}
+
+
+# Certification tests for McDanielSurface bistatic scattering strengths
+print "\n***** McDanielSurface bistatic scattering strength *****"
+print "\n***** Lang & Culver Figure 4 *****"
+new ocean4 = Ocean: {
+    windspeed = 15
+    surface = McDanielSurface
+}
+##traceBoundary = true
+TabulateBistatic {
+	boundary = ocean4.surface
+	soundspeed = 1520
+	incidentAngles = ( 5 )
+	scatteredAngles = UniformGrid:{ first=5; last=85; interval=10 }
+	bistaticAngles = UniformGrid:{ first=-180; last=0; interval=10 }
+	frequencies = ( 20000 )
+}
+
+print "\n***** Lang & Culver Figure 7 *****"
+new ocean7 = Ocean: {
+    windspeed = 6.7
+    surface = McDanielSurface
+}
+TabulateBistatic {
+	boundary = ocean7.surface
+	incidentAngles = ( 9.5 )
+	scatteredAngles = UniformGrid:{ first=10; last=30; interval=2.5 }
+	bistaticAngles = UniformGrid:{ first=-180; last=0; interval=10 }
+	frequencies = ( 30000 )
+}
+
+print "\n***** Gilbert Figure 6 *****"
+new ocean8 = Ocean: {
+    windspeed = 15.593	# invert eqn for cfluct = 207 m/s
+    surface = GilbertSurface: { mixedLayerDepth = 106 }
+}
+TabulateBoundary {
+	boundary = ocean8.surface
+	frequencies = ( 150, 300, 600 )
+	angles = UniformGrid:{ first=5; last=40; interval=5 }
+}

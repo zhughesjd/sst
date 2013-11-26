@@ -1,0 +1,41 @@
+# ocean.sst: Ocean environment for SST pursuit example.
+# $Id: ocean_variable.sst 5208 2008-02-04 23:02:31Z rpg $
+
+######   Ocean Environment Specification ###### 
+read "jacksonBottoms.sst"
+
+ocean = Ocean {
+	depth = 1000        # [m]
+	soundspeed = 1500	# [m/s]
+
+	# Surface parameters
+	windspeed = ${windspeed}		# [m/s]
+	surface = APLSurface
+
+	# Bottom parameters
+	bottom = ${bottom}
+
+	# Volume parameters
+	volumeAttenuation = -0.8    	# dB/km
+	volume = ReverbList(
+		# Use one volume scattering layer between surface and bottom depth
+		{
+			minDepth = 0.0
+			maxDepth = 1000.
+			northVeloc = 0
+			eastVeloc = 0
+			rmsSpeed = 0
+			strengthDB = -80.
+		}
+	)
+}
+
+# Isovelocity eigenray model
+new eigenrayModel = EigenrayModel {
+	maximumEigenrays = 5
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 1
+	max2waySurfaceBounces = 1
+	max2wayBottomBounces = 1
+	filterLength = 1	# Narrowband; no filtering
+}

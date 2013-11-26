@@ -1,0 +1,12 @@
+# reverbSpect.sst: Specify the reverberation power spectrum
+# $Id: reverbSpect.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# NOTE: grids.sst must be read first
+
+new reverbSpect = SIOSpectrum {
+    file = "reverbSpect.sio"
+	times = reverbSpectTimes        # see grids.sst
+    frequencies = tranFreqs         # see grids.sst
+    isPower = true
+    isCorrelated = true     # Should match scatFun.isCorrelated
+}

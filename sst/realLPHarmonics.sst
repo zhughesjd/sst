@@ -1,0 +1,90 @@
+# realLPHarmonics.sst: Low-Pass FIR Filter on HarmonicFamily signal
+# $Id: realLPHarmonics.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+new sigTimes = UniformGrid:{ first = 0; last = 1; rate = 8000 }
+
+# The test signal contains 16 equal-amplitude sines, up to 80% of Nyquist.
+new rharfam = HarmonicFamily {
+	isComplex = false
+	times = sigTimes
+	fundamental = 200
+	harmonics = (
+  # number	ampDB	phaseDeg
+	1		0.0		-90
+	2		0.0		-90
+	3		0.0		-90
+	4		0.0		-90
+	5		0.0		-90
+	6		0.0		-90
+	7		0.0		-90
+	8		0.0		-90
+	9		0.0		-90
+	10		0.0		-90
+	11		0.0		-90
+	12		0.0		-90
+	13		0.0		-90
+	14		0.0		-90
+	15		0.0		-90
+	16		0.0		-90
+	)
+}
+new rharmonics = SIOSignal {
+	file = "RLPHarmonics.sio"
+}
+CopySignal rharfam rharmonics
+
+# The test:  Filter out components over 1 kHz (25% Nyquist), varying length.
+new rfilter_15 = VarFirFilter {
+    inSignal = rharmonics
+    coefBuf = LPFirCoefBuf {
+		filterLength = 15
+		bandFraction = 0.25
+	}
+}
+new rfiltered_15 = SIOSignal {
+	file = "RLPFiltered_15.sio"
+}
+CopySignal rfilter_15 rfiltered_15
+
+new rfilter_31 = VarFirFilter {
+    inSignal = rharmonics
+    coefBuf = LPFirCoefBuf {
+		filterLength = 31
+		bandFraction = 0.25
+	}
+}
+new rfiltered_31 = SIOSignal {
+	file = "RLPFiltered_31.sio"
+}
+CopySignal rfilter_31 rfiltered_31
+
+new rfilter_63 = VarFirFilter {
+    inSignal = rharmonics
+    coefBuf = LPFirCoefBuf {
+		filterLength = 63
+		bandFraction = 0.25
+	}
+}
+new rfiltered_63 = SIOSignal {
+	file = "RLPFiltered_63.sio"
+}
+CopySignal rfilter_63 rfiltered_63
+
+
+# Make Sound files from filter results
+new harmonicSound = SoundSignal {
+	file = "RLPHarmonics.snd"
+	clipDB = 27
+}
+CopySignal rharmonics harmonicSound
+
+harmonicSound.file = "RLPFiltered_15.snd"
+CopySignal rfiltered_15 harmonicSound
+
+harmonicSound.file = "RLPFiltered_31.snd"
+CopySignal rfiltered_31 harmonicSound
+
+harmonicSound.file = "RLPFiltered_63.snd"
+CopySignal rfiltered_63 harmonicSound

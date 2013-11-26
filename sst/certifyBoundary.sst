@@ -1,0 +1,62 @@
+# Certification tests for Boundary
+# $Id: certifyBoundary.sst 4951 2006-12-29 00:59:57Z rpg $
+
+read "aplBottoms.sst"
+
+echoInput = true		# Echo all input to standard output
+
+## Test input for the base class Boundary
+TabulateBoundary {
+    boundary = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -2 }
+		coherentForwardStrength = ConstantDbFunction2 { decibels = -4 }
+		backStrength = ConstantDbFunction2 { decibels = -8 }
+	}		# Ocean boundary (surface or bottom)
+
+    frequencies = {		# Grid of frequencies [Hz] for columns of the tables
+        first = 15000		# First (smallest) value in Grid
+        last = 35000		# Last (largest) value in Grid
+        interval = 10000	# Interval between adjacent values in uniform Grid (0 for non-uniform)
+    }
+
+    angles = {		# Grid of angles [deg] for rows of the tables
+        first = 0		# First (smallest) value in Grid
+        last = 90		# Last (largest) value in Grid
+        interval = 10	# Interval between adjacent values in uniform Grid (0 for non-uniform)
+    }
+}		# Command to print tables of boundary scattering strengths
+
+## Test input for APLBottom
+TabulateBoundary { boundary = RoughRock }
+
+TabulateBoundary ( MediumSand )
+
+TabulateBoundary { boundary = SandyMud:{ volumeParameter = 0.0003 } }
+
+
+## Test input for APLSurface
+new ocean = Ocean {
+	windspeed = 2.5 /* m/s */
+	surface = APLSurface
+}
+TabulateBoundary ocean.surface
+
+ocean.windspeed = 20 /* m/s */
+TabulateBoundary
+
+## Test input for Chapman-Harris and power-of-sine scattering strengths
+ocean = {
+	windspeed = 10.28	# m/s = 20 knots; see GSM Fig. 6-60.
+	surface = Boundary {
+		totalForwardStrength = PowSineScat {
+			strengthDB = -20	#dB
+			exponent = 2
+		}
+		coherentForwardStrength = PowSineScat { exponent = 1 }
+		backStrength = ChapHarScat
+	}
+}
+TabulateBoundary {
+	boundary = ocean.surface
+	frequencies = { first = 3000; last = 3000; number = 1 }
+}

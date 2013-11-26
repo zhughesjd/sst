@@ -1,0 +1,157 @@
+# certifyCASSOnDemandPassive.sst: Certify noise level using CASS eigenrays.
+# This script is modeled on certifyCASSPassive.sst but is more directly
+# analogous to the corresponding certifyWEGPassive.sst for comparison purposes.
+# $Id: certifyCASSOnDemandPassive.sst 5802 2009-03-02 21:19:04Z kwiley $
+
+### Generate the signal transmitted by the source.
+read "source2cass.sst"
+
+#echoInput=true
+
+# Copy the result to ASCII form
+txtSignalin = BareAsciiSignal { file = "cassin.txt" }
+CopySignal sourceSignal txtSignalin
+
+### Step 2:  Define the simulation parameters common to subsequent steps.
+######   Sonar Specification ######
+# Sonar stationary at the origin with a depth of 100m
+receiver = Sonar {
+	beams = ( OmniBeam )
+	trajectory = (
+		{
+			time = 0.0
+			position = (0 0 100.0)
+		}
+	)
+}
+
+######   Ocean Environment Specification :range dependent bathymetry######
+bathy= TableFunction2: {
+	order = 1
+	table2 = {
+		arg1 = ( -5000, 0, 5000 )
+		arg2 = ( -5000, 0, 5000 )
+		values = (	2000 2000 2000
+				 400  400  400
+				2000 2000 2000 )
+	}
+}
+#print bathy
+ocean = Ocean {
+	depth = bathy
+	soundspeed = TableFunction { table = (
+		   0.0      1500
+		2000.0      1500
+	) }
+	
+	bottom  = JacksonBottom
+}
+tabOutFun2 = TableFunction2 {
+	originalFunction = bathy
+	table2.arg1 = { first = -5000; last = 5000; interval = 1000 }
+	table2.arg2 = { first = -5000; last = 5000; interval = 1000 }
+}
+#print tabOutFun2.table2.values
+
+#traceEigenrayModel = true
+
+new eigenrayModel = CASSOnDemand {
+	startfile = "$SSTHOME/input/flatEarth.cass"
+	maximumSurfaceBounces = 2
+    	maximumBottomBounces = 2
+    	max2waySurfaceBounces = 2
+    	max2wayBottomBounces = 2
+	ranges = UniformGrid { first=0; last=20000; interval=100 }
+	frequencies = UniformGrid{ first=2000; last=4000; number=2 }
+	verticalAngles = UniformGrid{ first=-89.9; last=89.9; interval=0.1 }
+	maximumEigenrays = 1000
+    	# Bistatic scenario - default source bearings to those of receiver
+	receiverBearingAngles = UniformGrid{ first=0; last=270; interval=90 }
+	printEigenrays = true
+}
+
+print "\n***** DirectSignal, CASS eigenrays, bearing 0 deg, range 4160 m *****"
+new sourceTrajectory = Trajectory (
+
+	{time = 0.0
+	position = ( 4160.0 0. 150.0 )
+	velocity = ( 0.0 0.0 0.0 ) }
+
+)
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = sourceSignal
+	trajectory = sourceTrajectory
+}
+
+###### The times structure sets listen interval and sample rate for
+# the output time signal
+# Do the simulation.  By default, the filter length is 9.######
+passiveGenerator = DirectSignal {
+	isComplex = false
+	times = {
+		first = 2.75
+		last = 3.25
+#		interval = 0.000625	# 1600 Hz
+		rate = 800 #2X oversampling w.r.t. 400Hz
+	}
+	eigenrayModel = eigenrayModel
+}
+# Copy the result to ASCII form
+txtSignal = BareAsciiSignal { file = "cassOnDemandPassive0.txt" }
+CopySignal passiveGenerator txtSignal
+
+# Compare to pre-calculated results
+CompareSignals {
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/cassOnDemandPassive0.txt"
+	}
+	signal = BareAsciiSignal {
+		file = "cassOnDemandPassive0.txt"
+	}
+	message = "certifyCASSPassive, test 1"
+}
+
+print "\n***** DirectSignal, CASS eigenrays, bearing 0 deg, range 4160 m *****"
+sourceTrajectory = Trajectory (
+
+	{time = 0.0			 
+	position = ( 0  4160.0 150.0 )	 
+	velocity = ( 0.0 0.0 0.0 ) }
+
+)
+
+source = Source {
+	beams = ( OmniBeam )
+	signal = sourceSignal 
+	trajectory = sourceTrajectory
+}
+
+###### The times structure sets listen interval and sample rate for
+# the output time signal
+# Do the simulation.  By default, the filter length is 9.######
+passiveGenerator = DirectSignal {
+	isComplex = false
+	times = { 
+		first = 2.75
+		last = 3.25
+#		interval = 0.000625	# 1600 Hz
+		rate = 800 #2X oversampling w.r.t. 400Hz
+	}
+	eigenrayModel = eigenrayModel
+}
+# Copy the result to ASCII form
+txtSignal = BareAsciiSignal { file = "cassOnDemandPassive90.txt" }
+CopySignal passiveGenerator txtSignal
+
+# Compare to pre-calculated results 
+CompareSignals {
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/cassOnDemandPassive90.txt"
+	}
+	signal = BareAsciiSignal {
+		file = "cassOnDemandPassive90.txt"
+	}
+	message = "certifyCASSPassive, test 2"
+}

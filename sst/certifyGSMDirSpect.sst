@@ -1,0 +1,188 @@
+# certifyGSMDirSpect.sst: Certification Test for DirectSpectrum
+# $Id: certifyGSMDirSpect.sst 6397 2010-05-26 23:39:38Z rpg $
+
+# This scenario is the same one used in certifyGSMBBPassive.sst.
+# It uses DirectSpectrum instead of DirectSignal to compute the same result.
+
+##echoInput = true
+
+new sigTimes = UniformGrid: { 
+	first = 2.8
+	last = 2.9
+	rate = 4000	# 25% oversampling
+}
+
+# The source signal consists of tones up to 1600 Hz (80% of Nyquist).
+# Make sure that the source signal is long enough to cover all paths.
+new sourceSignal = HarmonicFamily {
+	isComplex = false
+	times = {
+		first = 0
+		last = 8
+		rate = 8000	# 2.5x oversampling
+	}
+	order = 5
+	fundamental = 100
+	harmonics = (
+# number ampDB  phaseDeg
+	1	 0.0	 0.0
+	2	 0.0	 0.0
+	3	 0.0	 0.0
+	4	 0.0	 0.0
+	5	 0.0	 0.0
+	6	 0.0	 0.0
+	7	 0.0	 0.0
+	8	 0.0	 0.0
+	9	 0.0	 0.0
+   10	 0.0	 0.0
+   11	 0.0	 0.0
+   12	 0.0	 0.0
+   13	 0.0	 0.0
+   14	 0.0	 0.0
+   15	 0.0	 0.0
+   16	 0.0	 0.0
+	)
+}
+
+
+# The source runs straight away at 30 knots
+new sourceTrajectory = Trajectory (    
+	{
+		time = 0.0                         
+		position = ( 4200.0 0.0 150.0 )         
+		velocity = ( 15.0 0.0 0.0 )
+	}
+)
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = sourceSignal 
+	trajectory = sourceTrajectory
+}
+
+# TEMPORARY: DirectSpectrum doesn not yet support receiver offset delays.
+# To accomplish the delays, we must tabulate the complex beam patterns
+# with the delays incorporated into the phase shifts.
+new tbeam = EBFTableBeam{
+	originalBeam = OmniBeam{ offset = ( 0.0, -0.5, 0.0 ) }
+	elevations = { first = -15; last = 15; interval = 1 }
+	bearings = { first = -5; last = 5; interval = 1 }
+	frequencies = { first = 0; last = 2000; interval = 50 }
+	isComplex = true
+}
+
+# The 4-channel sonar receiver is moving slowly, near the bottom.
+new receiver = Sonar {
+	beams = (
+		tbeam,
+		tbeam:{ originalBeam.offset = ( 0.0,  0.0, -0.5 ) },
+		tbeam:{ originalBeam.offset = ( 0.0,  0.5,  0.0 ) },
+		tbeam:{ originalBeam.offset = ( 0.0,  0.0,  0.5 ) }
+	)
+	trajectory = (
+		{
+			time = 0.0
+			position = (0.0 0.0 360.0)
+			velocity = (2.0 1.0 0.0)
+			orientation = (0.0 0.0 0.0)
+			orientationRate =  (0.0 0.0 0.0)
+		}
+	)
+	filterLength = 15
+}
+
+
+# The ocean matches the one used in the GSM run.
+# NOTE WELL: The APLSurface and APLBottom models really shouldn't be used
+# at these low frequencies.  They were designed for use over 10 kHz.
+read "aplBottoms.sst"
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 400 }
+	soundspeed = TableFunction { table = (
+    0.0      1492.10
+   35.0      1489.97
+   55.0      1485.64
+   80.0      1483.32
+  145.0      1479.83
+  200.0      1478.06
+  335.0      1477.52
+  420.0      1477.38
+  525.0      1478.18
+  670.0      1479.65
+  830.0      1482.44
+ 1100.0      1484.90
+ 1315.0      1486.01
+ 2000.0      1488.95
+	) }
+
+	# Surface parameters
+	windspeed = 5.1
+	surface = APLSurface 
+	
+	# Bottom parameters
+	bottom = MuddySand
+
+	# Volume parameters
+	volumeAttenuation = 0.0    	# dB/km
+}
+
+# Specify Generic Sonar Model eigenray parameters
+new eigenrayModel = GSMEigenrayModel {
+	maximumEigenrays = 7
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 1
+	files = ( "ERBBPC.DAT")
+	rangeReference = 1.0	# meter
+	timeTolerance = 1.0e-8
+	filterLength = 31
+		# These parameters determine the "in-water" signal representation
+	sampleRate = 4000
+	frequency = 0
+}
+
+##PrintEigenrays
+
+# Build the "machine" that will do the work.
+# The receiver starts listening before the signal arrives.
+new dirspect = DirectSpectrum {
+	times = UniformGrid: { 
+		first = 2.8
+		last = 2.9
+		interval = 0.025
+	}
+	frequencies = UniformGrid: { 
+		first = 0
+		last = 2000
+		number = 129
+	}
+
+	updateInterval = 0.1
+	##nfft = 256	# = eigenrayModel.sampleRate / frequencies.interval
+}
+print "***** Expect report re setting overlapFraction to 0.609375 *****"
+new siggen = SignalFromSpectrum {
+	times = sigTimes
+	isComplex = false
+	spectrum = dirspect
+}
+
+# The output signal is in Bare Ascii form for comparison to the standard.
+new recSignal = BareAsciiSignal {
+	file = "bbfpassive.txt"
+}
+
+# Generate the response.  The work is done here.
+CopySignal siggen recSignal
+
+# Compare the result with the standard "correct" answer.
+print "***** DirectSpectrum: Expect max rel diff = 0.023 (Intel 0.025)"
+CompareSignals {
+	signal = recSignal
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/bbpassive.txt"
+		isComplex = false
+		times = sigTimes
+	}
+    message = "certifyGSMDirSpect"
+    tolerance = 0.023
+}

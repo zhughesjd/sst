@@ -1,0 +1,8 @@
+# reverbSig.sst: Specify the output reverberation signal
+# $Id: reverbSig.sst 4951 2006-12-29 00:59:57Z rpg $
+
+new reverbSig = SIOSignal {
+    file = "reverbSig.sio"
+    times = listenTimes     # see grids.sst
+    isComplex = false
+}

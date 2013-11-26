@@ -1,0 +1,21 @@
+# compTranSpect.sst: Compute the power spectrum of the transmit pulse
+# $Id: compTranSpect.sst 5628 2008-12-06 03:51:07Z schutz $
+
+# Specify the various frequency grids
+read "grids.sst"
+
+# Specify the transmit power spectrum tranSpect
+read "tranSpect.sst"
+
+# Specify the transmit pulse in the time domain: tranPulse
+read "arpeggio.sst"
+
+new tranSpectGen = SpectrumFromSignal {
+    inSignal = tranPulse
+    window = MitchellMcPhersonWindow{}
+    times = tranSpect.times
+    frequencies = tranSpect.frequencies
+    isPower = tranSpect.isPower
+}
+
+CopySignal tranSpectGen tranSpect

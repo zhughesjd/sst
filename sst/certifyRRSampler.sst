@@ -1,0 +1,126 @@
+# certifyRRSampler.sst: Resample a real signal to higher sampling rate.
+# $Id: certifyRRSampler.sst 4951 2006-12-29 00:59:57Z rpg $
+
+##   Summary:
+# Make the 12-tone "standard", a harmonic family from 100 to 1200 Hz,
+# sampled at CD rate.
+# The test input signal is the same harmonic family, but sampled at
+# only 3000 Hz -- 25% oversampled.
+# Resample it at the CD rate, using interpolation orders 0 to 10, and
+# compare the result to the standard.
+
+new standard = BareAsciiSignal {
+	times = { first = 0; last = 0.2; rate = 44100 }
+	file = "standard.txt"
+}
+
+new harfam = HarmonicFamily:{
+	isComplex = false
+	times = standard.times
+	order = 0
+	fundamental = 100	# Hz
+	harmonics = (
+	#  number   ampDB    phaseDeg
+		 1       0.0       0.0
+		 2       0.0       0.0
+		 3       0.0       0.0
+		 4       0.0       0.0
+		 5       0.0       0.0
+		 6       0.0       0.0
+		 7       0.0       0.0
+		 8       0.0       0.0
+		 9       0.0       0.0
+		10       0.0       0.0
+		11       0.0       0.0
+		12       0.0       0.0
+	)
+}
+CopySignal harfam standard
+
+# The test input signal is the same harmonic family, but sampled at
+# only 3000 Hz -- 25% oversampled.
+new testin = BareAsciiSignal {
+	isComplex = false
+	times = { first = -0.1; last = 0.3; rate = 3000 }
+	file = "testin.txt"
+}
+harfam.times = testin.times
+CopySignal harfam testin
+
+# Test the resampling for orders 0 to 10
+new resampler = ResampleSignal {
+	isComplex = false
+	times = standard.times
+	inSignal = testin
+}
+new testout = BareAsciiSignal {
+	file = "sampler00.txt"
+}
+
+# echoInput = true
+
+resampler.inSignal.order = 0
+testout.file = "sampler00.txt"
+CopySignal resampler testout
+print "\n***** Order 0 Real: Expect max rel diff = 2.566, RMS ratio = 1.0075"
+CompareSignals {
+   signal = testout 
+   standard = standard
+   message = "certifyRRSampler -- Order 0 Real"
+   tolerance = 2.566
+}
+
+resampler.inSignal.order = 1
+testout.file = "sampler01.txt"
+CopySignal resampler testout
+print "\n***** Order 1 Real: Expect max rel diff = 0.985, RMS ratio = 0.849"
+CompareSignals {
+  signal = testout 
+  standard = standard
+  message = "certifyRRSampler -- Order 1 Real"
+  tolerance = 0.985
+}
+
+resampler.inSignal.order = 2
+testout.file = "sampler02.txt"
+CopySignal resampler testout
+print "\n***** Order 2 Real: Expect max rel diff = 0.972, RMS ratio = 0.964"
+CompareSignals {
+  signal = testout 
+  standard = standard
+  message = "certifyRRSampler -- Order 2 Real"
+  tolerance = 0.972
+}
+
+resampler.inSignal.order = 3
+testout.file = "sampler03.txt"
+CopySignal resampler testout
+print "\n***** Order 3 Real: Expect max rel diff = 0.633, RMS ratio = 0.933"
+CompareSignals {
+   signal = testout 
+   standard = standard
+   message = "certifyRRSampler -- Order 3 Real"
+   tolerance = 0.633
+}
+
+resampler.inSignal.order = 9
+testout.file = "sampler09.txt"
+CopySignal resampler testout
+print "\n***** Order 9 Real Cached: Expect max rel diff = 0.096, RMS ratio = 0.991"
+CompareSignals {
+  signal = testout 
+  standard = standard
+  message = "certifyRRSampler -- Order 9 Real Cached"
+  tolerance = 0.096
+}
+
+resampler.samplerCacheSize = 0
+testout.file = "sampler09u.txt"
+CopySignal resampler testout
+print "\n***** Order 9 Real Uncached: Expect max rel diff = 0.095, RMS ratio = 0.992"
+CompareSignals {
+  signal = testout 
+  standard = standard
+  message = "certifyRRSampler -- Order 9 Real Uncached"
+  tolerance = 0.095
+}

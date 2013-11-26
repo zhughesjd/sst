@@ -1,0 +1,27 @@
+# UTF Step 1: Create Broadband Noise
+
+#print "\n*****Generate low-frequency Broadband Noise between 3 and 6 Hz"
+
+# This will model the desired frequency deviation
+bbn = BroadbandNoise {
+    isComplex = false
+    frequency = 0
+    times = { first = 0; last = 6; rate = 60 }
+    spectrumDB = TableFunction {
+	order = 1
+    	table = (
+        0   -40
+        0.2 -20
+        0.5 -15
+	    1	-20
+        2   -30
+        4   -40
+        8   -100
+	)
+    }
+    updateInterval = 2.0  # just under 256 samples for FFT
+}
+
+### Generate file output ###
+bbn_out = BareAsciiSignal { file="utf_bbn.txt" }
+CopySignal bbn bbn_out

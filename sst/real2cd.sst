@@ -1,0 +1,147 @@
+# real2cd.sst: Resample a real signal from 3000 Hz to 44100 Hz sampling rate.
+# $Id: real2cd.sst 5595 2008-11-27 01:50:55Z schutz $
+
+##   Summary:
+#	The intent of this example is to help users choose the value of the
+# interpolation order, to achieve a balance between accuracy and performance.
+#	This example starts with a broadband signal consisting of a set of
+# harmonic tones from 200 to 1200 Hz, sampled at 3 kHz (25% oversampled).
+# It uses ResampleSignal to interpolate it to the CD rate, 44100 Hz.  The
+# result is compared to a "standard" that consists of the same 6 tones
+# computed originally at the CD rate.
+#	This is very similar to input/certifyRRSampler.sst, but uses more
+# different "order" values, a longer time interval, and produces output
+# signals in SIO format for plotting instead of using CompareSignals.
+# Plot them using the UNIX SIO script plotReal2cd.csh in this directory.
+#	This script ends by copying the results into Sound files to enable you 
+# to listen to them.  In this case, I can hear a difference in sound
+# "color" between orders 7 and 9, but it doesn't improve audibly for orders
+# 11 or 13.
+
+standard = SIOSignal {
+	times = { first = 0; last = 1.0; rate = 44100 }
+	file = "real2cd_std.sio"
+}
+
+harfam = HarmonicFamily:{
+	isComplex = false
+	times = standard.times
+	order = 0
+	fundamental = 198.3	# Hz -- displaced to avoid hiding alias peaks
+	harmonics = (
+	#  number   ampDB    phaseDeg
+		 1       0.0       0.0
+		 2       0.0       0.0
+		 3       0.0       0.0
+		 4       0.0       0.0
+		 5       0.0       0.0
+		 6       0.0       0.0
+	)
+}
+CopySignal harfam standard
+
+# The test input signal is the same harmonic family, but sampled at
+# only 3000 Hz -- 25% oversampled.
+testin = SIOSignal {
+	isComplex = false
+	times = { first = -0.1; last = 1.1; rate = 3000 }
+	file = "real2cd_in.sio"
+}
+harfam.times = testin.times
+CopySignal harfam testin
+
+# Test the resampling for orders 0 to 10
+resampler = ResampleSignal {
+	isComplex = false
+	times = standard.times
+	inSignal = testin
+}
+
+echoInput = true
+
+resampler.inSignal.order = 0
+testout = SIOSignal { file = "real2cd_00.sio" }
+CopySignal resampler testout
+
+resampler.inSignal.order = 1
+testout.file = "real2cd_01.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 2
+testout.file = "real2cd_02.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 3
+testout.file = "real2cd_03.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 4
+testout.file = "real2cd_04.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 5
+testout.file = "real2cd_05.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 7
+testout.file = "real2cd_07.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 9
+testout.file = "real2cd_09.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 11
+testout.file = "real2cd_11.sio"
+CopySignal resampler testout
+
+resampler.inSignal.order = 13
+testout.file = "real2cd_13.sio"
+CopySignal resampler testout
+
+# Make listenable sound files.
+new soundout = SoundSignal {
+	file = "real2cd_std.snd"
+	clipDB = 30
+}
+CopySignal standard soundout
+
+testout.file = "real2cd_00.sio"
+soundout.file = "real2cd_00.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_01.sio"
+soundout.file = "real2cd_01.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_02.sio"
+soundout.file = "real2cd_02.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_03.sio"
+soundout.file = "real2cd_03.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_04.sio"
+soundout.file = "real2cd_04.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_05.sio"
+soundout.file = "real2cd_05.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_07.sio"
+soundout.file = "real2cd_07.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_09.sio"
+soundout.file = "real2cd_09.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_11.sio"
+soundout.file = "real2cd_11.snd"
+CopySignal testout soundout
+
+testout.file = "real2cd_13.sio"
+soundout.file = "real2cd_13.snd"
+CopySignal testout soundout

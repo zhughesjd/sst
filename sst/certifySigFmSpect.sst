@@ -1,0 +1,166 @@
+# certifySigFmSpect.sst: Certification tests of SignalFromSpectrum
+# $Id: certifySigFmSpect.sst 6397 2010-05-26 23:39:38Z rpg $
+
+# These tests are the inverses of those in certifySpectFmSig.
+
+# First test signal is a real tone
+new ruaSpect = InternalSpectrum {
+	isComplex = true
+	isPower = false
+	times = { first = 0.128; last = 0.128; interval = 0.256 }
+	frequencies = { first = 0.0; last = 500; number = 129 }
+		# Normalization is peak amp * number of points * input dt / 2
+		# = peak amp / (2 * output df)
+	samples = (
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 -0.1810193 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	)
+}
+print "***** Expect report re setting overlapFraction to 0 *****"
+new ruaToneGen = SignalFromSpectrum {
+    spectrum = ruaSpect
+	isComplex = false
+	times = { first = 0.0; last = 0.255; rate = 1000 }
+}
+new ruaTone = BareAsciiSignal { file = "realToneFmSpect.txt" }
+CopySignal ruaToneGen ruaTone
+# The standard is one used as input in certifySpectFmSig.sst
+new realConstTone = ModulatedTone {
+	isComplex = false
+		 # 32 cycles, 4x oversampled:
+	times = { first = 0.0; last = 0.255; rate = 1000 }
+	level = 0	# dB; rms is 1.0 (max 1.414...)
+	startingPhase = -90	# degrees:  Sine wave
+	frequencyModulation = ConstantFunction { value = 125 }
+}
+print "***** Invert RUA: Short real tone, amplitude spectrum in one FFT."
+CompareSignals {
+  signal = ruaTone 
+  standard = realConstTone
+  message = "certifySigFmSpect -- Invert RUA: Short real tone, amplitude spectrum in one FFT"
+}
+
+# Second test signal is a complex tone
+# Complex amplitude spectrum normalized per bin
+new cuaSpect = InternalSpectrum {
+	isComplex = true
+	isPower = false
+	times = { first = 0.128; last = 0.128; interval = 0.256 }
+	frequencies = { first = 9750; last = 10246.09375; number = 128 }
+		# Normalization is peak amp * number of points * input dt
+		#   = peak amp / output df
+	samples = (
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0.256 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	)
+}
+print "***** Expect report re setting overlapFraction to 0 *****"
+new cuaToneGen = SignalFromSpectrum {
+    spectrum = cuaSpect
+	isComplex = true
+	frequency = 10000
+	times = { first = 0.0; last = 0.254; rate = 500 }
+}
+new cuaTone = BareAsciiSignal { file = "cpxToneFmSpect.txt" }
+CopySignal cuaToneGen cuaTone
+# The standard is one used as input in certifySpectFmSig.sst
+new cpxConstTone = ModulatedTone {
+	isComplex = true
+	frequency = 10000
+		 # 32 cycles, 4x oversampled:
+	times = { first = 0.0; last = 0.254; rate = 500 }
+	level = 0	# dB; rms and max is 1.0
+	frequencyModulation = ConstantFunction { value = 10125 }
+}
+print "***** Invert CUA: Short complex tone, amplitude spectrum in one FFT."
+CompareSignals {
+  signal = cuaTone 
+  standard = cpxConstTone
+  message = "certifySigFmSpect -- Invert CUA: Short complex tone, amplitude spectrum in one FFT"
+}
+
+
+# Third test is a much longer real tone, analyzed in segments
+
+# Complex amplitude spectrum normalized per bin.
+# This file was computed by SpectrumFromSignal using HannWindow.
+new rlaSpect = AsciiSpectrum { 
+    file = "$SSTHOME/standard/realToneAmpLong.txt"
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 0.0; last = 500; number = 129 }
+	isComplex = true
+	isPower = false
+    isCorrelated = false
+}
+print "***** Expect report re setting overlapFraction to 0.5 *****"
+new rlaToneGen = SignalFromSpectrum {
+    spectrum = rlaSpect
+	isComplex = false
+	times = { first = 0.0; last = 1.279; rate = 1000 }
+}
+new rlaTone = BareAsciiSignal { file = "realToneFmLong.txt" }
+CopySignal rlaToneGen rlaTone
+# The standard is one used as input in certifySpectFmSig.sst
+new realConstLong = ModulatedTone {
+	isComplex = false
+		 # 160 cycles, 4x oversampled:
+	times = { first = 0.0; last = 1.279; rate = 1000 }
+	level = 0	# dB; rms is 1.0 (max 1.414...)
+	startingPhase = -90	# degrees:  Sine wave
+	frequencyModulation = ConstantFunction { value = 125 }
+}
+print "***** Invert RLA: Long real tone, amplitude spectrum in segments."
+CompareSignals {
+  signal = rlaTone 
+  standard = realConstLong
+  message = "certifySigFmSpect -- Invert RLA: Long real tone, amplitude spectrum in segments"
+}
+
+# Fourth test signal is a long complex tone, analyzed in segments
+
+# Complex amplitude spectrum normalized per bin.
+# This file was computed by SpectrumFromSignal using HannWindow.
+new claSpect = AsciiSpectrum { 
+    file = "$SSTHOME/standard/cpxToneAmpLong.txt"
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 9750; last = 10250; number = 129 }
+	isComplex = true
+	isPower = false
+    isCorrelated = false
+}
+print "***** Expect report re setting overlapFraction to 0.5 *****"
+new claToneGen = SignalFromSpectrum {
+    spectrum = claSpect
+	isComplex = true
+	frequency = 10000
+	times = { first = 0.0; last = 1.28; rate = 500 }
+}
+new claTone = BareAsciiSignal { file = "cpxToneFmLong.txt" }
+CopySignal claToneGen claTone
+# The standard is one used as input in certifySpectFmSig.sst
+new cpxConstLong = ModulatedTone {
+	isComplex = true
+	frequency = 10000
+		 # 160 cycles, 4x oversampled:
+	times = { first = 0.0; last = 1.28; rate = 500 }
+	level = 0	# dB; rms and max is 1.0
+	frequencyModulation = ConstantFunction { value = 10125 }
+}
+print "***** Invert CLA: Long complex tone, amplitude spectrum in segments."
+CompareSignals {
+  signal = claTone 
+  standard = cpxConstLong
+  message = "certifySigFmSpect -- Invert CLA: Long complex tone, amplitude spectrum in segments"
+}

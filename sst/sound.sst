@@ -1,0 +1,39 @@
+# sound.sst:  Make listenable sound for broadband active example.
+# This optional run makes a listenable Sound (.snd) file.
+# $Id: sound.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# NOTE: The SIO "demux" runs in runAll.csh must be done before this run.
+
+read "grids.sst"
+read "arpeggio.sst"
+
+new tranSound = SoundSignal {
+	file = "arpeggio.snd"
+	clipDB = 210
+}
+
+CopySignal tranPulse tranSound
+
+read "reverbSig.sst"    # define reverbSig
+new reverbSigOneChan = SelectChannel { inSignal = reverbSig; channel = 1 }
+
+new reverbSound = SoundSignal {
+	file = "reverbSigOneChan.snd"
+	clipDB = 96
+}
+
+CopySignal reverbSigOneChan reverbSound
+
+new easySigOneChan = SelectChannel {
+    inSignal = SIOSignal { file = "easySig.sio" }
+    channel = 1
+}
+reverbSound.file = "easySigOneChan.snd"
+CopySignal easySigOneChan reverbSound
+
+new hardSigOneChan = SelectChannel {
+    inSignal = SIOSignal { file = "hardSig.sio" }
+    channel = 1
+}
+reverbSound.file = "hardSigOneChan.snd"
+CopySignal hardSigOneChan reverbSound

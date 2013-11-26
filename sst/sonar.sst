@@ -1,0 +1,92 @@
+# sonar.sst:  A high-frequency, 5-beam sonar with offset beams.
+# $Id: sonar.sst 4951 2006-12-29 00:59:57Z rpg $
+
+######   Sonar Specification ######
+
+
+# This external file creates a Signal named "tranPulse".
+##read bbslide.sst    # 2-octave logarithmic FM slide
+read "arpeggio.sst"       # 2-octave augmented arpeggio
+
+# The sonar has four cylindrical piston transducers
+# placed adjacent to one another in a "plus" configuration.
+# The "detection" beam is the sum of the four transducers.
+# Only the "down" transducer is used for transmission.
+
+# The ConeBeam in this ProductBeam limits the response to the forward
+# hemisphere.  To be more realistic, the cutoff should be more gradual
+# (use an EBFTableBeam instead of the ConeBeam for the cutoff).
+elementBeam = ProductBeam {
+	inBeams = (
+		ConeBeam { 
+			axisElevation = 0
+			axisBearing = 0
+			halfAngle = 90
+		},
+		PistonBeam {
+			axisElevation = 0
+			axisBearing = 0
+			radius = 3 # D=2*lambda => 30 degree beam (-3dB) @ 1 kHz
+		}
+	)
+}
+
+leftBeam = elementBeam {
+	offset = (0, -.75, 0)	# [meter]
+}
+
+rightBeam = elementBeam {
+	offset = (0, +.75, 0)
+}
+
+upBeam = elementBeam {
+	offset = (0, 0, -.75)
+}
+
+downBeam = elementBeam {
+	offset = (0, 0, +.75)
+}
+
+# The "detection beam" is the sum of the other four.
+# A SumBeam would be the simplest representation, but the following form
+# is faster when the beams to be summed have identical shape (differ only
+# in offset, weight, and delay).
+detBeam = ProductBeam {
+	inBeams = (
+		elementBeam,
+		ElementSumBeam {
+			elements = (
+				# offset [m]    amp    delay
+				0, -.75,  0    0.25     0.0     # left
+				0,  .75,  0    0.25     0.0     # right
+				0,  0, -.75    0.25     0.0     # up
+				0,  0,  .55    0.25     0.0     # down
+			)
+		}
+	)
+}
+
+# Since this is a monostatic sonar, the transmitter and receiver use the
+# same trajectory.  It's diving toward the target.
+
+sonarTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+	{
+		time = 0.0  # s
+		position =        ( 0.0,  0.0, 120.0 )  # m
+		velocity =       ( 20.0,  0.0,   2.0 )  # m/s
+		orientation =     ( 0.0, 10.0,   0.0 )  # deg
+		orientationRate = ( 0.0,  0.0,   0.0 )  # deg/s
+	}
+)
+
+tranSource = Source {
+	beams  = ( downBeam )
+	signal = tranPulse
+	trajectory = sonarTrajectory
+}
+
+receiver = Sonar {
+	beams = ( detBeam, leftBeam, rightBeam, upBeam, downBeam )
+	trajectory = sonarTrajectory
+}
+

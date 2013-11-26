@@ -1,0 +1,62 @@
+# Make an SIOBeam for the unsteered beam
+
+read "../verticalPlanarArray/elementBeam.sst"
+
+# Note similarity with taperedTableBeam
+new elmSumSIOBeam = SIOBeam {
+	file.filename = "8x8-52-elmSumSIOBeam.sio"
+	originalBeam = beamLevelSearchBeam
+	elevations = { first = -90; last = 90; interval = 3 }
+	bearings = { first = -93; last = 93; interval = 3 }
+	frequencies = { first = 9000; last = 11000; number = 3 }
+	isComplex = true
+}
+
+# Make SIOBeams for the steered beams
+
+read "../verticalPlanarArray/steeredBeamLevelSearchBeam-8x8-52.sst"
+
+new elmSumSIOBeamSteered1 = SIOBeam {
+	file.filename = "8x8-52-elmSumSIOBeamSteered1.sio"
+	originalBeam = steered1BeamLevelSearchBeam
+	elevations = { first = -90; last = 90; interval = 3 }
+	bearings = { first = -93; last = 93; interval = 3 }
+	frequencies = { first = 9000; last = 11000; number = 3 }
+	isComplex = true
+}
+
+new elmSumSIOBeamSteered2 = SIOBeam {
+	file.filename = "8x8-52-elmSumSIOBeamSteered2.sio"
+	originalBeam = steered2BeamLevelSearchBeam
+	elevations = { first = -90; last = 90; interval = 3 }
+	bearings = { first = -93; last = 93; interval = 3 }
+	frequencies = { first = 9000; last = 11000; number = 3 }
+	isComplex = true
+}
+
+new elmSumSIOBeamSteered3 = SIOBeam {
+	file.filename = "8x8-52-elmSumSIOBeamSteered3.sio"
+	originalBeam = steered3BeamLevelSearchBeam
+	elevations = { first = -90; last = 90; interval = 3 }
+	bearings = { first = -93; last = 93; interval = 3 }
+	frequencies = { first = 9000; last = 11000; number = 3 }
+	isComplex = true
+}
+
+new elmSumSIOBeamSteered4 = SIOBeam {
+	file.filename = "8x8-52-elmSumSIOBeamSteered4.sio"
+	originalBeam = steered4BeamLevelSearchBeam
+	elevations = { first = -90; last = 90; interval = 3 }
+	bearings = { first = -93; last = 93; interval = 3 }
+	frequencies = { first = 9000; last = 11000; number = 3 }
+	isComplex = true
+}
+
+new elmSumSIOBeamSteered5 = SIOBeam {
+	file.filename = "8x8-52-elmSumSIOBeamSteered5.sio"
+	originalBeam = steered5BeamLevelSearchBeam
+	elevations = { first = -90; last = 90; interval = 3 }
+	bearings = { first = -93; last = 93; interval = 3 }
+	frequencies = { first = 9000; last = 11000; number = 3 }
+	isComplex = true
+}

@@ -1,0 +1,23 @@
+# parameters.sst: Parameters common to most of the SST scripts
+
+# Bandwidth (complex) covers widest pulse at only 69% coverage -- OK.
+new sampleRate = double:5000
+new listenTimes = UniformGrid:{ first = 0.0; last = 3.0; rate = sampleRate }
+
+# Center frequency of complex envelope signals
+new centerFrequency = double: 25000
+
+# ScatFun times cover the same interval as listening times
+new scatFunTimes = UniformGrid:{
+	first = listenTimes.first; last = listenTimes.last; interval = 0.05 }
+
+# ScatFun frequencies for the whole pulse.
+# This need not agree with other grids, but should cover 
+#    important frequencies.
+# For now, use just one frequency (narrowband).
+new scatFunFreqs = GeometricGrid:{ first=centerFrequency; number=1; logRatio=0.1 }
+
+# Reverberation Doppler is ignored (stationary platforms)
+new scatFunDopplers = UniformGrid:{ first=1.0; number=1; interval = 1 }
+
+##random.seed = 0		# Always the same random numbers if uncommented

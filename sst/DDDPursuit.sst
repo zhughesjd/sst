@@ -1,0 +1,126 @@
+# DDDPursuit.sst: Reverb from Pursuit example using DDD algorithm
+
+# $Id: DDDPursuit.sst 4979 2007-01-27 00:57:12Z rpg $
+
+# A high-frequency, 5-beam monostatic sonar with offset beams.
+read "../pursuit/sonar.sst"
+
+# Specify the ocean environment.
+read "../pursuit/ocean.sst"
+
+# Specify the signal parameters
+new centerFrequency = double:30000
+new signalTimes = UniformGrid:{
+	first = 0.060
+	last = 3.160
+	rate = 2000
+}
+new sfTimes = UniformGrid:{
+	first = 0.1		# Starts before listening interval
+	last = 3.1		# Ends after listening interval
+	interval = 0.1	# Just under 1 pulse length
+}
+new sfFrequencies = UniformGrid:{
+	first = 30000
+	number = 1
+}
+	# The Doppler grid is coarser than the best possible Doppler
+    # resolution -- 0.0005 is about right allowing for Taylor window.
+	# The back hemisphere is not included.
+new sfDopplers = UniformGrid:{
+	interval = 0.001    # 2x sloppy for speed
+		# best possible = 0.00028 = 1/(pulse_length*frequency)
+	first = 1.0
+	last =  1.028		# > 1 + 2*v/c = 1.0268
+}
+
+# Initialize the random number generator.  0 means standard; always the same.
+random.seed = 0
+
+# Create the Doppler Density
+##new doppDenSurGen = DirectionalDopplerDensity {
+new doppDenTotalGen = DirectionalDopplerDensity {
+	frequencies = sfFrequencies
+	times = signalTimes
+	scatFunTimes = sfTimes
+	dopplers = sfDopplers
+	source = tranSource
+    maxSamples = 256
+    maxAngleChange = 1.5    # 1.5x sloppy for speed
+    tesselation = GriddedTesselation {
+        elevationInc = 2.0    # 2x sloppy for speed
+        azimuthIncEq = 2.0    # 2x sloppy for speed
+    }
+	doSurface = true
+##	doBottom = false
+##	doVolume = false
+	doBottom = true
+	doVolume = true
+}
+# Copy out the Doppler Density
+##new doppDenSur = SIODopplerDensity{ file="doppDenSur.sio" }
+##CopySignal doppDenSurGen doppDenSur
+
+# Do it again for the bottom.
+##doppDenBotGen = doppDenSurGen {
+##	doSurface = false
+##	doBottom = true
+##	doVolume = false
+##}
+##doppDenBot = doppDenSur { file = "doppDenBot.sio" }
+##CopySignal doppDenBotGen doppDenBot
+
+# Do it again for the volume.
+##doppDenVolGen = doppDenSurGen {
+##	doSurface = false
+##	doBottom = false
+##	doVolume = true
+##}
+##doppDenVol = doppDenSur { file = "doppDenVol.sio" }
+##CopySignal doppDenVolGen doppDenVol
+
+# Add them up.
+new doppDenTotal = SIODopplerDensity { file = "doppDenTotal.sio" }
+##CopySignal {
+##	inSignal = SumSignal {
+##		inSignals = ( doppDenSur, doppDenBot, doppDenVol )
+##	}
+##	outSignal = doppDenTotal
+##}
+CopySignal doppDenTotalGen doppDenTotal
+
+# Generate ping 1
+new time = double:0.0
+new reverbGenerator = DDReverbSignal {
+	frequency = centerFrequency
+	times = signalTimes
+	dopplerDensity = doppDenTotal
+	sourceSignal = tranPulse
+}
+new reverbSigFile = SIOSignal { file = "ddReverb_1.sio" }
+CopySignal reverbGenerator reverbSigFile
+
+# Compute the Scattering Function for comparison
+new scatFunTotalGen = BBBScatFun {
+	frequencies = sfFrequencies
+	times = sfTimes
+	dopplers = sfDopplers
+	isCorrelated = true
+	isComplex = true
+	source = tranSource
+	doSurface = true
+	doBottom = true
+	doVolume = true
+}
+new scatFunTotal = SIOScatFun { file = "scatFunTotal.sio" }
+CopySignal scatFunTotalGen scatFunTotal
+
+# Generate Ping 1 from the SF for comparison
+new sfReverbGen = ReverbSignal {
+	frequency = centerFrequency
+	times = signalTimes
+	scatFunction = scatFunTotal
+	sourceSignal = tranPulse
+}
+new sfReverbSigFile = SIOSignal { file = "sfReverb_1.sio" }
+CopySignal sfReverbGen sfReverbSigFile

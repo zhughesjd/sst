@@ -1,0 +1,54 @@
+# realLPBroadband.sst: Low-Pass FIR Filter on BroadbandNoise signal
+# $Id: realLPBroadband.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+new sigTimes = UniformGrid:{ first = 0; last = 1; rate = 8000 }
+
+# The test signal contains Gaussian noise from 200 to 3200 Hz (80% Nyquist)
+# Total level = 34.8 dB unfiltered, 29.0 dB filtered.
+new rbbn = BroadbandNoise {
+	isComplex = false
+	times = sigTimes
+    spectrumDB = TableFunction {
+	    order = 1
+    	table = (
+		# f     dB
+		 180	-100
+		 200	0
+		3200	0
+		3220	-100
+		)
+	}
+    updateInterval = 0.08	# just under 512 samples; 256 complex FFT
+}
+new rbroadband = SIOSignal {
+	file = "RLPBroadband.sio"
+}
+CopySignal rbbn rbroadband
+
+# The test:  Filter out components over 1 kHz (25% Nyquist), one length.
+new rfilter = VarFirFilter {
+    inSignal = rbroadband
+    coefBuf = LPFirCoefBuf {
+		filterLength = 31
+		bandFraction = 0.25
+	}
+}
+
+new rfiltered = SIOSignal { file = "RLPBroadband_31.sio" }
+
+CopySignal rfilter rfiltered
+
+
+# Make Sound files from filter results
+
+# The broadband sounds have a higher total level than the harmonics
+new broadbandSound = SoundSignal {
+	file = "RLPBroadband.snd"
+	clipDB = 52
+}
+CopySignal rbroadband broadbandSound
+
+broadbandSound.file = "RLPBroadband_31.snd"
+CopySignal rfiltered broadbandSound

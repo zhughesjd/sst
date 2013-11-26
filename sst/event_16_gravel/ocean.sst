@@ -1,0 +1,49 @@
+# ocean.sst: Ocean Environment for all APMS events
+# This version is for experimenting with a SandyGravel bottom
+
+read "ssp.sst"	# Event-specific data: Sound speed profile and wind_speed
+
+read "jacksonBottoms.sst"	# Standard named bottom types
+
+# According to beam_data/event_20_1/event_info/calc_range_data.m, the tower
+# was at longitude 7.57 E, latitude 54.32 N.
+# In degrees and minutes, that's 7:34.2 E, 54:19.2 N.
+# The chart shows the depth there to be approximately 32 m.
+
+# The receiver was at range 537 m, bearing 202, or
+# North = -498 m, East = -201 m, or
+# longitude 7:34.0 E, latitude 54:18.9 E
+# The chart shows the depth there to be approximately 33 m.
+
+# The range extends to the East about 2 km, or 1.8 minutes of longitude,
+# where the depths range up-slope from 32 to 30 m, minimum to the NE.
+
+print "Using SandyGravel bottom"
+
+new ocean = Ocean {
+	depth = 32
+	soundspeed = ssp
+
+	# Surface parameters
+	windspeed = wind_speed
+	surface = McDanielSurface
+
+	# Bottom parameters
+	##bottom = MediumSand
+	bottom = SandyGravel
+
+	# Volume parameters
+	volumeAttenuation = -3.0	# dB/km, from Urick 3rd Ed Fig. 5.5
+	volume = ReverbList(
+		# Use two volume scattering layers, above and below thermocline
+		{
+			minDepth = 0.0
+			maxDepth = 6
+			strengthDB = -60.
+		}, {
+			minDepth = 6
+			maxDepth = 32
+			strengthDB = -60.
+		}
+	)
+}

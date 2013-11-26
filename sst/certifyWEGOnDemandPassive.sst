@@ -1,0 +1,165 @@
+# certifyWEGPassive.sst: Certify noise level using WEG eigenrays.
+# Certify WEG level by reading in a WEG eigenray file
+# SST test script using WEG's eigenray model for a variable bathemetry case,
+# 2 frequencies and 2 bearing angles
+# Otherwise a simple environment ( constant ssp, surface:-99 and 0 bottom loss)
+
+# $Id: certifyWEGPassive.sst 4951 2006-12-29 00:59:57Z rpg $
+
+### Generate the signal transmitted by the source.
+read "source2weg.sst"
+
+#echoInput=true
+
+# Copy the result to ASCII form
+txtSignalin = BareAsciiSignal { file = "wegin.txt" }
+CopySignal sourceSignal txtSignalin
+
+### Step 2:  Define the simulation parameters common to subsequent steps.
+######   Sonar Specification ######
+# Sonar stationary at the origin with a depth of 100m
+receiver = Sonar {
+	beams = ( OmniBeam )
+	trajectory = (
+		{
+			time = 0.0
+			position = (0 0 100.0)
+
+			# Position the source and target at the same depth makes
+			# it easy to manually verify the correctness of the resulting
+			# amplitude since the chains file provides horizontal range.
+			# position = (0 0 150.0)
+		}
+	)
+}
+
+######   Ocean Environment Specification :range dependent bathymetry######
+bathy= TableFunction2: {
+	order = 1
+	table2 = {
+		arg1 = ( -5000, 0, 5000 )
+		arg2 = ( -5000, 0, 5000 )
+		values = (	2000 2000 2000
+				 400  400  400
+				2000 2000 2000 )
+	}
+}
+#print bathy
+ocean = Ocean {
+	depth = bathy
+	soundspeed = TableFunction { table = (
+		   0.0      1500
+		2000.0      1500
+	) }
+	
+	#WEGRun only works with JacksonBottom or GriddedBoundary thereof.
+	bottom  = JacksonBottom
+}
+tabOutFun2 = TableFunction2 {
+	originalFunction = bathy
+	table2.arg1 = { first = -5000; last = 5000; interval = 1000 }
+	table2.arg2 = { first = -5000; last = 5000; interval = 1000 }
+}
+#print tabOutFun2.table2.values
+
+print "\n***** DirectSignal, WEG eigenrays, bearing 0 deg, range 4160 m *****"
+new sourceTrajectory = Trajectory (
+
+	{time = 0.0
+	position = ( 4160.0 0. 150.0 )
+	velocity = ( 0.0 0.0 0.0 ) }
+
+)
+
+#traceEigenrayModel = true
+
+###### Specify WEG eigenray parameters ######
+new eigenrayModel = WEGOnDemand {
+	maximumEigenrays = 10
+	maximumSurfaceBounces = 2
+	maximumBottomBounces = 2
+	maximumUpperVertices = 2
+	maximumLowerVertices = 2
+	filterLength = 9
+	verticalAngles = UniformGrid{ first=-89.9; last=89.9; interval=0.1 }
+	frequencies = UniformGrid{ first=2000; last=4000; number=2 }
+	maximumEigenraysPerSignature = 2
+	printEigenrays = true
+}
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = sourceSignal
+	trajectory = sourceTrajectory
+}
+
+###### The times structure sets listen interval and sample rate for
+# the output time signal
+# Do the simulation.  By default, the filter length is 9.######
+passiveGenerator = DirectSignal {
+	isComplex = false
+	times = {
+		first = 2.75
+		last = 3.25
+#		interval = 0.000625	# 1600 Hz
+		rate = 800 #2X oversampling w.r.t. 400Hz
+	}
+	eigenrayModel = eigenrayModel
+}
+# Copy the result to ASCII form
+txtSignal = BareAsciiSignal { file = "wegPassive0.txt" }
+CopySignal passiveGenerator txtSignal
+
+# Compare to pre-calculated results
+CompareSignals {
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/wegPassive0.txt"
+	}
+	signal = BareAsciiSignal {
+		file = "wegPassive0.txt"
+	}
+	message = "certifyWEGPassive, test 1"
+}
+
+print "\n***** DirectSignal, WEG eigenrays, bearing 0 deg, range 4160 m *****"
+sourceTrajectory = Trajectory (
+
+	{time = 0.0			 
+	position = ( 0  4160.0 150.0 )	 
+	velocity = ( 0.0 0.0 0.0 ) }
+
+)
+
+source = Source {
+	beams = ( OmniBeam )
+	signal = sourceSignal 
+	trajectory = sourceTrajectory
+}
+
+###### The times structure sets listen interval and sample rate for
+# the output time signal
+# Do the simulation.  By default, the filter length is 9.######
+passiveGenerator = DirectSignal {
+	isComplex = false
+	times = { 
+		first = 2.75
+		last = 3.25
+#		interval = 0.000625	# 1600 Hz
+		rate = 800 #2X oversampling w.r.t. 400Hz
+	}
+	eigenrayModel = eigenrayModel
+}
+# Copy the result to ASCII form
+txtSignal = BareAsciiSignal { file = "wegPassive90.txt" }
+CopySignal passiveGenerator txtSignal
+
+# Compare to pre-calculated results 
+CompareSignals {
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/wegPassive90.txt"
+	}
+	signal = BareAsciiSignal {
+		file = "wegPassive90.txt"
+	}
+	message = "certifyWEGPassive, test 2"
+}

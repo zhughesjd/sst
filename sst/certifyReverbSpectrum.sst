@@ -1,0 +1,54 @@
+# certifyReverbSpectrum.sst: Test ReverbSpectrum convolution of pulse with S.F.
+# $Id: certifyReverbSpectrum.sst 4951 2006-12-29 00:59:57Z rpg $
+
+print "\n***** ReverbSpectrum Test 1.1: Short and narrow pulse."
+print "***** Result should look like ScatFun's middle frequency,"
+print "***** delayed by 0.01 s and scaled up by 1e10."
+
+# The input scattering function is the output from certifyBBBScatFun.sst.
+new bbScatFun = AsciiScatFun {
+    file = "$SSTHOME/standard/bbbsf_sur1m.txt"
+	isComplex = true
+	times = UniformGrid: {
+		first = 1.0
+		last = 1.01
+		number = 2
+	}
+	frequencies = GeometricGrid: {
+		first = 10000
+		ratio = 1.5
+		number = 3	# 10, 15, 22.5 kHz
+	}
+	dopplers = UniformGrid: {
+		first = 1.0
+		last =  1.022
+		number = 12
+	}
+	isCorrelated = true
+}
+
+new trivialPulseSpect = InternalSpectrum {
+	times = { first = 0.01; interval = 0.02 }
+	isComplex = false
+	frequencies = { first = 15000; interval = 1 }
+	isPower = true
+	isCorrelated = false
+	samples = ( 1.5e13 )
+}
+
+new revSpecGen = ReverbSpectrum {
+	scatFunction = bbScatFun
+	pulseSpectrum = trivialPulseSpect
+}
+
+new revsp_sur1m_trivp = AsciiSpectrum { file = "revsp_sur1m_trivp.txt" }
+CopySignal revSpecGen revsp_sur1m_trivp
+
+new standard_sur1m_trivp = revsp_sur1m_trivp {
+	file = "$SSTHOME/standard/revsp_sur1m_trivp.txt"
+}
+CompareSignals {
+   signal = revsp_sur1m_trivp 
+   standard = standard_sur1m_trivp
+   message = "certifyReverbSpectrum"
+}

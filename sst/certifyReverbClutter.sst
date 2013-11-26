@@ -1,0 +1,163 @@
+# certifyReverbClutter.sst: Test generation of clutter via reverberation
+# $Id: certifyReverbClutter.sst 6694 2011-08-23 18:21:47Z julia $
+
+#traceScatFun = true
+#traceReverb = true
+
+random.seed = 0
+
+# Create source
+sonarTraj = Trajectory { 
+                time = 0.0
+                position = ( 1000 0 5 ) # 5 meters down
+                velocity = ( 0 0 0 )    # not moving
+                }
+
+# Source is omnidirectional
+new source = Source {
+    beams = ( OmniBeam )
+    # Pure tone @ 3.5 kHz
+    signal = ModulatedTone {
+        level = 200.0              # dB // uPa^2 m^2
+        frequencyModulation = ConstantFunction{value=3500}
+        envelope = TaylorWindow{ start=0; end=0.1 }
+        # In complex envelope form
+        isComplex = true
+        frequency = 3500.0
+        times = {first=0; last=0.1; rate=100}  # 11 samples
+        # Real output
+/*
+        isComplex = false
+        frequency = 0
+        times = {first=0; last=0.02; rate=10000}  # 1.4x oversample
+*/
+        }
+    trajectory = sonarTraj
+}
+
+
+# Define receive beams
+new rcvBeam = BeamList ( OmniBeam )
+
+# Locate receiver:  
+new receiver = Sonar {
+    beams = rcvBeam
+    trajectory = sonarTraj
+}
+
+# Define a wake/clutter object
+new wakeTraj = Trajectory { 
+                   time = 0.0
+                   position = ( 0 0 0 )
+                   velocity = ( 0 0 0 )
+                   orientation = (0 0 0 )
+                   }
+
+new wakeTable = DbTableFunction2 {
+                    order = 1
+                    table2 = (
+# Starboard [m] =
+             -33  -32  -24  -16   -8    0    8   16   24   32   33
+## list grid values must be monotonically increasing
+# Forward   decibels
+  -201      -999 -999 -999 -999 -999 -999 -999 -999 -999 -999 -999 
+  -200      -999  -10  -10  -10  -10  -10  -10  -10  -10  -10 -999  
+  -150      -999  -10  -10  -10  -10  -10  -10  -10  -10  -10 -999  
+  -100      -999  -10  -10  -10  -10  -10  -10  -10  -10  -10 -999  
+   -50      -999  -10  -10  -10  -10  -10  -10  -10  -10  -10 -999  
+     0      -999  -10  -10  -10  -10  -10  -10  -10  -10  -10 -999  
+     1      -999 -999 -999 -999 -999 -999 -999 -999 -999 -999 -999 
+)
+}                
+
+new wake = TableWake {
+    trajectory = wakeTraj
+    clutterStrength = wakeTable
+}
+
+# Iso-Everything Ocean
+new ocean = Ocean {
+        depth = 1000.0   # constant (meters)
+        # Surface and bottom scattering and reflection are isotropic
+        surface = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+                backStrength = ConstantDbFunction2 { decibels = -10 }
+        }
+        bottom  = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+                backStrength = ConstantDbFunction2 { decibels = -20 }
+        }
+        soundspeed = 1500       # m/s
+}
+
+# Use the internal SST eigenray model 
+new internalEigenrayModel = EigenrayModel {
+        maximumEigenrays = 1
+        maximumSurfaceBounces = 0
+        maximumBottomBounces = 0
+        max2waySurfaceBounces = 0
+        max2wayBottomBounces = 0
+        filterLength = 1        # Narrowband; no filtering
+}
+
+# Create the Doppler Density
+new doppDensity = DirectionalDopplerDensity {
+        isComplex = true
+        frequencies = UniformGrid { first=3500; number=1 }
+        # The DopplerDensity (for now, anyway ) needs to be at a rate
+        # near that of the DDReverbSignal which uses it.  And the
+        # latter must be at a rate near that of the source signal.
+        times = UniformGrid { first=0; last=5; rate=source.signal.times.rate }
+        scatFunTimes = UniformGrid { first=0; last=5; interval= 0.01; }
+        # No doppler
+        dopplers = UniformGrid {
+                first = 1.0
+                last =  1.0
+                number = 1
+        }
+        maxAngleChange = 0.5    # make small compared to beamwidth
+        maxSamples = 1024       # next ^2 over (360/maxAngleChange)
+        #maxAngleChange = 100     # for omni beams for boundary only
+        #maxSamples = 4           # ditto
+        # Do ONLY clutter reverb
+        doVolume = false
+        doSurface = false
+        doBottom = false
+        doClutter = true
+        clutterList = ClutterList ( wake )
+        eigenrayModel = internalEigenrayModel
+        #isReproducible = true
+        # Use a 1x1-degree (at the equator) tesselation
+        tesselation = GriddedTesselation {
+                          elevationInc = 1.0
+                          azimuthIncEq = 1.0
+                      }
+}
+# Copy out the Doppler Density
+new doppDensityFile = SIODopplerDensity { file = "doppDensity.sio" }
+CopySignal doppDensity doppDensityFile
+
+# Create reverberation from that
+random.seed = 123456789
+new ddReverb = DDReverbSignal {
+    dopplerDensity = doppDensity
+    sourceSignal = source.signal
+    isComplex = source.signal.isComplex
+    frequency = source.signal.frequency
+    times = doppDensity.times { rate = source.signal.times.rate }
+}
+
+new ddReverbFile = SIOSignal { file = "ddReverb.sio" }
+CopySignal ddReverb ddReverbFile
+
+CopySignal ddReverb BareAsciiSignal { file = "reverbClutter.txt" }
+new this = BareAsciiSignal { file = "reverbClutter.txt" }
+
+new standard = BareAsciiSignal { file = "$SSTHOME/standard/reverbClutter.txt" }
+# The computed values aren't stable, so the tolerance must be huge.
+CompareSignals {
+   signal = this 
+   standard = standard
+   message = "certifyReverbClutter"
+   tolerance = 0.01
+}

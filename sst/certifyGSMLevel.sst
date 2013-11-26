@@ -1,0 +1,96 @@
+# certifyGSMLevel.sst: Test reverb level using GSM eigenrays.
+# $Id: certifyGSMLevel.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+## Test 1
+
+new receiver = Sonar {
+	beams = ( OmniBeam )
+    trajectory = ( { time = 0.0; position = ( 0 0 150 ) } )
+}
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = ModulatedTone {
+		frequency = 15000.0	# Hz
+		level = 200.0		# dB // uPa^2 m^2
+		times = { first = 0.05; interval = 0.1; number = 1 }
+	}
+	trajectory = receiver.trajectory
+}
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 2500.0 }	# m
+
+	# Surface and bottom scattering and reflection are isotropic
+	surface = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+		backStrength = ConstantDbFunction2 { decibels = -20 }
+	}
+	
+	bottom  = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+		backStrength = ConstantDbFunction2 { decibels = -30 }
+	}
+	
+	# One volume reverb layer at mid-depth
+	volume = ReverbList (
+		ReverbLayer {
+			minDepth = 0		# m
+			maxDepth = ocean.depth.value
+			strengthDB = -60.0	# dB // m^-1
+		}
+	)
+	soundspeed = 1500	# m/s
+	volumeAttenuation = 0	# dB/km; GSM does it for us.
+}
+
+new eigenrayModel = GSMEigenrayModel {
+    maximumEigenrays = 10
+    maximumSurfaceBounces = 3
+    maximumBottomBounces = 3
+	max2waySurfaceBounces = 3
+	max2wayBottomBounces = 3
+	filterLength = 1	# Narrowband; no filtering
+	files = ( "ER0000.DAT", "ER0885.DAT", "ER2500.DAT" )
+}
+
+
+###### Simulation Parameters ######
+
+# The output Scattering Function is recorded for 1 frequency bin.
+new scatFunGenerator = BBBScatFun {
+	frequencies = UniformGrid { first = 3500; number = 1 }
+	times = UniformGrid { first = 5; interval = 0.05; number = 1 }
+	dopplers = UniformGrid {
+		first = 1.0
+		last =  1.0
+		interval = 1.0
+		number = 1
+	}
+	maxSamples = 4
+}
+
+new scatFunction = InternalScatFun {
+	frequencies = scatFunGenerator.frequencies
+	times = scatFunGenerator.times
+	dopplers = scatFunGenerator.dopplers
+}
+
+# traceEigenrayModel = true
+# traceScatFun = true	# un-comment to get voluminous dumps
+
+# Do it.
+CopySignal scatFunGenerator scatFunction
+
+print scatFunction
+new standard = scatFunction { buf = ( 1.091890e-09 ) }
+
+CompareSignals {
+   signal = scatFunction 
+   standard = standard
+   message = "certifyGSMLevel"
+}

@@ -1,0 +1,10 @@
+# Starting segment for SST reverb runs for complex signals
+# Sample rate is 1.67 times nominal Nyquist.
+
+# $Id: reverbStartComplex.sst 5731 2009-01-31 01:19:28Z rpg $
+
+new areComplex = bool:true
+new sampleRate = double:200
+new theFrequency = double:1000
+new endTime = double:4
+

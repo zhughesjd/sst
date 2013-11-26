@@ -1,0 +1,124 @@
+# certifyTraject.sst: Certification tests for SST class Trajectory
+# $Id: certifyTraject.sst 4951 2006-12-29 00:59:57Z rpg $
+
+echoInput = true
+
+# Case 0: Check computation of spinor and spinRate.
+new trajectory = Trajectory (
+# time position velocity orientation  orientationRate
+# [s]  [m]      [m/s]       [deg]         [deg/s]
+  1 (0, 0, 0) (0, 0, 0) (45,  0,  0)  (5.72958, 0, 0)
+  2 (0, 0, 0) (0, 0, 0) (45,  0,  0)  (0, 5.72958, 0)
+  3 (0, 0, 0) (0, 0, 0) (45,  0,  0)  (0, 0, 5.72958)
+  4 (0, 0, 0) (0, 0, 0) ( 0, 45,  0)  (5.72958, 0, 0)
+  5 (0, 0, 0) (0, 0, 0) ( 0, 45,  0)  (0, 5.72958, 0)
+  6 (0, 0, 0) (0, 0, 0) ( 0, 45,  0)  (0, 0, 5.72958)
+  7 (0, 0, 0) (0, 0, 0) ( 0,  0, 45)  (5.72958, 0, 0)
+  8 (0, 0, 0) (0, 0, 0) ( 0,  0, 45)  (0, 5.72958, 0)
+  9 (0, 0, 0) (0, 0, 0) ( 0,  0, 45)  (0, 0, 5.72958)
+)
+
+TabulateTrajectory {
+	trajectory = trajectory
+	times = { first = 1; last = 9; interval = 1 }
+}
+
+
+# Case 1: straight-line interpolation and extrapolation.
+trajectory = Trajectory (
+	{
+		time = 0
+		position = ( 0, 0, 0 )
+		velocity = ( 3, 4, 5 )
+		orientation = {
+			heading = 53.13
+			pitch = 45
+			roll = 0
+		}
+	}, {
+		time = 10
+		position = (  30.00,  40.00, 50.00)
+		velocity = ( 3, 4, 5 )
+		orientation = {
+			heading = 53.13
+			pitch = 45
+			roll = 0
+		}
+	}
+)
+TabulateTrajectory {
+	trajectory = trajectory
+	times = { first = -10; last = 20; interval = 5 }
+}
+
+# Case 2: Heading rotations only.
+# Before -9, it's straight and level at heading -22.5 (337.5) degrees.
+# Between -9 and 0, turning rate gradually increases from 0 to 5 deg/sec
+# and the path is a cubic arc approximately consistent with heading.
+# Arc radius = (10 m/s)*180/(Pi*(5 deg/s)) = 114.59 m.
+# Snapshots at 0, 8, and 18 lie on that arc, but interpolation is cubic.
+# After 18, trajectory is a true circle.
+# Trajectory for 72-90 sec should approximately retrace 0-18 sec.
+trajectory = Trajectory (
+# time     position              velocity        orientation  orientationRate
+# [s]        [m]                  [m/s]             [deg]         [deg/s]
+ -9 ( -87.70,  17.45, 100 ) (  9.24, -3.83, 0 ) ( -22.5, 0, 0)  (0, 0, 0)
+  0 (   0,      0,    100 ) ( 10,     0.00, 0 ) (   0,   0, 0)  (5, 0, 0)
+  9 (  81.03,  33.56, 100 ) (  7.07,  7.07, 0 ) (  45,   0, 0)  (5, 0, 0)
+ 18 ( 114.59, 114.59, 100 ) (  0,    10,    0 ) (  90,   0, 0)  (5, 0, 0)
+)
+
+TabulateTrajectory {
+	trajectory = trajectory
+	times = { first = -11.25; last = 90; interval = 2.25 }
+}
+
+# Case 3: Pitch rotations only.
+# Results should look just like case 2 but in a vertical plane.
+trajectory = Trajectory (
+# time      position               velocity       orientation   orientationRate
+# [s]         [m]                   [m/s]            [deg]         [deg/s]
+ -9 ( -87.70, 0,  17.45 ) (  9.24, 0, -3.83 ) (  0, -22.5, 0 )  (0, 0, 0)
+  0 (   0,    0,   0    ) ( 10,    0,  0    ) (  0,   0,   0 )  (0, 5, 0)
+  9 (  81.03, 0,  33.56 ) (  7.07, 0,  7.07 ) (  0,  45,   0 )  (0, 5, 0)
+ 18 ( 114.59, 0, 114.59 ) (  0,    0, 10    ) (  0,  89.9999, 0 ) (0, 5, 0)
+)
+
+TabulateTrajectory {
+	trajectory = trajectory
+	times = { first = -11.25; last = 90; interval = 2.25 }
+}
+
+# Case 4: Spiral about Z (vertical) axis, downward.
+trajectory = Trajectory (
+# time      position               velocity         orientation orientationRate
+# [s]         [m]                   [m/s]               [deg]        [deg/s]
+ -9 ( -87.70, -97.14,-18.00) (  9.24, -3.83, 2.00) (-22.5,11.31, 0) (0, 0, 0)
+  0 (   0,   -114.59,  0   ) ( 10,     0,    2   ) (  0,  11.31, 0) (5, 0, 0)
+  9 (  81.03, -81.03, 18.00) (  7.07,  7.07, 2.00) ( 45,  11.31, 0) (5, 0, 0)
+ 18 ( 114.59,   0.00, 36.00) (  0.00, 10.00, 2.00) ( 90,  11.31, 0) (5, 0, 0)
+)
+
+TabulateTrajectory {
+	trajectory = trajectory
+	times = { first = -13.5; last = 90; interval = 4.5 }
+}
+
+# Case 5: Spiral about X (forward) axis, starting downward.
+# For a spiral rate of 5 deg/sec and a pitch of atan(2/10),
+# the yaw rate is -spiral_rate * tan(pitch) * cos(yaw),
+# the pitch rate is spiral_rate * sin(yaw), and
+# the roll rate is spiral_rate * cos(heading) / cos(pitch).
+trajectory = Trajectory (
+# time   position          velocity         orientation         orientationRate
+# [s]      [m]              [m/s]              [deg]               [deg/s]
+-9 (-90.0,19.43,-17.54) (10, 0.77,1.85) (  4.03,11.31,-22.5) ( 0,     0,    0    )
+ 0 (  0,   22.92, 0   ) (10, 0,   2   ) (  0,   11.31, 0   ) (-1,     0,    5.099)
+ 9 ( 90.00,16.21,16.21) (10,-1.41,1.41) ( -8.05, 7.97,45.56) (-0.693,-0.700,4.999)
+18 (180.00, 0.00,22.92) (10,-2.00,0.00) (-11.31, 0,   90   ) ( 0,    -0.981,4.903)
+)
+
+TabulateTrajectory {
+	trajectory = trajectory
+	times = { first = -13.5; last = 90; interval = 4.5 }
+}

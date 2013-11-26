@@ -1,0 +1,42 @@
+# certifyFactorSpect.sst: Test FactorSpectrum factoring of spectra
+# $Id: certifyFactorSpect.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# The input spectrum is the output from certifyReverbSpectrum.sst.
+new revsp_sur1m_trivp = AsciiSpectrum {
+    file = "$SSTHOME/standard/revsp_sur1m_trivp.txt"
+	isComplex = true
+	times = UniformGrid: {
+		first = 1.0
+		last = 1.01
+		number = 2
+	}
+	frequencies = GeometricGrid: {
+		first = 15000
+        last = 15330
+		number = 12
+	}
+	isPower = true
+	isCorrelated = true
+}
+
+new factorSpecGen = FactorSpectrum {
+	powerSpectrum = revsp_sur1m_trivp
+}
+
+new factored = AsciiSpectrum { file = "factSpect.txt" }
+CopySignal factorSpecGen factored
+
+# Test it by unfactoring it and comparing the result with original
+new unfactored = AsciiSpectrum {
+	file = "unfactSpect.txt"
+}
+new unfactorSpecGen = UnfactorSpectrum {
+    factoredSpectrum = factored
+}
+CopySignal unfactorSpecGen unfactored
+
+CompareSignals {
+  signal = unfactored 
+  standard = revsp_sur1m_trivp
+  message = "certifyFactorSpect"
+}

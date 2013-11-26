@@ -1,0 +1,97 @@
+# sonar.sst:  A high-frequency, 5-beam sonar with offset beams.
+# $Id: sonar.sst 5208 2008-02-04 23:02:31Z rpg $
+
+# This file is adapted directly from the pursuit example.  I will
+# attempt to label which sections have not yet been converted and
+# which have been converted, but we all know that such "code
+# comments" can go out-of-date if not rigorously maintained.
+
+######   Sonar Specification ######
+
+# Read in the elementBeam 'type', i.e., the description of an element beam that can be used to construct larger arrays of beams
+read "../verticalPlanarArray/elementBeam.sst"
+
+# Read in the element level beam description
+read "../verticalPlanarArray/elmLevelSearchBeamList-8x8-52.sst"
+
+# Make it possible to use of SIOBeams to represent the element sum beams
+new elmSumSIOBeam = SIOBeam {
+	file.filename = "../verticalPlanarArray/8x8-52-elmSumSIOBeam.sio"
+}
+
+# Read the steered beam descriptions
+read "../verticalPlanarArray/steeredBeamLevelSearchBeam-8x8-52.sst"
+
+# Make the same conversion as above, from element sum to SIO.
+new steered1SIOBeamLevelSearchBeam = SIOBeam {
+	file.filename = "../verticalPlanarArray/8x8-52-elmSumSIOBeamSteered1.sio"
+}
+
+new steered2SIOBeamLevelSearchBeam = SIOBeam {
+	file.filename = "../verticalPlanarArray/8x8-52-elmSumSIOBeamSteered2.sio"
+}
+
+new steered3SIOBeamLevelSearchBeam = SIOBeam {
+	file.filename = "../verticalPlanarArray/8x8-52-elmSumSIOBeamSteered3.sio"
+}
+
+new steered4SIOBeamLevelSearchBeam = SIOBeam {
+	file.filename = "../verticalPlanarArray/8x8-52-elmSumSIOBeamSteered4.sio"
+}
+
+new steered5SIOBeamLevelSearchBeam = SIOBeam {
+	file.filename = "../verticalPlanarArray/8x8-52-elmSumSIOBeamSteered5.sio"
+}
+
+# Not converted yet, identical to pursuit
+# Since this is a monostatic sonar, the transmitter and receiver use the
+# same trajectory.  It's climbing toward the target at about 40 knots.
+new sonarTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+	{
+		time = 0.0  # s
+		
+		position =        (  0.0,  0.0, 300.0 )  # m
+		# position =        (  0.0,  0.0, 100.0 )  # m
+		
+		velocity =        ( 20.0,  0.0,   1.0 )  # m/s
+		orientation =     (  0.0,  3.0,   0.0 )  # deg
+		orientationRate = (  0.0,  0.0,   0.0 )  # deg/s
+	}
+)
+
+# The following Sonars are all candidates for 'receiver'.  Assign receiver to one of these in your simulation.
+
+new receiverElmLevel = Sonar {
+	beams = elmLevelSearchBeam
+	trajectory = sonarTrajectory
+}
+
+new receiverBeamLevel = Sonar {
+	beams = ( beamLevelSearchBeam )
+	trajectory = sonarTrajectory
+}
+
+new receiverSIOBeamLevel = Sonar {
+	beams = ( elmSumSIOBeam )
+	trajectory = sonarTrajectory
+}
+
+new receiverSteeredBeamLevel = Sonar {
+	beams = ( steered1BeamLevelSearchBeam,
+		steered2BeamLevelSearchBeam,
+		steered3BeamLevelSearchBeam,
+		steered4BeamLevelSearchBeam,
+		steered5BeamLevelSearchBeam )
+	trajectory = sonarTrajectory
+}
+
+new receiverSteeredSIOBeamLevel = Sonar {
+	beams = ( steered1SIOBeamLevelSearchBeam,
+		steered2SIOBeamLevelSearchBeam,
+		steered3SIOBeamLevelSearchBeam,
+		steered4SIOBeamLevelSearchBeam,
+		steered5SIOBeamLevelSearchBeam )
+	trajectory = sonarTrajectory
+}
+
+#You will have to assign receiver to one of the receivers specified above directly after reading this script

@@ -1,0 +1,145 @@
+# cpxWindowSpecs.sst: Compute power spectra of complex windowed tones.
+# $Id: cpxWindowSpecs.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Constant tone at nyquist/4 above center: Value in element 192 should be 0.512.
+print "## ModulatedTone: Complex constant single tone".
+new cpxConstTone = ModulatedTone {
+	isComplex = true
+	frequency = 10000
+		 # 40 cycles, 5x oversampled:
+	times = { first = 0.0; last = 0.511; rate = 500 }
+	level = 0	# dB; rms and max is 1.0
+	frequencyModulation = ConstantFunction { value = 10125 }
+}
+# get power spectra (at the first and last times) normalized per Hz
+new cutSpectGen = SpectrumFromSignal { 
+    inSignal = cpxConstTone
+    times = { first = 0.0; last = .511; interval = .511 }
+ }
+new cutSpect = SIOSpectrum { file = "cpxConstToneSpect.sio" }
+CopySignal cutSpectGen cutSpect
+
+# output an ascii version of the pulse
+new ascii_sig = BareAsciiSignal { file = "cpxConstTone.ascii" }
+CopySignal cpxConstTone ascii_sig
+
+# Rectangular windowed tone at nyquist/4 above center ------------------------
+print "## ModulatedTone: Complex constant single tone".
+new cpxRectTone = cpxConstTone {
+	envelope = RectangularWindow { start = 0; end = 0.128 }
+}
+# get power spectra
+new crtSpectGen = SpectrumFromSignal { 
+    inSignal = cpxRectTone
+    times = { first = 0.0; last = .128; interval = .128 }
+ }
+new crtSpect = SIOSpectrum { file = "cpxRectToneSpect.sio" }
+CopySignal crtSpectGen crtSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 500 }
+    inSignals = ( cpxRectTone )
+}
+new ascii_sig = BareAsciiSignal { file = "cpxRectTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# Triangle-weighted tone at nyquist/4 above center ---------------------------
+print "## ModulatedTone: Complex triangle-weighted tone".
+new cpxLinearTone = cpxConstTone {
+	envelope = LinearWindow { start = 0; end = 0.128 }
+}
+new cltSpectGen = SpectrumFromSignal { 
+    inSignal = cpxLinearTone
+    times = { first = 0.0; last = .128; interval = .128 }
+}
+new cltSpect = SIOSpectrum { file = "cpxTriangleToneSpect.sio" }
+CopySignal cltSpectGen cltSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 500 }
+    inSignals = ( cpxLinearTone )
+}
+new ascii_sig = BareAsciiSignal { file = "cpxTriangleTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# Hann-weighted tone at nyquist/4 above center -------------------------------
+print "## ModulatedTone: Complex Hann-weighted tone".
+new cpxHannTone = cpxConstTone {
+	envelope = HannWindow { start = 0; end = 0.128 }
+}
+new chtSpectGen = SpectrumFromSignal { 
+    inSignal = cpxHannTone
+    times = { first = 0.0; last = .128; interval = .128 }
+}
+new chtSpect = SIOSpectrum { file = "cpxHannToneSpect.sio" }
+CopySignal chtSpectGen chtSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 500 }
+    inSignals = ( cpxHannTone )
+}
+new ascii_sig = BareAsciiSignal { file = "cpxHannTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# Taylor-weighted tone at nyquist/4 above center -----------------------------
+print "## ModulatedTone: Complex Taylor-weighted tone".
+new cpxTaylorTone = cpxConstTone {
+	envelope = TaylorWindow { start = 0; end = 0.128 }
+}
+new cttSpectGen = SpectrumFromSignal { 
+    inSignal = cpxTaylorTone
+    times = { first = 0.0; last = .128; interval = .128 }
+}
+new cttSpect = SIOSpectrum { file = "cpxTaylorToneSpect.sio" }
+CopySignal cttSpectGen cttSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 500 }
+    inSignals = ( cpxTaylorTone )
+}
+new ascii_sig = BareAsciiSignal { file = "cpxTaylorTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# Cosine-weighted tone at nyquist/4 above center -----------------------------
+print "## ModulatedTone: Complex Cosine-weighted tone".
+new cpxCosineTone = cpxConstTone {
+	envelope = CosineWindow { start = 0; end = 0.128 }
+}
+new cctSpectGen = SpectrumFromSignal { 
+    inSignal = cpxCosineTone
+    times = { first = 0.0; last = .128; interval = .128 }
+}
+new cctSpect = SIOSpectrum { file = "cpxCosineToneSpect.sio" }
+CopySignal cctSpectGen cctSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 500 }
+    inSignals = ( cpxCosineTone )
+}
+new ascii_sig = BareAsciiSignal { file = "cpxCosineTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# MitchellMcPherson-weighted tone at nyquist/4 above center ------------------
+print "## ModulatedTone: Complex MitchellMcPherson-weighted tone".
+new cpxMitchellMcPhersonTone = cpxConstTone {
+	envelope = MitchellMcPhersonWindow { start = 0; end = 0.128 }
+}
+new cmtSpectGen = SpectrumFromSignal { 
+    inSignal = cpxMitchellMcPhersonTone
+    times = { first = 0.0; last = .128; interval = .128 }
+}
+new cmtSpect = SIOSpectrum { file = "cpxMMPToneSpect.sio" }
+CopySignal cmtSpectGen cmtSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 500 }
+    inSignals = ( cpxMitchellMcPhersonTone )
+}
+new ascii_sig = BareAsciiSignal { file = "cpxMMPTone.ascii" }
+CopySignal truncated_sig ascii_sig

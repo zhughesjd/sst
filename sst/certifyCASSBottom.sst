@@ -1,0 +1,161 @@
+# certifyCASSBottom.sst: Test Scattering Function with GriddedBoundary
+# $Id: certifyCASSBottom.sst 5212 2008-02-05 20:31:48Z billk $
+
+print "\n***** Test scattering with a GriddedBoundary & a cass bottom "
+
+# Cookie-Cutter Beams
+beam1 = EBFTableBeam{  # from -15 to +15 (off center to avoid edge effects)
+  offset=(0.0 0.0 0.0)
+  bearings = { first = -29.99; last = 30.01; number = 3 }
+  bearingOrder = 0        # constant
+  samples = ( 0, 1, 0 )
+}
+
+# Source is directed towards the area with two bottom types
+new source = Source {
+        beams = ( beam1 )
+        signal = ModulatedTone {
+                frequency = 15000.0     # Hz
+                level = 200.0           # dB // uPa^2 m^2
+                times = { first = 0.05; interval = 0.1; number = 1 }
+        }
+
+# Locate transmitter
+        trajectory = ( { time = 0.0; position = ( 0 0 150 ) } )
+}
+
+# Locate receiver:  also omnidirectional
+new receiver = Sonar {
+    beams = ( beam1 )    
+    trajectory = ( { time = 0.0; position = ( 0 0 150 ) } )
+}
+
+read "jacksonBottoms.sst"
+
+new sandyGravelLocale1 = 
+       BoundaryLocale { x = 4000; y = 0.0; boundary = SandyGravel }
+
+new sandyGravelLocale2 = 
+       BoundaryLocale { x = 0.0; y = 0.0; boundary = SandyGravel }
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+    
+        # Bottom depth.  You can use a 2D table function, or a depthFile here,
+        # however these will preclude use of the internal eigenray model below.
+        # If you wish to compare reverb to that from Cass, be sure SST's bathymetry 
+        # matches.
+        depth = 2000.0   # constant (meters)
+
+        # Surface is isotropic
+        surface = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+                backStrength = ConstantDbFunction2 { decibels = -40 }
+        }
+       
+        bottom  = GriddedBoundary {
+                     boundaryList = BoundaryLocaleList (
+                         sandyGravelLocale1, sandyGravelLocale2)
+                  } 
+
+        # One volume reverb layer from 700-900 meters
+        volume = ReverbList (
+                ReverbLayer {
+                        minDepth = 700          # m
+                        maxDepth = 900          # m
+                        strengthDB = -50.0      # dB // m^-1
+                }
+        )
+        soundspeed = 1500       # m/s
+        # Volume attenuation:  Use zero if you wish to compare reverb with an
+        # analytic expression that is ignorant of attenuation.
+        volumeAttenuation = ThorpAttenuation
+        #volumeAttenuation = 0
+}
+
+cassEigenrayModel = CASSEigenrayRun {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        scenario = "Reverberation"
+        ocean = ocean
+	    cassBottom = SandyGravel
+        maximumSurfaceBounces = 5
+    	maximumBottomBounces = 5
+        maximumEigenrays = 20
+        filterLength = 1        # Narrowband; no filtering
+        verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+        receiverTrajectory = receiver.trajectory
+        sourceTrajectory = source.trajectory
+        ranges = UniformGrid { first = 10; 
+                               last = 20000; 
+                               interval = 10 }
+        frequencies = UniformGrid{ first=3500; last=3500; number=1 }
+        rangeReference = 1
+        sourceBearingAngles = UniformGrid{ first=0; last=0; number=1 }
+        receiverBearingAngles = UniformGrid{ first=0; last=0; number=1 }
+        doVolume = false
+        doSurface = false
+        doBottom = true
+        maximumEigenraysPerSignature = 2
+        match = CASSMatch: {
+           dsaFactor            =   1.5
+           dsaGrad              =   0.0003
+           dsaMin               =   0.002
+           timeFactor           =   1.5
+           timeGrad             =   0.0003
+           timeMin              =   0.002
+           bearingTimeWeight    =   1
+           bearingAngleWeight   =   1
+           missingRangePenality =   0.01
+    }
+       angles = UniformGrid{ first=45; last=45; number=1 }
+}
+
+
+###### Simulation Parameters ######
+
+new cassBottomScatFunGenerator = BBBScatFun {
+        frequencies = UniformGrid { first = 3500; number = 1 }
+        times = UniformGrid { first = 10; interval = 0.2; number = 150 }
+        dopplers = UniformGrid {
+                first = 1.0
+                last =  1.0
+                interval = 1.0
+                number = 1
+        }
+        # What type of reverberation?  Only bottom and/or surface will permit 
+        # comparison with analytic results.  If you wish to compare volume 
+        # reverb with that from Cass, turn them on here and in the Cass runstream.
+        doVolume = false
+        doSurface = false
+        doBottom = true
+        eigenrayModel = cassEigenrayModel
+}
+
+
+
+new cassBottomScatFun = AsciiScatFun { 
+  times = cassBottomScatFunGenerator.times
+	file = "cassBottomScatFun.txt" 
+	}
+CopySignal cassBottomScatFunGenerator cassBottomScatFun
+
+
+new standard_cass = AsciiScatFun {
+  times = cassBottomScatFunGenerator.times
+  file = "$SSTHOME/standard/cassBottomScatFun.txt"
+}
+CompareSignals {
+  signal =  cassBottomScatFun
+  standard = standard_cass
+  message = "certifyCASSBottom"
+}
+
+#new sbOcean = ocean { bottom = SandyGravel }
+#new sbEigenrayModel = cassEigenrayModel { ocean = sbOcean }
+#new sbScatFunGenerator = cassBottomScatFunGenerator { eigenrayModel = sbEigenrayModel } 
+#new sbScatFun = InternalScatFun {}
+#CopySignal sbScatFunGenerator sbScatFun
+
+#CompareSignals cassBottomScatFun sbScatFunGenerator
+

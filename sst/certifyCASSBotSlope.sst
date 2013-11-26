@@ -1,0 +1,159 @@
+# BotSlope.sst: Test bottom slope correction to scattering strength.
+# Monostatic scenario.
+# $Id: certifyCASSBotSlope.sst 5237 2008-02-28 17:24:49Z billk $
+
+
+new halfLineBeam = ProductBeam:{
+    inBeams = (
+        DCLineBeam:{
+            axisBearing = 90
+            numElements = 30
+            spacing = 0.05  # Half wavelength
+            ratioDB = 50    # Very clean
+        },
+        ConeBeam:{
+            axisBearing = 0
+            halfAngle = 90
+        }
+    )
+}
+
+new source = Source {
+        beams = ( halfLineBeam )
+        signal = ModulatedTone {
+                frequency = 15000.0     # Hz
+                level = 200.0           # dB // uPa^2 m^2
+                times = { first = 0.05; interval = 0.1; number = 1 }
+        }
+        trajectory = ( { time = 0.0; position = ( 0 0 1 ) } )
+}
+
+# Receiver at transmitter (monostatic)
+new receiver = Sonar {
+    beams = ( halfLineBeam )    
+    trajectory =  source.trajectory
+}
+
+#### Here are some relevant Matlab calculations
+# range =   0   100   200   300   400   500
+# depth =   1000        1000        1000         980         960         960
+# slopeLeft =   0         0         0    0.2000    0.2000         0
+# slopeRight =  0         0    0.2000    0.2000         0         0
+
+# delay = sqrt( depth.^2 + range.^2 ) / 750
+#   =       1.3333    1.3400    1.3597    1.3665    1.3867    1.4432
+
+# angLeft = (180/pi)*(pi/2 + atan(slopeLeft) - atan(range./depth))
+#   =   90.0000   84.2894   78.6901   84.2894   78.6901   62.4880
+
+# angRight = (180/pi)*(pi/2 + atan(slopeRight) - atan(range./depth))
+#   =   90.0000   84.2894   90.0000   84.2894   67.3801   62.4880
+
+# sinLeft = sin( (pi/180)*angLeft )
+#   =   1.0000    0.9950    0.9806    0.9950    0.9806    0.8869
+
+# sinRight = sin( (pi/180)*angRight )
+#   =   1.0000    0.9950    1.0000    0.9950    0.9231    0.8869
+
+new rampBathymetry = TableFunction2:{
+    order = 1   # Linear interpolation
+    table2 = (
+        # ListGrid y (east)
+                0
+        # x (north)     depth
+        0.0             1000.0
+        200.0           1000.0
+        400.0            960.0
+        1000.0           960.0
+    )
+}
+
+new stepBackStrength = TableFunction2:{
+    order = 1   # Linear interpolation
+    table2 = (
+        # ListGrid frequency
+                15000
+        # sinAngle  BSS
+        0.0         0.01
+        0.9949      0.01
+        0.9951      0.1
+        1.0         0.1
+    )
+}
+
+new ocean = Ocean {
+        # Constant ocean depth
+        depth = rampBathymetry
+        bottom  = Boundary { backStrength = stepBackStrength }
+        soundspeed = 1500       # m/s
+        volumeAttenuation = 0.0
+}
+
+new eigenrayModel = CASSEigenrayRun {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        maximumEigenrays = 1
+        maximumSurfaceBounces = 0
+        maximumBottomBounces = 0
+        filterLength = 1        # Narrowband; no filtering
+        doTimeSpread = false
+    	rangeReference = 1.0
+        scenario = "Reverberation"
+        receiverTrajectory = source.trajectory
+        doSurface = false
+        doBottom = true
+        doVolume = false
+        frequencies = {first=15000; number=1}
+        ranges = {first=0; last=2000; interval=20}
+        receiverBearingAngles = {first=0; number=1}
+}
+
+###### Simulation Parameters ######
+# The output Scattering Function is recorded for 1 frequency bin.
+new scatFunGenerator = BBBScatFun {
+        frequencies = UniformGrid { first = 15000; number = 1 }
+        times = UniformGrid { first = 1.30; interval = 0.002; last = 1.50 }
+        dopplers = UniformGrid {
+                first = 1.0
+                last =  1.0
+                interval = 1.0
+                number = 1
+        }
+        doVolume = false
+        doSurface = false
+        doBottom = true
+        maxAngleChange = 1
+}
+
+new scatFunFile = AsciiScatFun:{ file = "botSlopeScatFun.txt" }
+CopySignal scatFunGenerator scatFunFile
+
+# Compare scattering function to "standard"
+CompareSignals {
+    standard = AsciiScatFun {
+        file = "$SSTHOME/standard/botSlopeScatFun.txt"
+        times = scatFunGenerator.times
+        dopplers = scatFunGenerator.dopplers
+        frequencies = scatFunGenerator.frequencies
+    }
+    signal = scatFunFile
+    message = "certifyCASSBotSlope"
+}
+
+quit    ## Comment out to do the comparison
+
+# Compare the result to that with constant backscattering strength
+new constBackStrength = ConstantFunction2:{ value = 0.01 }
+ocean.bottom.backStrength = constBackStrength
+new scatFunFileConst = AsciiScatFun:{ file = "botSlopeScatFunConst.txt" }
+CopySignal scatFunGenerator scatFunFileConst
+
+#### Matlab steps to convince me it's right:
+/*
+time = 1.30:0.002:1.50;
+load( 'botSlopeScatFun.txt' )
+plot( time, decibel(botSlopeScatFun) );
+load( 'botSlopeScatFunConst.txt' );
+plot( time, decibel(botSlopeScatFunConst) );
+plot( time, decibel(botSlopeScatFun) - decibel(botSlopeScatFunConst) );
+*/
+# That last plot has two 10-dB plateaus, 1.332-1.338 and 1.358-1.364.

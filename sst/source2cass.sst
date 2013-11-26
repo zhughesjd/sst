@@ -1,0 +1,86 @@
+# source2cass.sst:  Generate source signal for SST-cass passive example.
+# $Id: source2cass.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Specify the source signal to be generated (grid and filename).
+
+# Specify the source's passive emissions.
+# two cw at 200 Hz and 400 Hz,
+# pl=10ms,separated by 0.31s with a level difference of 3.0 dB.
+
+new sourceSignal = SIOSignal {
+        isComplex = false
+        file = "source2.sio"
+        isComplex = false
+        times = {
+                first = 0
+                last = 0.31
+                interval = 0.000625
+        }
+}
+
+cw1 = ModulatedTone {
+        isComplex = false
+        order = 0
+        times = {       # One sample extending from 0 to 10 ms
+                first = 0.0
+                last = 0.31
+                interval = 0.000625
+#                number =9 
+        }
+        level = 100             # dB // uPa^2 m^2
+        frequencyModulation = TableFunction {   
+                order = 0
+                table = (
+                  # time        frequency
+                        0.00     200
+                        0.310    200
+                )
+        }
+        envelope = TableFunction {   
+                order = 0
+                table = (
+                  # time        amplitude
+                        0.00     1
+                        0.010    1
+                        0.010001 0
+                        0.31     0
+                )
+        }
+ }
+cw2 = ModulatedTone {
+        isComplex = false
+        order = 0
+        times = {       # One sample extending from 0 to 10 ms
+                first = 0.0
+                last = 0.31
+                interval = 0.000625
+#                number =9
+        }
+        level = 103             # dB // uPa^2 m^2
+        frequencyModulation = TableFunction {
+                order = 0
+                table = (
+                  # time        frequency
+                        0.00     400
+                        0.310    400
+                )
+        }
+        envelope = TableFunction {
+                order = 0
+                table = (
+                  # amp        amplitude
+                        0.00     0
+                        0.30     0
+                        0.300001 1
+                        0.31     1
+                )
+        }
+
+ }
+
+new sumSource = SumSignal {
+        inSignals = ( cw1, cw2 )
+}
+
+CopySignal sumSource sourceSignal
+

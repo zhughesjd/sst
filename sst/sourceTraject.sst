@@ -1,0 +1,44 @@
+# This file contains the source trajectory
+# $Id: sourceTraject.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Twice around a truly mad circle in 8 seconds at 80 knots
+new sourceTrajectory = Trajectory (    
+	
+	{time = 0.0                         
+	position = ( 4200.0 0.0 150.0 )         
+	velocity = ( 40.0 0.0 0.0 ) }
+
+	{time = 1.0                         
+	position = ( 4225.4648 25.4648 150.0 )         
+	velocity = ( 0.0 40.0 0.0 ) }
+
+	{time = 2.0                         
+	position = ( 4200.0  50.9296 150.0 )         
+	velocity = ( -40.0 0.0 0.0 ) }
+	
+	{time = 3.0                         
+	position = ( 4174.535  25.4648 150.0 )         
+	velocity = ( 0.0 -40.0 0.0 ) }
+	
+	{time = 4.0                         
+	position = ( 4200.0  0.0 150.0 )         
+	velocity = ( 40.0 0.0 0.0 ) }
+
+	{time = 5.0                         
+	position = ( 4225.4648 25.4648 150.0 )         
+	velocity = ( 0.0 40.0 0.0 ) }
+
+	{time = 6.0                         
+	position = ( 4200.0  50.9296 150.0 )         
+	velocity = ( -40.0 0.0 0.0 ) }
+	
+	{time = 7.0                         
+	position = ( 4174.535  25.4648 150.0 )         
+	velocity = ( 0.0 -40.0 0.0 ) }
+	
+	{time = 8.0                         
+	position = ( 4200.0  0.0 150.0 )         
+	velocity = ( 40.0 0.0 0.0 ) }
+		
+)
+

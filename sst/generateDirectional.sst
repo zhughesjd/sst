@@ -1,0 +1,186 @@
+# generateDirectional.sst: Generate Gaussian noise having directionality
+# specified by an EBFTableSpectrum object.
+#
+# The sonar has a single, narrow beam, which scans in direction as the
+# sonar platform moves. The noise level changes depending on the direction
+# that the beam is pointing. The power spectrum of the noise is "red":
+# It decreases by a factor of 2 across the band from 10 to 30 Hz.
+#
+# Level: The peak PSD, at 0 degrees bearing, decreases linearly from 1.0 to 0.5
+# uPa^2/Hz from 10 to 30 Hz, averaging 0.75 (-1.25 dB).
+# A 20-Hz bandwidth should add 13 dB, and a 0.1-steradian beam coverage
+# should subtract 10 dB, so the peak intensity should be 1.5 uPa^2 (1.75 dB).
+#
+# The time-averaged PSD should be 1/4 of the peak value (0.1), or -16 dB
+# at 10 Hz, decreasing 3 dB to -19 dB at 30 kHz.
+#
+# Generating directional noise requires a chain of four objects, of classes
+# EBFTableSpectrum, FactorSpectrum, GaussianSpectrum, and SignalFromSpectrum.
+#
+# SIO files are written for the power spectrum as well as the final signal
+# To write other intermediate results, un-comment the extra CopySignal lines.
+#   power_spectrum.sio: The power spectrum (vs. time and frequency) produced
+# by the EBFTableSpectrum object.
+#   factored_spectrum.sio: The factored power spectrum (square root) produced
+# by the FactorSpectrum object (omitted by default).
+#   gaussian_realization.sio: The frequency-domain Gaussian realization
+# produced by the GaussianSpectrum object (omitted by default).
+#   noise_signal.sio: The time-domain Gaussian noise produced by the
+# SignalFromSpectrum object.
+
+# $Id: generateDirectional.sst 6393 2010-05-20 21:24:08Z julia $
+
+# Beam list is a single beam looking forward
+new receiver_beam_list = BeamList : (
+    # Beam 1
+    ConeBeam {
+        offset = ( 0 , 0 , 0 )
+        delay  = 0
+        axisElevation = 0   # hoizontal plane
+        axisBearing   = 0   # forward direction
+        halfAngle     = 10.2359  # covers 0.1 steradian
+    }
+)    
+#
+# Trajectory: object at the origin, has zero pitch, zero roll, and
+# is rotating its bearing at a rate of one degree per second.
+new receiver_trajectory = Trajectory ( 
+    # Only one Snapshot in this Trajectory
+    {   # constant location at origin with no rotation
+        time  = 0.0
+        position      = ( 0.0, 0.0, 0.0 )
+        velocity      = ( 0.0, 0.0, 0.0 )
+        orientation      = ( 0.0, 0.0, 0.0 )
+        orientationRate  = ( 1.0, 0.0, 0.0 )
+    }
+)
+#
+# Spectral density as a function of elevation (e), bearing (b), and 
+# frequency (f) is given by cos(b)^2 for b in [-90, +90] and zero otherwise.
+# This version is independent of frequency.
+new ebf_spectrum = FloatAutoArray : (
+  # e =   -90.000,  -60.000,  -30.000,    0.000,   30.000,   60.000,   90.000,
+  # f =    10.000, b =   -90.000,
+    0.000,    0.000,    0.000,    0.000,    0.000,    0.000,    0.000,
+  # f =    10.000, b =   -60.000,
+    0.250,    0.250,    0.250,    0.250,    0.250,    0.250,    0.250,
+  # f =    10.000, b =   -30.000,
+    0.750,    0.750,    0.750,    0.750,    0.750,    0.750,    0.750,
+  # f =    10.000, b =     0.000,
+    1.000,    1.000,    1.000,    1.000,    1.000,    1.000,    1.000,
+  # f =    10.000, b =    30.000,
+    0.750,    0.750,    0.750,    0.750,    0.750,    0.750,    0.750,
+  # f =    10.000, b =    60.000,
+    0.250,    0.250,    0.250,    0.250,    0.250,    0.250,    0.250,
+  # f =    10.000, b =    90.000,
+    0.000,    0.000,    0.000,    0.000,    0.000,    0.000,    0.000
+  # f =    30.000, b =   -90.000,
+    0.000,    0.000,    0.000,    0.000,    0.000,    0.000,    0.000,
+  # f =    30.000, b =   -60.000,
+    0.125,    0.125,    0.125,    0.125,    0.125,    0.125,    0.125,
+  # f =    30.000, b =   -30.000,
+    0.375,    0.375,    0.375,    0.375,    0.375,    0.375,    0.375,
+  # f =    30.000, b =     0.000,
+    0.500,    0.500,    0.500,    0.500,    0.500,    0.500,    0.500,
+  # f =    30.000, b =    30.000,
+    0.375,    0.375,    0.375,    0.375,    0.375,    0.375,    0.375,
+  # f =    30.000, b =    60.000,
+    0.125,    0.125,    0.125,    0.125,    0.125,    0.125,    0.125,
+  # f =    30.000, b =    90.000,
+    0.000,    0.000,    0.000,    0.000,    0.000,    0.000,    0.000
+)
+# Convert the table above to an ambient noise power spectrum
+new power_spectrum = EBFTableSpectrum {
+    # Grid of slow times when the spectrum is sampled.
+    times = { first = 0; last = 360; number = 361; }
+
+    # Is the signal complex (else real)
+    isComplex = true;
+
+    # Order of interpolation in time (samples per interpolation - 1)
+    order = 1
+
+    # Are off-diagonal cross-power elements included?
+    # For now, this must always be true, even where it doesn't matter
+    # (as with one channel).
+    isCorrelated = true
+
+    # Acoustic frequencies where spectrum is calculated [Hz]:
+    # This choice makes the power spectrum constant from 15 to 25 Hz
+    # and zero outside that range.
+    frequencies = { first = 10; last = 30; interval = 10; }
+
+    # Elevation angles where spectrum is tabulated (degrees down)
+    # (30 degree intervals)
+    tableElevations = { first = -90; last = +90; number = 7; }
+
+    # Bearing angles where spectrum is tabulated (degrees down)
+    # (30 degree intervals)
+    tableBearings = { first = -90; last = +90; number = 7; }
+
+    # Acoustic frequencies where spectrum is tabulated
+    tableFrequencies = { first = 10; last = 30; number = 2; }
+    
+    # Interpolation order (0-3) for elevation, bearing, and frequency
+    tableElevationOrder = 3
+    tableBearingOrder   = 3
+    tableFrequencyOrder = 1
+
+    # Grid for integrating spectrum_ebf w.r.t. (e,b).
+    # The steps must be smaller than the beam width.
+    tesselation = GriddedTesselation{ elevationInc = 2; azimuthIncEq = 2 }
+
+    # Spectrum data
+    tableSamples = ebf_spectrum
+
+    # Receiver is a Sonar object
+    receiver = {
+        trajectory = receiver_trajectory
+        beams      = receiver_beam_list
+   }
+
+}
+
+# Write the file that contains the power spectrum.
+# You can plot the power spectrum in octave or matlab with the command
+#   plot( read_sio('power_spectrum.sio') )
+# or in Matlab using
+#   plot_sio_power_spectrum( 'power_spectrum.sio' )
+new powerSpectrumFile = SIOSpectrum { file = "power_spectrum.sio" }
+CopySignal power_spectrum powerSpectrumFile 
+
+# Compute the Cholesky factorization of the power spectrum,
+# and write it out as factored_spectrum.sio.
+new factored_spectrum = FactorSpectrum {
+    powerSpectrum = powerSpectrumFile   ## or power_spectrum
+}
+new factoredFile = SIOSpectrum { file = "factored_spectrum.sio" }
+##CopySignal factored_spectrum factoredFile 
+
+# Create a frequency-domain Gaussian realization from this factored spectrum
+new gaussian_realization = GaussianSpectrum {
+    # We choose to generate realizations on one-second intervals.
+    # This matches the times for the input factored spectrum, but that's not required.
+    times = factored_spectrum.times
+    
+    # Acoustic frequencies where realization is computed
+    # includes the range where the input spectrum is nonzero.
+    # See SST Web for requirements re frequency interval
+    frequencies = { first = 10; last = 30; interval = 0.5; }
+    
+    factoredSpectrum = factored_spectrum
+}
+new gaussRealizeFile = SIOSpectrum { file = "gaussian_realization.sio" }
+##CopySignal gaussian_realization gaussRealizeFile
+
+# create a time-domain realization from this amplitude transform
+new noise_signal = SignalFromSpectrum {
+    isComplex = false
+    times = { first = 0; last = 360; rate = 100; }
+    spectrum = gaussian_realization
+    ##nfft = 256
+    overlapFraction = 0.5
+    window = CosineWindow
+}
+new signalFile = SIOSignal { file = "noise_signal.sio" }
+CopySignal noise_signal signalFile

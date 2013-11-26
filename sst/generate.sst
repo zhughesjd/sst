@@ -1,0 +1,146 @@
+# generate.sst:  High frequency, high speed, 5 offset beams, monostatic active.
+# This third run does the short part, generating 3 pings of reverberation and
+# adding the target echoes and broadband source signal.
+# $Id: generate.sst 5208 2008-02-04 23:02:31Z rpg $
+
+# A high-frequency, 5-beam monostatic sonar with offset beams.
+read "sonar.sst"
+
+# Specify the ocean environment.
+read "ocean.sst"
+
+###### Describe the target (active + passive) ######
+
+# Specify the active target.  It's running away and turning left.
+new targetTrajectory = Trajectory(	# One Snapshot. Circular arc.
+	{
+		time = 0                         # s
+		position = ( 2000 0 400 )          # m
+		velocity = ( 10.4, 6, 0.0 )         # m/s
+		orientation = ( 30.0, 0, 0 )       # deg
+		orientationRate = ( -2.0 0.0 0.0 )   # deg/s
+	}
+)
+new target = PointTarget {
+	trajectory = targetTrajectory
+    points = (		# Three highlights in an 80-meter line.
+#    strength [dB]    position [m]    velocity [m/s]
+        -14,         ( 40, 0, 0 ),     ( 0, 0, 0 )
+        -10,         ( 10, 0, 0 ),     ( 0, 0, 0 )
+         -3,        ( -40, 0, 0 ),     ( 0, 0, 0 )
+    )
+}
+
+# The source signal consists of broadband noise.
+read "source.sst"
+
+# The broadband noise source has the same trajectory as the active target.
+# The emission center is near the target's stern.
+new targetSource = Source {
+	beams = ( OmniBeam{ offset = ( -30, 0, 0 ) } )
+	signal = sourceGenerator
+	trajectory = targetTrajectory
+}
+
+###### Simulation Parameters ######
+
+# The Scattering function was computed in reverb.sst.
+new scatFunTotal = SIOScatFun { file = "scatFunTotal.sio" }
+
+# Initialize the random number generator.  0 means standard; always the same.
+random.seed = 0
+
+# Generate ping 1
+new time = double:0.0
+new reverbSigFile = SIOSignal {
+	file = "reverb_1.sio"
+	frequency = 10000
+	times = {
+		first = 0.20
+		last = 5.50
+		rate = 800
+	}
+}
+new reverbGenerator = ReverbSignal {
+	frequency = reverbSigFile.frequency
+	times = reverbSigFile.times
+	scatFunction = scatFunTotal
+	sourceSignal = tranPulse
+	verbose = true		# Print equivalent processing chain
+}
+CopySignal reverbGenerator reverbSigFile
+
+new targetGenerator = TargetEcho {
+	isComplex = reverbSigFile.isComplex
+	frequency = reverbSigFile.frequency
+	times = reverbSigFile.times
+	source = tranSource
+}
+new targetSignal = SIOSignal { file = "target_1.sio" }
+CopySignal targetGenerator targetSignal
+
+# The passive signals need a higher sample rate to cover their higher
+# bandwidth plus Doppler shift plus some processing space at the ends
+# of the spectrum. The sampling rate is reduced at the end, filtering
+# out the parts that fall outside the final Nyquist band.
+new passiveGenerator = DirectSignal {
+	times = {
+		first = -1.0
+		last = 12.0
+		rate = 1600
+	}
+	frequency = reverbSigFile.frequency
+	source = targetSource
+    order = 15    # used by ResampleSignal below
+}
+new resamplePassive = ResampleSignal {
+    frequency =  reverbSigFile.frequency
+    times = reverbSigFile.times
+    inSignal = passiveGenerator
+}
+new passiveSignal = SIOSignal { file = "passive_1.sio" }
+CopySignal resamplePassive passiveSignal
+
+new totalSignal = SIOSignal { file = "total_1.sio" }
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}
+
+# For subsequent pings, everything remains the same except the time and the
+# filenames.  The random number generator retains its state as of the end
+# of the previous ping, so each ping is independent.
+
+# Generate ping 2
+time = 4
+reverbSigFile.file = "reverb_2.sio"
+CopySignal reverbGenerator reverbSigFile
+targetSignal.file = "target_2.sio"
+CopySignal targetGenerator targetSignal
+passiveSignal.file = "passive_2.sio"
+CopySignal resamplePassive passiveSignal
+totalSignal.file = "total_2.sio"
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}
+
+# Generate ping 3
+time = 8
+reverbSigFile.file = "reverb_3.sio"
+CopySignal reverbGenerator reverbSigFile
+targetSignal.file = "target_3.sio"
+CopySignal targetGenerator targetSignal
+passiveSignal.file = "passive_3.sio"
+CopySignal resamplePassive passiveSignal
+totalSignal.file = "total_3.sio"
+CopySignal {
+	outSignal = totalSignal
+	inSignal = SumSignal {
+		inSignals = ( reverbSigFile, targetSignal, passiveSignal )
+	}
+}

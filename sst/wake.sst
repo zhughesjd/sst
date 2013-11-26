@@ -1,0 +1,168 @@
+# SST run script to test TableWake
+
+# $Id: wake.sst 6628 2011-05-06 23:37:56Z julia $
+
+# Various parameters
+new areComplex = bool:true
+new sampleRate = double:400
+new theFrequency = double:3000
+new endTime = double:5.0
+new pulseLength = double:0.5
+new listenTimes = UniformGrid { first=0; last=endTime; rate=sampleRate }
+
+# Start the random numbers using the clock: different each time
+random.seed = -1
+
+### Define the source's transmitted signal ###
+# It's a half-second pure tone
+new pulse = ModulatedTone {
+    isComplex = areComplex
+    frequency = theFrequency
+    frequencyModulation = ConstantFunction{ value=theFrequency }
+    startingPhase = 0
+    level = 200.0          # dB
+    times = { first=0; last=pulseLength; rate=sampleRate }
+    envelope = TaylorWindow {start=0; end=pulseLength}
+}
+
+### Define the transmitter ###
+new source = Source {
+    signal = pulse
+    beams = ( OmniBeam )
+    trajectory = (
+        {
+            time = 0
+            position = ( 0 0 10 )   # Sonar is 10 m below the surface
+            velocity = ( 10 0 0 )      # headed north at 20 knots
+            orientation = ( 0 0 0 )   # pointed north
+        }
+    )
+}
+
+# The receiver beams are two degrees FWHM wide and ten degrees high,
+# centered on the target
+new oneBeam = EBFTableBeam {
+    elevations = { first = -20; last = 20; interval = 10 }
+    bearings = { first = -2; last = 2; interval = 1 }
+    frequencies = { first = theFrequency; number = 1 }
+    isComplex = false
+    samples = (
+        0.0, 0.000, 0.000, 0.000, 0.0,
+        0.0, 0.500, 0.707, 0.500, 0.0,
+        0.0, 0.707, 1.000, 0.707, 0.0,
+        0.0, 0.500, 0.707, 0.500, 0.0,
+        0.0, 0.000, 0.000, 0.000, 0.0
+     )
+}
+new receiver = Sonar {
+    beams = (
+        RotatedBeam{ inBeam = oneBeam; orientation = ( 24.565, 0, 0 ) },
+        RotatedBeam{ inBeam = oneBeam; orientation = ( 26.565, 0, 0 ) },
+        RotatedBeam{ inBeam = oneBeam; orientation = ( 28.565, 0, 0 ) }
+    )
+#    beams = ( OmniBeam )
+    trajectory = source.trajectory
+}
+
+### Define the ocean environment ###
+new ocean = Ocean {
+    depth = 400.0
+    soundspeed = 1500	# [m/s]
+    volumeAttenuation = 0.0
+    windspeed = 5   # m/s
+    surface = McDanielSurface{}
+}
+
+### Define the eigenray model ###
+eigenrayModel = EigenrayModel {
+    # Direct path only
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+}
+
+### Define a Target: A single big highlight with noticeable Doppler shift
+new target = PointTarget {
+    trajectory = (
+        {
+            time = 0
+            position = ( 2000 1000 0 )  # bearing 26.565 degrees, range 2236 m
+            velocity = ( -10 0 0 )      # headed south at 20 knots
+            orientation = ( 180 0 0 )   # pointed south
+        }
+    )
+    points = (
+        {
+            strengthDB = 10  # big
+            pos = ( 0 0 0 )
+        }
+    )
+}
+
+new targetGenerator = TargetEcho {
+    isComplex = source.signal.isComplex 
+    frequency = source.signal.frequency 
+    times = listenTimes
+    # source, receiver, target are picked up automatically
+}
+# Copy out the target echo for plotting
+##new targetFile = SIOSignal{ file="target.sio" }
+##CopySignal targetGenerator targetFile
+
+### Define a TableWake object: a 200-m by 20-m rectangle behind the target ###
+new wake = TableWake {
+    rmsSpeed = 2    # [m/s]: Enough Doppler width to be visible
+    clutterStrength.table2 = (
+ # Starboard [m] =
+             -11         -10           0          10          11
+ # Forward  decibels
+ -201       -999        -999        -999        -999        -999
+ -200       -999         -10         -10         -10        -999
+ -150       -999         -10         -10         -10        -999
+ -100       -999         -10         -10         -10        -999
+  -50       -999         -10         -10         -10        -999
+    0       -999         -10         -10         -10        -999
+    1       -999        -999        -999        -999        -999
+ )
+    trajectory = target.trajectory
+}
+	# Base class for distributed objects that reflect sound incoherently
+
+# This will be picked up by the DirectionalDopplerDensity
+new clutterList = ClutterList( wake )
+
+### Specify reverb params ###
+new dopplerDensity = DirectionalDopplerDensity {
+    isComplex = source.signal.isComplex 
+    frequencies = UniformGrid { first=theFrequency; number=1 }
+    dopplers = UniformGrid { first=0.98; last=1.02; interval=0.001 }
+    times = listenTimes
+    # 10 ms means 750*.01=7.5 meter range update interval
+    scatFunTimes = UniformGrid { first=0; last=endTime; interval=.01 }
+    # What type of reverberation?
+    doSurface = true
+    doBottom = false
+    doVolume = false
+    doClutter = true
+    maxSamples = 1024    # next power of 2 > 360/maxAngleChange
+    maxAngleChange = 0.5  # degree => at least 2 samples in the wake per range
+    tesselation = GriddedTesselation {} # default has 1 degree tiles
+    # source, receiver, ocean, clutterList are picked up automatically
+}
+# Copy out the Doppler Density for plotting
+new doppDensityFile = SIODopplerDensity{ file="DopplerDensity.sio" }
+CopySignal dopplerDensity doppDensityFile
+
+new clutterGenerator = DDReverbSignal {
+    dopplerDensity = doppDensityFile
+    sourceSignal = source.signal 
+    isComplex = source.signal.isComplex 
+    frequency = source.signal.frequency 
+    times = listenTimes
+} 
+
+### Generate file output ###
+totalFile = SIOSignal { file="total_signal.sio" }
+CopySignal {
+    inSignal = SumSignal{ inSignals=(targetGenerator, clutterGenerator) }
+    outSignal = totalFile
+}

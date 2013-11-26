@@ -1,0 +1,84 @@
+# sweepSpect.sst: Compute time-dependent power spectra of a long FM sweep
+# $Id: sweepSpect.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Long, gradual complex FM sweep
+new cpxSweep = ModulatedTone {
+	isComplex = true
+	frequency = 10000
+	times = { first = 0.0; last = 10.0; rate = 2000 }
+	level = 0	# dB; rms and max is 1.0
+	frequencyModulation = TableFunction {	# Sweep width = 1000 Hz
+		order = 1	# Linear interpolation
+		table = (
+		  # time	frequency
+			 0.0	 9500
+			10.0	10500
+		)
+	}
+	envelope = HannWindow {	# 0.1-s fade at the ends
+		start = 0
+		end = 10
+		taperFraction = 0.01
+	}
+}
+
+# Compute the power spectrum on the Nyquist frequency grid
+new csnSpectGen = SpectrumFromSignal {
+	inSignal = cpxSweep
+	times = { first = 0; last = 10; interval = 1 }
+	window = TaylorWindow
+}
+print csnSpectGen
+new csnSpect = SIOSpectrum { file = "cpxSweepSpect.sio" }
+CopySignal csnSpectGen csnSpect
+
+# Compute the power spectrum in 5-Hz bins
+new csbSpectGen = SpectrumFromSignal {
+	inSignal = cpxSweep
+	times = { first = 0; last = 10; interval = 1 }
+	frequencies = { first = 9250; last = 10750; interval = 5 }
+	window = TaylorWindow
+}
+new csbSpect = SIOSpectrum { file = "cpxSweepBinSpect.sio" }
+CopySignal csbSpectGen csbSpect
+
+# Long, gradual real FM sweep
+new realSweep = ModulatedTone {
+	isComplex = false
+	times = { first = 0.0; last = 10.0; rate = 2000 }
+	level = 0	# dB; rms is 1.0, max is sqrt(2)
+	frequencyModulation = TableFunction {	# Sweep width = 1000 Hz
+		order = 1	# Linear interpolation
+		table = (
+		  # time	frequency
+			 0.0	250
+			10.0	750
+		)
+	}
+	envelope = HannWindow {	# 0.1-s fade at the ends
+		start = 0
+		end = 10
+		taperFraction = 0.01
+	}
+}
+
+# Compute the power spectrum on the Nyquist frequency grid
+new rsnSpectGen = SpectrumFromSignal {
+	inSignal = realSweep
+	times = { first = 0; last = 10; interval = 1 }
+	window = TaylorWindow
+}
+print rsnSpectGen
+new rsnSpect = SIOSpectrum { file = "realSweepSpect.sio" }
+CopySignal rsnSpectGen rsnSpect
+
+
+# Compute the power spectrum in 5-Hz bins
+new rsbSpectGen = SpectrumFromSignal {
+	inSignal = realSweep
+	times = { first = 0; last = 10; interval = 1 }
+	frequencies = { first = 100; last = 900; interval = 5 }
+	window = TaylorWindow
+}
+new rsbSpect = SIOSpectrum { file = "realSweepBinSpect.sio" }
+CopySignal rsbSpectGen rsbSpect

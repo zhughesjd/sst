@@ -1,0 +1,48 @@
+# These SST definitions are common to all SST runs.
+# This file must be preceded by definitions of areComplex and sampleRate
+
+# $Id: reverbCommon.sst 6395 2010-05-25 21:29:02Z rpg $
+
+### Define the source's transmitted signal ###
+# It's a narrowband Modulated Tone
+theSignal = ModulatedTone {
+    # Should it generate samples in complex baseband form?
+    isComplex = areComplex
+    frequency = theFrequency
+    # Narrowband @ 1 kHz
+    frequencyModulation = ConstantFunction{ value=1000 }
+    # With initial phase zero
+    startingPhase = 0
+    # At this source level
+    level = 200.0          # dB
+    # The pulse is 0.1 seconds long, with samples generated 
+    # at about 20 times the Nyquist rate
+    times = { first=0; last=.1; rate=sampleRate }
+    envelope = TaylorWindow {start=0; end=0.1}
+}
+
+### Define a sound source. ###
+theSource = Source {
+    # Define its signal
+    signal = theSignal
+    # Give it omnidirectional beams
+    beams = ( OmniBeam )
+    # Specify its location (center of the grid, 200 meters down)
+    trajectory = { time=0.0; position=( 0 0 200 ); velocity=( 20 0 0) }
+}
+
+### Define the ocean environment ###
+theOcean = Ocean {
+    depth = 2000.0
+    soundspeed = 1500	# [m/s]
+    surface = APLSurface
+    windspeed = 10
+    volumeAttenuation = ThorpAttenuation
+}
+
+### Define the eigenray model ###
+theEM = EigenrayModel {
+    # Permit any bounce paths?
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+}

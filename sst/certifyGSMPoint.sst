@@ -1,0 +1,91 @@
+# certifyGSMPoint.in: Certify a single SST scatterer with GSM eigenrays.
+# $Id: certifyGSMPoint.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Test 1:  Directly on a tabulated eigenray point.
+# Correct levels should be 200 dB - sum of dB eigenray losses.
+
+new target = PointTarget {
+    trajectory = ( { time = 0.0; position = ( 3000 0 885 ) } )
+    points = ( { strengthDB = 0 } )
+}
+
+new receiver = Sonar {
+	beams = ( OmniBeam )
+    trajectory = ( { time = 0.0; position = ( 0 0 150 ) } )
+}
+
+new source = Source {
+	beams = receiver.beams
+	trajectory = receiver.trajectory
+	signal = ModulatedTone {
+		frequency = 3500
+		times = { first = 0.0125; interval = 0.025; number = 1 }
+			# That's one sample extending from 0 to 0.025
+		order = 0	# nearest neighbor interpolation
+		level = 200
+	}
+}
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 2500.0 }
+	soundspeed = 1500
+	volumeAttenuation = 0
+}
+
+new eigenrayModel = GSMEigenrayModel {
+    maximumEigenrays = 10
+    maximumSurfaceBounces = 3
+    maximumBottomBounces = 3
+	filterLength = 1	# no filtering
+	files = ( "ER0000.DAT", "ER0885.DAT", "ER2500.DAT" )
+}
+
+new signal = InternalSignal {}
+
+# traceEigenrayModel = true	# Un-comment for eigenray dump
+new echoGenerator = TargetEcho {
+	frequency = 3500
+	isComplex = true
+	times = { first = 4.0; last = 7.0; interval = 0.025 }
+	order = 0	# nearest neighbor (no Doppler shift or beam delays)
+}
+CopySignal echoGenerator signal
+
+# print signal
+
+new standard = InternalSignal: {
+    frequency = 3500
+    isComplex = true
+	times = { first = 4.0; last = 7.0; interval = 0.025 }
+    buf = (
+ 0, 0, 0, 0, 0, 0, 0, 0, 8.838250e+02, 6.127705e+01,
+ 0, 0, 3.131058e+02, 1.708355e+03, 0, 0, -7.730981e+02, 3.562030e+02, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, -1.888797e+02, 2.629031e+02, 0, 0, -2.955474e+02, -1.154847e+02,
+ 0, 0, 0, 0, 0, 0, 9.336922e+00, -1.520514e+02, 9.336921e+00, -1.520513e+02,
+ 1.466581e+02, -2.807736e+01, 1.466581e+02, -2.807735e+01, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, -5.299741e-05, 1.405685e-05, -5.299741e-05, 1.405684e-05, -2.622526e-05, -4.691150e-05, -2.622526e-05, -4.691150e-05,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ -1.135270e+01, -2.730504e+01, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 2.273043e+01, 1.605998e+01, 2.273043e+01, 1.605998e+01, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, -2.615696e+01, -1.399103e+00, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0
+)
+}
+
+CompareSignals {
+  message = "certifyGSMPoint"
+}

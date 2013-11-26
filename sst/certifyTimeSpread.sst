@@ -1,0 +1,145 @@
+# certifyTimeSpread: Certification tests for timespread algorithms
+
+# Generate simulated pings for Peter Dahl's ASIAEX Run 22.
+# This is a simplified, reduced version of the simulation in
+# examples/timespread.
+
+######   Ocean Environment Specification ###### 
+
+random.seed = 0
+
+read "jacksonBottoms.sst"
+
+new ocean = Ocean {
+	depth = 109.0
+    soundspeed = 1525
+	# Surface parameters
+##	windspeed = 4   # from Dahl Fig. 2 legend for S22 -> mss=0.023
+	windspeed = 3	# fits slope better
+    surface = McDanielSurface {}
+    bottom = FineSand {
+        rmsHeight = 0.012           # These are fit to the data by eye
+        meanSquareSlope = 0.045
+    }
+}
+
+# Isovelocity eigenray model
+new eigenrayModel = EigenrayModel {
+	maximumEigenrays = 5
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 1
+	filterLength = 9
+    doTimeSpread = false    # First time through is without it
+}
+
+new signal1 = ModulatedTone {
+    frequency = 9500
+    times = UniformGrid {
+        first = 0
+        rate = 10000
+        number = 30
+    }
+    frequencyModulation = ConstantFunction{ value = 8000 }
+    level = 58   # chosen to match data
+}
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = signal1
+	trajectory = Trajectory (  
+        {
+            time = 0.0                  # s
+            position = ( 0.0 0.0 26.0 ) # m
+        }
+    )
+}
+
+new beam1 = OmniBeam {
+    offset = ( 0, 0, -0.51 ) # m, from the center of the array
+}
+
+new beam4 = OmniBeam {
+    offset = ( 0, 0, 0.52 ) # m, from the center of the array
+}
+
+new receiver = Sonar {
+    beams = ( beam1, beam4  )
+
+    trajectory = Trajectory (  
+        {
+            time = 0.0                      # s
+            position = ( 0.0 494.0 52.51 )  # m
+        }
+    )
+}
+
+# Signal Attributes
+new sigFrequency = double:9500.0
+new sigTimes = UniformGrid {
+    first = 0.324
+    last =  0.364
+    rate = 10000
+}
+
+print "\n***** ASIAEX DirectSignal, No Time Spread"
+new directGenerator = DirectSignal {
+    frequency = sigFrequency
+    times = sigTimes
+}
+new outSignal = BareAsciiSignal { file = "asex22_direct_nots.txt" }
+CopySignal directGenerator outSignal
+
+new directNotsStandard = BareAsciiSignal {
+    file = "$SSTHOME/standard/asex22_direct_nots.txt"
+    times = sigTimes
+}
+CompareSignals {
+   signal = outSignal 
+   standard = directNotsStandard
+   message = "certifyTimeSpread -- ASIAEX DirectSignal, No Time Spread"
+}
+
+print "\n***** ASIAEX BBBScatFun, No Time Spread"
+new scatFunGenerator = BBBScatFun {
+    times = UniformGrid { first = 0.30; last = 0.3705; interval = 0.0015 }
+    frequencies = UniformGrid { first = 8000; last = 8000; number = 1 }
+    doVolume = false
+}
+new scatFunction = AsciiScatFun { file = "asex22_scatfun_nots.txt" }
+CopySignal scatFunGenerator scatFunction
+
+new scatFunNotsStandard = AsciiScatFun {
+    file = "$SSTHOME/standard/asex22_scatfun_nots.txt"
+    times = scatFunGenerator.times
+    frequencies = scatFunGenerator.frequencies
+}
+CompareSignals {
+  signal = scatFunction 
+  standard = scatFunNotsStandard
+  message = "certifyTimeSpread -- ASIAEX BBBScatFun, No Time Spread"
+}
+
+# Now do it again with time spread enabled
+eigenrayModel.doTimeSpread = true
+
+print "\n***** ASIAEX DirectSignal, With Time Spread"
+outSignal.file = "asex22_direct_spread.txt"
+CopySignal directGenerator outSignal
+
+directNotsStandard.file = "$SSTHOME/standard/asex22_direct_spread.txt"
+CompareSignals {
+  signal = outSignal 
+  standard = directNotsStandard
+  message = "certifyTimeSpread -- ASIAEX DirectSignal, With Time Spread"
+}
+
+print "\n***** ASIAEX BBBScatFun, With Time Spread"
+scatFunction.file = "asex22_scatfun_spread.txt"
+CopySignal scatFunGenerator scatFunction
+
+scatFunNotsStandard.file = "$SSTHOME/standard/asex22_scatfun_spread.txt"
+CompareSignals {
+   signal = scatFunction 
+   standard = scatFunNotsStandard
+   message = "certifyTimeSpread -- ASIAEX BBBScatFun, With Time Spread"
+}

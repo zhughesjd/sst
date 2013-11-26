@@ -1,0 +1,156 @@
+# certifyPhase.sst: Test reverb phase for vertically offset beams.
+# $Id: certifyPhase.sst 5866 2009-04-15 18:27:57Z kwiley $
+
+# echoInput = true
+
+random.seed = 0
+
+## Same as certifyLevel.sst but surface only, with vertical offset
+# Answer:
+#	Intensity = 4.71238898e-10 (derivation: certifyLevel.sst, 15 kHz surface)
+#	Vertical angle: -atan(100/1000) = -5.71 degrees
+#	Phase = 360 * frequency * separation * sin(angle) / soundspeed
+#		= 17.91067 degrees
+#	Off-diagonal element = e^(i*phase) * Intensity
+#		= (4.484013192e-10, 1.449218961e-10)
+
+new receiver = Sonar {
+	beams = ( # Half-wave separation
+		OmniBeam:{offset = (0,0,-0.025)},
+		OmniBeam:{offset = (0,0,0.025)}
+	)
+    trajectory = ( { time = 0.0; position = ( 0 0 100 ) } )
+}
+
+new source = Source {
+	beams = ( OmniBeam )
+	signal = ModulatedTone {
+		frequency = 15000.0	# Hz
+		level = 200.0		# dB // uPa^2 m^2
+		times = { first = 0.0; interval = 0.1; number = 1 }
+	}
+	trajectory = receiver.trajectory
+}
+
+new fgrid = UniformGrid:{ first=14000; last=16000; number=3 }
+
+new ocean = Ocean {
+	depth = ConstantFunction2{ value = 400.0 }  	# m
+
+	# Surface and bottom scattering and reflection are isotropic
+	surface = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+		backStrength = DbDegHzTableFunction2 {
+			tableDegreeHzDB = {
+				frequencies = fgrid
+				angles = { first=0; last=0; number=1 }
+				decibels = ( -15, -20, -25 )
+			}
+		}
+	}
+	
+	bottom  = Boundary {
+		totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+		backStrength = ConstantDbFunction2 { decibels = -30 }
+	}
+	
+	# One volume reverb layer at mid-depth
+	volume = ReverbList (
+		ReverbLayer {
+			minDepth = 0		# m
+			maxDepth = ocean.depth.value
+			strengthDB = -60.0	# dB // m^-1
+		}
+	)
+	soundspeed = 1500		# m/s
+	volumeAttenuation = -10    # dB/km
+}
+
+new eigenrayModel = EigenrayModel {
+    maximumEigenrays = 1
+    maximumSurfaceBounces = 0
+    maximumBottomBounces = 0
+	filterLength = 1	# Narrowband; no filtering
+}
+
+new scatFunGenerator = BBBScatFun {
+	receiver = receiver
+	frequencies = UniformGrid:{ first=15000; number=1 }
+	times = {
+		first = 1.33333333333333
+		interval = 0.01
+		number = 1
+	}
+	maxSamples = 4
+	doSurface = true
+	doBottom = false
+	doVolume = false
+}
+new bbscatFunction = InternalScatFun{}
+CopySignal scatFunGenerator bbscatFunction
+print bbscatFunction
+new bbstandard = InternalScatFun {
+	frequencies = scatFunGenerator.frequencies
+	times = scatFunGenerator.times
+	dopplers = scatFunGenerator.dopplers
+	buf = ( 4.71238898e-10, 4.484013192e-10, 1.449218961e-10, 4.71238898e-10 )
+}
+
+print "\n***** Testing phase of BBBScatFun result with vertical offset"
+CompareSignals {
+   signal = bbscatFunction 
+   standard = bbstandard
+   message = "certifyPhase -- Testing phase of BBBScatFun result with vertical offset"
+}
+
+
+## Generate reverb time series
+
+print "\n***** Expect WARNING re zero result from time 1.34333 to 1.4"
+new revSigGen = ReverbSignal {
+	frequency = 15000
+	times = { first = 1.3; last = 1.4; rate = 100 }
+	scatFunction = bbscatFunction
+	sourceSignal = source.signal
+	extendTimes = true
+	##verbose = true
+}
+
+new rev_phase= BareAsciiSignal { file = "rev_phase.txt" }
+CopySignal revSigGen rev_phase
+
+new standard_rev_phase = rev_phase {
+	file = "$SSTHOME/standard/rev_phase.txt"
+}
+CompareSignals {
+   signal = rev_phase 
+   standard = standard_rev_phase
+   message = "certifyPhase -- Testing phase of generated reverb with vertical offset"
+}
+
+## Compute a target echo in the same place to make damn sure of the phase
+
+new target = PointTarget {
+    trajectory = Trajectory:( { time = 0; position = ( 1000 0 0 ) } )
+    points = (
+#    strength [dB]    position [m]    velocity [m/s]
+        0,           (0, 0, 0),     (0, 0, 0)
+    )
+}
+new tarSigGen = TargetEcho {
+    isComplex = true
+	times = revSigGen.times
+    frequency = revSigGen.frequency
+}
+new tar_phase= BareAsciiSignal { file = "tar_phase.txt" }
+CopySignal tarSigGen tar_phase
+
+new standard_tar_phase = tar_phase {
+	file = "$SSTHOME/standard/tar_phase.txt"
+}
+print "\n***** Testing phase of target echo with vertical offset"
+CompareSignals {
+   signal = tar_phase 
+   standard = standard_tar_phase
+   message = "certifyPhase -- Testing phase of target echo with vertical offset"
+}

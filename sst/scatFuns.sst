@@ -1,0 +1,38 @@
+# scatFuns.sst: Define the scattering function files for one Event
+
+# Receiver 1
+new scatFunSur_1 = AsciiScatFun {
+	isComplex = false
+	file = "scatFunSur_1.txt"
+	times = scatFunTimes
+	frequencies = scatFunFreqs
+	dopplers = scatFunDopplers
+	isCorrelated = false
+}
+new scatFunBot_1 = scatFunSur_1 { file = "scatFunBot_1.txt" }
+new scatFunVol_1 = scatFunSur_1 { file = "scatFunVol_1.txt" }
+new scatFun_1 = scatFunSur_1 { file = "scatFun_1.txt" }
+
+# Receiver 2
+new scatFunSur_2 = scatFunSur_1 { file = "scatFunSur_2.txt" }
+new scatFunBot_2 = scatFunSur_1 { file = "scatFunBot_2.txt" }
+new scatFunVol_2 = scatFunSur_1 { file = "scatFunVol_2.txt" }
+new scatFun_2 = scatFunSur_1 { file = "scatFun_2.txt" }
+
+# Receiver 3
+new scatFunSur_3 = scatFunSur_1 { file = "scatFunSur_3.txt" }
+new scatFunBot_3 = scatFunSur_1 { file = "scatFunBot_3.txt" }
+new scatFunVol_3 = scatFunSur_1 { file = "scatFunVol_3.txt" }
+new scatFun_3 = scatFunSur_1 { file = "scatFun_3.txt" }
+
+# Receiver 4
+new scatFunSur_4 = scatFunSur_1 { file = "scatFunSur_4.txt" }
+new scatFunBot_4 = scatFunSur_1 { file = "scatFunBot_4.txt" }
+new scatFunVol_4 = scatFunSur_1 { file = "scatFunVol_4.txt" }
+new scatFun_4 = scatFunSur_1 { file = "scatFun_4.txt" }
+
+# Merged scattering functions used for generating the signal
+new scatFunSur = scatFunSur_1 { file = "scatFunSur.txt" }
+new scatFunBot = scatFunSur_1 { file = "scatFunBot.txt" }
+new scatFunVol = scatFunSur_1 { file = "scatFunVol.txt" }
+new scatFun = scatFunSur_1 { file = "scatFun.txt" }

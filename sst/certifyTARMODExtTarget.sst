@@ -1,0 +1,254 @@
+# certifyTARMODExtTarget.sst: Certification input for SST ExternalTarget object.
+# $Id: certifyTARMODExtTarget.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# This test script is essentially the same as certifyTarget.sst, with
+# ExternalTarget substituted for PointTarget.
+# See certifyTarget.sst for expected values.
+# Each test in the set should have the same results as the corresponding
+# test in certifyTarget.sst. That means this set doesn't test frequency
+# dependence.
+
+# The test includes these calculations:
+# 0.  No highlights. Should give warning.
+# 1.  3-highlight target, separate centers.
+# 2.  3-highlight target, common center.
+# 2.1 & 3.  Omitted; no extra information for ExternalTarget.
+# 4.  3 separate targets, common trajectory, separate centers.
+# 5.  3 separate targets with separate offset trajectories.
+# 6.  Omitted; no extra information for ExternalTarget.
+
+# Tests 1, 4,  and 5 should give identical results (standardST).
+# Test 2 should differ (standardCC).
+
+# echoInput = true
+
+######   Environment Specification ######
+
+read "isoOcean.sst"
+
+######   Sonar Specification ######
+
+# Since this is a monostatic sonar, the source and receiver use the
+# same trajectory:
+new sonarTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+    {
+        time = 0.0                          # s
+        position = ( 0.0 0.0 120.0 )        # m
+        velocity = ( 0.0 0.0 0.0 )          # m/s
+        orientation = ( 0.0 -5.0 0.0 )      # deg
+        orientationRate = ( 0.0 0.0 0.0 )   # deg/s
+    }
+)
+
+new source = Source {
+	beams  = ( RecPistonBeam { width = 0.1; height = 0.1 } )
+	trajectory = sonarTrajectory
+	signal = ModulatedTone {
+		frequency = 15000.0
+		level = 220
+		# Over-sample the envelope and reduce order to save time
+		times = { first = -0.004; last = 0.004; number = 129 }
+		order = 1
+		# Use a Hann (cosine squared) pulse centered at time 0.
+		envelope = HannWindow { start = -0.004; end = 0.004 }
+	}
+}
+new pulseSignal = BareAsciiSignal { file = "targetPulse.txt" }
+CopySignal source.signal pulseSignal
+
+new receiver = Sonar {
+    # Two offset rectangular pistons, half wave spacing and width
+    beams = (
+		RecPistonBeam {
+			offset = ( 0, -0.025, 0 )
+			width = 0.05
+			height = 0.1
+		},
+		RecPistonBeam {
+			offset = ( 0, 0.025, 0 )
+			width = 0.05
+			height = 0.1
+		}
+	)
+    trajectory = sonarTrajectory
+}
+
+# The output signal is recorded in baseband complex form, sampled every
+# millisecond, convering the interval from 1.0 to 1.17 s after transmission.
+
+######   Target Trajectory   ######
+
+new targetTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+    {
+        time = 0.535                        # s at pulse leading edge arrival
+        position = ( 800 -50 150 )          # m
+        velocity = ( -10.392, 6, 0.0 )      # m/s
+        orientation = ( 150.0, 0, 0 )       # deg
+        orientationRate = ( 0.0 0.0 0.0 )   # deg/s
+    }
+)
+
+######   Standards   ######
+
+# The standards are from SPARC, which uses IEEE floating point arithmetic.
+# These are subject to significant roundoff error, so non-IEEE computers
+# (e.g. Intel) should expect errors of a few percent.
+
+new standardST = BareAsciiSignal {
+	file = "$SSTHOME/standard/targetST.txt"
+	frequency =         15000   # Hz
+}
+new standardCC = BareAsciiSignal {
+	file = "$SSTHOME/standard/targetCC.txt"
+	frequency =         15000   # Hz
+}
+
+######   Test 0   ######
+
+print "\n***** Target 0: No Highlights"
+new target = ExternalTarget {
+    trajectory = targetTrajectory
+	command = "tarmod_test $SSTHOME/input/targetNull.etd"
+}
+new echoGenerator = TargetEcho {
+    isComplex = true
+	times = {
+		interval =      0.001   # s
+    	first =         1.0     # s
+		last =			1.17	# s
+	}
+    frequency =         15000   # Hz
+	order = 3
+}
+
+new signalNull = BareAsciiSignal { file =	"targetNull.txt" }
+print "\n***** Expect WARNING: This target makes no echoes"
+CopySignal echoGenerator signalNull
+
+######   Test 1   ######
+
+print "\n***** Target 1: 3-highlight target, separate centers"
+target.command = "tarmod_test $SSTHOME/input/targetSC.etd"
+new signalSC = BareAsciiSignal { file =	"targetSC.txt" }
+CopySignal echoGenerator signalSC
+# Compare the result with the standard "correct" answer.
+print "\n***** Target 1: On Intel expect max rel diff = 0.028"
+CompareSignals {
+   signal = signalSC 
+   standard = standardST
+   message = "certifyTARMODExtTarget -- Target 1"
+   tolerance = 0.028
+}
+
+######   Test 2   ######
+
+print "\n***** Target 2: 3-highlight target, Common Center"
+target.command = "tarmod_test $SSTHOME/input/targetCC.etd"
+new signalCC = BareAsciiSignal { file =	"targetCC.txt" }
+CopySignal echoGenerator signalCC
+print "\n***** Target 2: On Intel expect max rel diff = 0.019"
+CompareSignals {
+   signal = signalCC 
+   standard = standardCC
+   message = "certifyTARMODExtTarget -- Target 2"
+   tolerance = 0.019
+}
+
+######   Test 3   ######
+
+	## Omitted for ExternalTarget because it is equivalent to Test 4
+
+######   Test 4   ######
+
+print "\n***** Target 4: 3 targets, common trajectory, separate centers"
+new target1CT = ExternalTarget {
+	trajectory = targetTrajectory
+	command = "tarmod_test $SSTHOME/input/target1CT.etd"
+}
+new echo1CT = echoGenerator { target = target1CT }
+new signal1CT = BareAsciiSignal { file = "target1CT.txt" }
+CopySignal echo1CT signal1CT
+
+new target2CT = ExternalTarget {
+	trajectory = targetTrajectory
+	command = "tarmod_test $SSTHOME/input/target2CT.etd"
+}
+new echo2CT = echoGenerator { target = target2CT }
+new signal2CT = BareAsciiSignal { file = "target2CT.txt" }
+CopySignal echo2CT signal2CT
+
+new target3CT = ExternalTarget {
+	trajectory = targetTrajectory
+	command = "tarmod_test $SSTHOME/input/target3CT.etd"
+}
+new echo3CT = echoGenerator { target = target3CT }
+new signal3CT = BareAsciiSignal { file = "target3CT.txt" }
+CopySignal echo3CT signal3CT
+
+new echoSumCT = SumSignal { inSignals = ( echo1CT, echo2CT, echo3CT ) }
+##new echoSumCT = SumSignal { inSignals = ( signal1CT, signal2CT, signal3CT ) }
+new signalCT = BareAsciiSignal { file =	"targetCT.txt" }
+CopySignal echoSumCT signalCT
+print "\n***** Target 4: On Intel expect max rel diff = 0.028"
+CompareSignals {
+   signal = signalCT 
+   standard = standardST
+   message = "certifyTARMODExtTarget -- Target 4"
+   tolerance = 0.028
+}
+
+######   Test 5   ######
+
+print "\n***** Target 5: 3 targets with separate offset trajectories."
+new tar1Traj = Trajectory ( {
+	time = 0.535                        # s at pulse leading edge arrival
+	position = ( 825.9807621 -65 150 )       # m
+	velocity = ( -10.392, 6, 0.0 )       # m/s
+	orientation = ( 150.0, 0, 0 )       # deg -- no longer matters
+} )
+new target1ST = ExternalTarget { trajectory = tar1Traj
+	command = "tarmod_test $SSTHOME/input/target1ST.etd"
+}
+new echo1ST = echoGenerator { target = target1ST }
+new signal1ST = BareAsciiSignal { file = "target1ST.txt" }
+CopySignal echo1ST signal1ST
+
+new tar2Traj = Trajectory (
+    {
+        time = 0.535
+        position = ( 791.3397459 -45 150 )
+        velocity = ( -10.392, 6, 0.0 )
+        orientation = ( 150.0, 0, 0 )
+    }
+)
+new target2ST = ExternalTarget { trajectory = tar2Traj
+	command = "tarmod_test $SSTHOME/input/target2ST.etd"
+}
+new echo2ST = echo1ST { target = target2ST }
+new signal2ST = BareAsciiSignal { file = "target2ST.txt" }
+CopySignal echo2ST signal2ST
+
+new tar3Traj = Trajectory (
+    {
+        time = 0.535
+        position = ( 765.3589838 -30 150 )
+        velocity = ( -10.392, 6, 0.0 )
+        orientation = ( 150.0, 0, 0 )
+    }
+)
+new target3ST = ExternalTarget { trajectory = tar3Traj
+	command = "tarmod_test $SSTHOME/input/target3ST.etd"
+}
+new echo3ST = echo1ST { target = target3ST }
+new signal3ST = BareAsciiSignal { file = "target3ST.txt" }
+CopySignal echo3ST signal3ST
+new echoSumST = SumSignal { inSignals = ( echo1ST, echo2ST, echo3ST ) }
+new signalST = BareAsciiSignal { file =	"targetST.txt" }
+CopySignal echoSumST signalST
+print "\n***** Target 5: On Intel expect max rel diff = 0.028"
+CompareSignals {
+  signal = signalST 
+  standard = standardST
+  message = "certifyTARMODExtTarget -- Target 5"
+  tolerance = 0.028
+}

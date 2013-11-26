@@ -1,0 +1,432 @@
+# certifySpectFmSig.sst: Certification tests of SpectrumFromSignal
+# $Id: certifySpectFmSig.sst 5280 2008-04-24 16:32:36Z rpg $
+
+# First test signal is a real tone
+new realConstTone = ModulatedTone {
+	isComplex = false
+		 # 32 cycles, 4x oversampled:
+	times = { first = 0.0; last = 0.255; rate = 1000 }
+	level = 0	# dB; rms is 1.0 (max 1.414...)
+	startingPhase = -90	# degrees:  Sine wave
+	frequencyModulation = ConstantFunction { value = 125 }
+}
+
+# Power spectrum (always normalized per Hz)
+new rupSpectGen = SpectrumFromSignal {
+	inSignal = realConstTone
+	# default isComplex=false, isPower=true, isCorrelated=false
+	# default times = { first = 0.128; last = 0.128; interval = 0.256 }
+	# default frequencies = { first = 0.0; last = 500; number = 129 }
+	# default nfft=256, overlapFraction=0
+	# default window=RectangularWindow
+}
+#print rupSpectGen	# to see defaults
+new rupSpect = AsciiSpectrum { file = "realTonePowerSpect.txt" }
+CopySignal rupSpectGen rupSpect
+new rupSpectStandard = InternalSpectrum {
+	isComplex = false
+	times = { first = 0.128; last = 0.128; interval = 0.256 }
+	frequencies = { first = 0.0; last = 500; number = 129 }
+	samples = (
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0.128 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	)
+}
+print "\n***** Test RUP: Short real tone, power spectrum in one FFT."
+CompareSignals {
+  signal = rupSpect 
+  standard = rupSpectStandard
+  message = "certifySpectFmSig -- Test RUP: Short real tone, power spectrum in one FFT."
+}
+
+# Complex amplitude spectrum
+new ruaSpectGen = SpectrumFromSignal {
+	inSignal = realConstTone
+	isComplex = true
+	isPower = false
+	# default times = { first = 0.128; last = 0.128; interval = 0.256 }
+	# default frequencies = { first = 0.0; last = 500; number = 129 }
+	# default nfft=256, overlapFraction=0
+	# default window=RectangularWindow
+}
+#print ruaSpectGen	# to see defaults
+new ruaSpect = AsciiSpectrum { file = "realToneAmpSpect.txt" }
+CopySignal ruaSpectGen ruaSpect
+new ruaSpectStandard = InternalSpectrum {
+	isComplex = true
+	isPower = false
+	times = { first = 0.128; last = 0.128; interval = 0.256 }
+	frequencies = { first = 0.0; last = 500; number = 129 }
+		# Normalization is peak amp * number of points * input dt / 2
+		# = peak amp / (2 * output df)
+	samples = (
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 -0.1810193 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0  0         0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	)
+}
+print "\n***** Test RUA: Short real tone, amplitude spectrum in one FFT."
+CompareSignals {
+  signal = ruaSpect 
+  standard = ruaSpectStandard
+  message = "certifySpectFmSig -- Test RUA: Short real tone, amplitude spectrum in one FFT."
+}
+
+# Second test signal is a complex tone
+new cpxConstTone = ModulatedTone {
+	isComplex = true
+	frequency = 10000
+		 # 32 cycles, 4x oversampled:
+	times = { first = 0.0; last = 0.254; rate = 500 }
+	level = 0	# dB; rms and max is 1.0
+	frequencyModulation = ConstantFunction { value = 10125 }
+}
+
+# Power spectrum (normalized per Hz)
+new cupSpectGen = SpectrumFromSignal {
+	inSignal = cpxConstTone
+	# default isComplex=false, isPower=true, isCorrelated=false
+	# default times = { first = 0.128; last = 0.128; interval = 0.256 }
+	# default frequencies = { first = 9750; last = 10246.09375; number = 128 }
+	# default nfft=128, overlapFraction=0
+	# default window=RectangularWindow
+}
+#print cupSpectGen	# to see defaults
+new cupSpect = AsciiSpectrum { file = "cpxTonePowerSpect.txt" }
+CopySignal cupSpectGen cupSpect
+##print cupSpect
+new cupSpectStandard = InternalSpectrum {
+	isComplex = false
+    isPower = true
+	times = { first = 0.128; last = 0.128; interval = 0.256 }
+	frequencies = { first = 9750; last = 10246.09375; number = 128 }
+	samples = (
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0.256 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	)
+}
+print "\n***** Test CUP: Short complex tone, power spectrum in one FFT."
+CompareSignals {
+  signal = cupSpect 
+  standard = cupSpectStandard
+  message = "certifySpectFmSig -- Test CUP: Short complex tone, power spectrum in one FFT."
+}
+
+# Complex amplitude spectrum
+new cuaSpectGen = SpectrumFromSignal {
+	inSignal = cpxConstTone
+	isComplex = true
+	isPower = false
+	# default times = { first = 0.128; last = 0.128; interval = 0.256 }
+	# default ffrequencies = { first = 9750; last = 10246.09375; number = 128 }
+	# default nfft=128, overlapFraction=0
+	# default window=RectangularWindow
+}
+#print cuaSpectGen	# to see defaults
+new cuaSpect = AsciiSpectrum { file = "cpxToneAmpSpect.txt" }
+CopySignal cuaSpectGen cuaSpect
+new cuaSpectStandard = InternalSpectrum {
+	isComplex = true
+	isPower = false
+	times = { first = 0.128; last = 0.128; interval = 0.256 }
+	frequencies = { first = 9750; last = 10246.09375; number = 128 }
+		# Normalization is peak amp * number of points * input dt
+		#   = peak amp / output df
+	samples = (
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0.256 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0     0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	)
+}
+print "\n***** Test CUA: Short complex tone, amplitude spectrum in one FFT."
+CompareSignals {
+  signal = cuaSpect 
+  standard = cuaSpectStandard
+  message = "certifySpectFmSig -- Test CUA: Short complex tone, amplitude spectrum in one FFT."
+}
+
+# Third test is a much longer real tone, analyzed in segments
+new realConstLong = ModulatedTone {
+	isComplex = false
+		 # 160 cycles, 4x oversampled:
+	times = { first = 0.0; last = 1.279; rate = 1000 }
+	level = 0	# dB; rms is 1.0 (max 1.414...)
+	startingPhase = -90	# degrees:  Sine wave
+	frequencyModulation = ConstantFunction { value = 125 }
+}
+
+# Power spectrum.  Window chosen for clean, narrow peak.
+# Look at a short segment around peak.  All times show narrow peak except
+# first and last, where half of the window contains zeros.
+new rlpSpectGen = SpectrumFromSignal { 
+    inSignal = realConstLong
+    window = TaylorWindow
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 97.65625; last = 152.34375; number = 15 }
+    isComplex = false
+    isPower = true
+    isCorrelated = false
+}
+new rlpSpect = AsciiSpectrum { file = "realTonePowerLong.txt" }
+CopySignal rlpSpectGen rlpSpect
+##print rlpSpect
+new rlpSpectStandard = InternalSpectrum {
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 97.65625; last = 152.34375; number = 15 }
+    isComplex = false
+    isPower = true
+    isCorrelated = false
+	samples = (
+2.332673e-04 2.734512e-04 4.324975e-04 6.208883e-04 1.198066e-03
+3.551564e-03 1.395953e-02 2.243684e-02 1.350738e-02 3.296437e-03
+1.038019e-03 5.165783e-04 3.381925e-04 2.054535e-04 1.650940e-04
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+0            7.074427e-09 5.797545e-08 2.693661e-07 8.208451e-07
+1.355261e-05 1.911397e-02 8.974265e-02 1.911397e-02 1.355260e-05
+8.208422e-07 2.693661e-07 5.797637e-08 7.074386e-09 0
+2.332673e-04 2.734511e-04 4.324975e-04 6.208882e-04 1.198066e-03
+3.551564e-03 1.395953e-02 2.243684e-02 1.350737e-02 3.296437e-03
+1.038019e-03 5.165782e-04 3.381924e-04 2.054535e-04 1.650940e-04
+	)
+}
+print "\n***** Test RLP: Long real tone, power spectrum in segments."
+CompareSignals {
+  signal = rlpSpect 
+  standard = rlpSpectStandard
+  message = "certifySpectFmSig -- Test RLP: Long real tone, power spectrum in segments."
+}
+
+# Complex amplitude spectrum
+# Window is chosen for later "overlap add" reconstruction by SignalFromSpectrum.
+new rlaSpectGen = SpectrumFromSignal {
+    inSignal = realConstLong
+    window = HannWindow
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 0.0; last = 500; number = 129 }
+	isComplex = true
+	isPower = false
+    isCorrelated = false
+}
+new rlaSpect = AsciiSpectrum { file = "realToneAmpLong.txt" }
+CopySignal rlaSpectGen rlaSpect
+##print rlaSpect
+new rlaSpectStandard = AsciiSpectrum {
+    file = "$SSTHOME/standard/realToneAmpLong.txt"
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 0.0; last = 500; number = 129 }
+	isComplex = true
+	isPower = false
+    isCorrelated = false
+}
+print "\n***** Test RLA: Long real tone, amplitude spectrum in segments."
+# Amplitude of peak is 0.09050967
+#	= peak amplitude (sqrt(2)) * window ave (1/2) / 2 * df (3.90625)
+CompareSignals {
+   signal = rlaSpect 
+   standard = rlaSpectStandard
+   message = "certifySpectFmSig -- Test RLA: Long real tone, amplitude spectrum in segments."
+}
+
+# Fourth test signal is a long complex tone, analyzed in segments
+new cpxConstLong = ModulatedTone {
+	isComplex = true
+	frequency = 10000
+		 # 160 cycles, 4x oversampled:
+	times = { first = 0.0; last = 1.28; rate = 500 }
+	level = 0	# dB; rms and max is 1.0
+	frequencyModulation = ConstantFunction { value = 10125 }
+}
+
+# Power spectrum.  Window chosen for clean, narrow peak.
+new clpSpectGen = SpectrumFromSignal {
+    inSignal = cpxConstLong 
+    window = TaylorWindow
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 10097.65625; last = 10152.34375; number = 15 }
+    isComplex = false
+    isPower = true
+    isCorrelated = false
+}
+new clpSpect = AsciiSpectrum { file = "cpxTonePowerLong.txt" }
+CopySignal clpSpectGen clpSpect
+##print clpSpect
+new clpSpectStandard = InternalSpectrum {
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 10097.65625; last = 10152.34375; number = 15 }
+    isComplex = false
+    isPower = true
+    isCorrelated = false
+	samples = (
+3.895857e-04 4.707768e-04 7.631573e-04 1.127023e-03 2.231337e-03
+6.852384e-03 2.811926e-02 4.618581e-02 2.811925e-02 6.852384e-03
+2.231337e-03 1.127022e-03 7.631573e-04 4.707768e-04 3.895859e-04
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+0            1.414770e-08 1.159536e-07 5.387305e-07 1.641692e-06
+2.710521e-05 3.822793e-02 1.794853e-01 3.822793e-02 2.710521e-05
+1.641692e-06 5.387305e-07 1.159536e-07 1.414770e-08 0
+3.876644e-04 4.726628e-04 7.611346e-04 1.128726e-03 2.229034e-03
+6.855854e-03 2.805917e-02 4.631377e-02 2.805916e-02 6.855852e-03
+2.229035e-03 1.128726e-03 7.611346e-04 4.726627e-04 3.876644e-04
+	)
+}
+print "\n***** Test CLP: Long complex tone, power spectrum in segments."
+CompareSignals {
+  signal = clpSpect 
+  standard = clpSpectStandard
+  message = "certifySpectFmSig -- Test CLP: Long complex tone, power spectrum in segments."
+}
+
+# Complex amplitude spectrum
+# Window is chosen for later reconstruction using SignalFromSpectrum.
+new claSpectGen = SpectrumFromSignal {
+	inSignal = cpxConstLong
+    window = HannWindow
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 9750; last = 10250; number = 129 }
+	isComplex = true
+	isPower = false
+    isCorrelated = false
+}
+new claSpect = AsciiSpectrum { file = "cpxToneAmpLong.txt" }
+CopySignal claSpectGen claSpect
+##print claSpect
+new claSpectStandard = AsciiSpectrum {
+    file = "$SSTHOME/standard/cpxToneAmpLong.txt"
+	times = { first = 0.0; last = 1.28; number = 11 }
+	frequencies = { first = 9750; last = 10250; number = 129 }
+	isComplex = true
+	isPower = false
+    isCorrelated = false
+}
+print "\n***** Test CLA: Long complex tone, amplitude spectrum in segments."
+# Amplitude of peak is 0.128
+#	= peak amplitude (1) * window ave (1/2) * window len (128) * dt (0.002)
+#	= peak amplitude (1) * window ave (1/2) / df (3.90625)
+CompareSignals {
+  signal = claSpect 
+  standard = claSpectStandard
+  message = "certifySpectFmSig -- Test CLA: Long complex tone, amplitude spectrum in segments."
+}
+
+# Boundary case: One real sample
+new realImpulse = InternalSignal {
+	isComplex = false
+		 # 32 cycles, 4x oversampled:
+	times = { first = 0.0; last = 0.0; interval = 0.01 }
+    # Amplitude is chosen to give unit energy (power*length)
+    buf = ( 10.0 )
+}
+
+# Power spectrum (always normalized per Hz)
+new rimpSpectGen = SpectrumFromSignal {
+	inSignal = realImpulse
+	# default isComplex=false, isPower=true, isCorrelated=false
+	# default times = { first = 0.0; last = 0.0; interval = 0.01 }
+	# default frequencies = { first = 0.0; last = 0.0; interval = 100 }
+	# default nfft=1, overlapFraction=0
+	# default window=RectangularWindow
+}
+##print rimpSpectGen	# to see defaults
+new rimpSpect = AsciiSpectrum { file = "realImpulsePowerSpect.txt" }
+CopySignal rimpSpectGen rimpSpect
+new rimpSpectStandard = InternalSpectrum {
+	isComplex = false
+	times = { first = 0.0; last = 0.0; interval = 0.01 }
+	frequencies = { first = 0.0; last = 0.0; interval = 100 }
+	samples = ( 1.0 )
+}
+print "\n***** Test RIMP: Real impulse, power spectrum"
+CompareSignals {
+  signal = rimpSpect 
+  standard = rimpSpectStandard
+  message = "certifySpectFmSig -- Test RIMP: Real impulse, power spectrum."
+}
+
+# Complex amplitude spectrum
+new rimaSpectGen = SpectrumFromSignal {
+	inSignal = realImpulse
+	isComplex = true
+	isPower = false
+	# default times = { first = 0.0; last = 0.0; interval = 0.01 }
+	# default frequencies = { first = 0.0; last = 0.0; interval = 100 }
+	# default nfft=1, overlapFraction=0
+	# default window=RectangularWindow
+}
+#print rimaSpectGen	# to see defaults
+new rimaSpect = AsciiSpectrum { file = "realImpulseAmpSpect.txt" }
+CopySignal rimaSpectGen rimaSpect
+new rimaSpectStandard = InternalSpectrum {
+	isComplex = true
+	isPower = false
+	times = { first = 0.0; last = 0.0; interval = 0.01 }
+	frequencies = { first = 0.0; last = 0.0; interval = 100 }
+		# Normalization is amp * number of points * input dt
+		# = peak amp / (2 * output df)
+	samples = ( 0.1 0.0 )
+}
+print "\n***** Test RIMA: Real impulse, amplitude spectrum."
+CompareSignals {
+  signal = rimaSpect 
+  standard = rimaSpectStandard
+  message = "certifySpectFmSig -- Test RIMA: Real impulse, amplitude spectrum"
+}

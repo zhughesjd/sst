@@ -1,0 +1,9 @@
+# tranSpect.sst: Specify the spectrum of the transmit pulse
+# $Id: tranSpect.sst 4951 2006-12-29 00:59:57Z rpg $
+
+new tranSpect = SIOSpectrum {
+    file = "tranSpect.sio"
+    times = tranSpectTimes          # see grids.sst
+    frequencies = tranFreqs         # see grids.sst
+    isPower = true
+}

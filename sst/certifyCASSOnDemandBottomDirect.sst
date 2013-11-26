@@ -1,0 +1,153 @@
+# certifyCASSOnDemandBottomDirect: Test DirectSignal with the cassBottom option of CASSEigenrayRun
+
+# $Id: certifyCASSOnDemandBottomDirect.sst 5212 2008-02-05 20:31:48Z billk $
+
+#traceEigenrayModel = true
+
+print "\n***** Test scattering with a GriddedBoundary & a cass bottom "
+
+read "jacksonBottoms.sst"
+
+new sandyGravelLocale = 
+       BoundaryLocale { x = 600; y = 0.0; boundary = SandyGravel }
+
+new clayLocale = 
+       BoundaryLocale { x = 0.0; y = 0.0; boundary = Clay }
+
+pulse = ModulatedTone {
+        frequency = 30000
+        order = 0
+        times = {       # One sample extending from 0 to 10 ms
+                first = 0.005
+                interval = 0.01
+                number = 1
+        }
+        level = 200             # dB // uPa^2 m^2
+ }
+
+######   Ocean Environment Specification ######
+
+new ocean = Ocean {
+ 
+        depth = 500.0   # constant (meters)
+
+        # Surface is isotropic
+        surface = Boundary {
+                totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+                backStrength = ConstantDbFunction2 { decibels = -40 }
+        }
+       
+        bottom  = GriddedBoundary {
+                     boundaryList = BoundaryLocaleList (
+                         sandyGravelLocale, clayLocale)
+                  } 
+
+        # One volume reverb layer from 700-900 meters
+        volume = ReverbList (
+                ReverbLayer {
+                        minDepth = 700          # m
+                        maxDepth = 900          # m
+                        strengthDB = -50.0      # dB // m^-1
+                }
+        )
+        soundspeed = 1500       # m/s
+        # Volume attenuation:  Use zero if you wish to compare reverb with an
+        # analytic expression that is ignorant of attenuation.
+        volumeAttenuation = ThorpAttenuation
+}
+
+new source1 = Source {
+	beams  = ( OmniBeam )
+	signal = pulse
+	trajectory = Trajectory (  	
+	     {
+		time = 0.0                         # s
+		position = ( 0.0 0.0 60.0 )        # m
+	}
+   )
+}
+
+new receiver1 = Sonar {
+	beams = ( OmniBeam )
+	trajectory = Trajectory (  	
+	     {
+		time = 0.0                         # s
+		position = ( 540.0 0.0 60.0 )        # m
+	}
+   )
+}
+
+eigenrayModel1 = CASSOnDemand {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        cassBottom = SandyGravel
+        maximumSurfaceBounces = 0
+        maximumBottomBounces = 1
+        maximumEigenrays = 20
+        filterLength = 9
+        verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+        ranges = UniformGrid { first=10; last=700; interval=10 }
+        frequencies = UniformGrid{ first=28000; last=32000; number=3 }
+        maximumEigenraysPerSignature = 2
+}
+
+
+directGenerator1 = DirectSignal {
+	eigenrayModel = eigenrayModel1
+	times = {
+		first = 0.68
+		last = 0.70
+		rate = 4000
+	}
+	frequency = 30000
+	source = source1
+	receiver = receiver1
+}
+
+new cassOnDemandBottomDirect_1 = BareAsciiSignal { file = "cassOnDemandBottomDirect_1.txt" }
+CopySignal directGenerator1 cassOnDemandBottomDirect_1
+CompareSignals {
+	  signal = cassOnDemandBottomDirect_1
+      standard = BareAsciiSignal {
+		# Note that we use the certifyCASSBottomDirect standard files for comparison
+		file = "$SSTHOME/standard/cassBottomDirect_1.txt"
+      }
+      message = "certifyCassOnDemandBottomDirect, first test"
+}
+
+new source2 = Source {
+	beams  = ( OmniBeam )
+	signal = pulse
+	trajectory = Trajectory (  	
+	     {
+		time = 0.0                         # s
+		position = ( 60.0 0.0 60.0 )        # m
+	}
+   )
+}
+
+new receiver2 = Sonar {
+	beams = (OmniBeam)
+	trajectory = Trajectory (  	
+	     {
+		time = 0.0                         # s
+		position = ( 600.0 0.0 60.0 )        # m
+	}
+   )
+}
+
+directGenerator2 = directGenerator1 {
+	eigenrayModel = eigenrayModel1
+	source = source2
+	receiver = receiver2
+}
+new cassOnDemandBottomDirect_2 = BareAsciiSignal { file = "cassOnDemandBottomDirect_2.txt" }
+CopySignal directGenerator2 cassOnDemandBottomDirect_2
+
+CompareSignals {
+	  signal = cassOnDemandBottomDirect_2
+      standard = BareAsciiSignal {
+		# Note that we use the certifyCASSBottomDirect standard files for comparison
+		file = "$SSTHOME/standard/cassBottomDirect_2.txt" 
+      }
+      message = "certifyCassOnDemandBottomDirect, second test"
+}

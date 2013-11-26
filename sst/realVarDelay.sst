@@ -1,0 +1,66 @@
+# realVarDelay.sst: Variable delay on real HarmonicFamily signal
+# $Id: realVarDelay.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# echoInput = true
+
+# The test signal contains 13 equal-amplitude sines, placing the top
+# Doppler-shifted "note" at 82% of Nyquist.
+new rharfam = HarmonicFamily {
+	isComplex = false
+	times = { first = 0; last = 1.1; rate = 8000 }
+	order = 7
+	fundamental = 200
+	harmonics = (
+  # number	ampDB	phaseDeg
+	1		0.0		-90
+	2		0.0		-90
+	3		0.0		-90
+	4		0.0		-90
+	5		0.0		-90
+	6		0.0		-90
+	7		0.0		-90
+	8		0.0		-90
+	9		0.0		-90
+	10		0.0		-90
+	11		0.0		-90
+	12		0.0		-90
+	13		0.0		-90
+	)
+}
+new rharmonics = SIOSignal {
+	file = "RVDHarmonics.sio"
+}
+CopySignal rharfam rharmonics
+
+# The delay is designed to play "do re me do" in G major (approx.).
+# The frequencies are 200, 224.5, 252.0, 200
+new delay1 = InternalSignal {
+	isComplex = false
+	order = 1
+	times = { first = 0; last = 1; number = 5 }
+	buf = ( 0.0 0.0 -0.0306155 -0.0955958 -0.0955958 )
+}
+
+new rdelay = VarDelay {
+	isComplex = false
+	times = { first = 0; last = 1; rate = 8000 }
+    inSignal = rharmonics
+    commonDelayBuf = delay1
+}
+
+new rdelayed = SIOSignal { file = "RVDelayed.sio" }
+
+CopySignal rdelay rdelayed
+
+# Make listenable sound
+new harmonicSound = SoundSignal {
+	file = "RVDHarmonics.snd"
+	clipDB = 24
+}
+CopySignal rharmonics harmonicSound
+
+new delayedSound = SoundSignal {
+	file = "RVDelayed.snd"
+	clipDB = 24
+}
+CopySignal rdelayed delayedSound

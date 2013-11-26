@@ -1,0 +1,44 @@
+# Tail end of SST run script.
+# Must be preceded by definitions of theSource, theOcean, theEM, theReceiver,
+# sampleRate, reverbFileName, and endTime
+
+# $Id$
+
+### Specify reverb params ###
+theDDD = DirectionalDopplerDensity {
+    frequencies = (1000)	#090610 Consider trying 900, 1000, 1100 triplet to test firCoeffs
+    times = UniformGrid { first=0; last=endTime; rate=sampleRate }
+    dopplers = UniformGrid { first=.97; last=1.03; interval=.001 }
+    scatFunTimes = UniformGrid { first=0; last=endTime; interval=.05 }
+    # What type of reverberation?
+    doSurface = true
+    doBottom = false
+    doVolume = false
+    ocean = theOcean
+    source = theSource
+    receiver = theReceiver
+    eigenrayModel = theEM
+    ocean = theOcean
+
+    tesselation = GriddedTesselation {}	
+}
+# For Testing: Dump the directional doppler density function
+#output = BareAsciiSignal { file = "DDDFun.txt" }
+#CopySignal theDDD output
+
+### Describe what we want to do ###
+# Create a "DDReverbSignal" for this monostatic scenario
+result = DDReverbSignal { 
+    dopplerDensity = theDDD 
+    sourceSignal = theSource.signal 
+    isComplex = theSource.signal.isComplex 
+    frequency = theSource.signal.frequency 
+    # In a more realistic simulation, the reverb response would need to be
+    # sampled for a longer period of time than this, but to keep this timing
+    # experiment moving along, let's just generate a short output
+    times = { first=0; last=endTime; rate = sampleRate }
+} 
+
+### Generate file output ###
+output = SIOSignal { file.filename=reverbFileName }
+CopySignal result output 500

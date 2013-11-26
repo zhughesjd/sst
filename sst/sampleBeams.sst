@@ -1,0 +1,84 @@
+# sampleBeams.in: 6 by 6 Dolph-Chebyshev, 6 degrees left and right
+# $Id: sampleBeams.sst 4951 2006-12-29 00:59:57Z rpg $
+
+## These are the beam patterns of a forward-looking 6 by 6 Dolph-Chebyshev
+## array, electronically steered 6 degrees left and right.  We choose to
+## ignore everything more than 72 degrees from the axis (i.e. all but the
+## main lobe and the first two sidelobes).  We implement each beam as the
+## product of the beam patterns of two crossed DCLineBeams and a 72-degree
+## ConeBeam.  The axes of the DCLineBeams are chosen along the
+## edges of the square array.
+
+new verticalDCLine = DCLineBeam {
+	axisElevation = 90	# vertical, pointing down
+	axisBearing = 0
+	numElements = 6
+	spacing = 0.05	# half wavelength at 15 kHz
+	ratioDB = 30	# Sidelobe suppression ratio, dB >0
+	steerDelay = 0	# unsteered
+}
+
+new beamLeft = ProductBeam {
+	inBeams = (
+		# The ConeBeam limits the result to the forward hemisphere.
+		# It comes first for efficiency, since the others are not evaluated
+		# if the ConeBeam is zero.
+		ConeBeam { axisElevation = 0; axisBearing = -6; halfAngle = 72 },
+		
+		# Vertical DCLineBeam, unsteered:
+		verticalDCLine,
+		
+		# Horizontal DCLineBeam, steered 6 degrees left:
+		DCLineBeam {
+			axisElevation = 0
+    		axisBearing = 90	# Horizontal, pointing starboard
+			numElements = 6
+			spacing = 0.05	# half wavelength at 15 kHz
+			ratioDB = 30	# Sidelobe suppression ratio, dB >0
+			steerDelay = -3.48428e-6	# steered 6 degrees port
+				# = sin( angle ) * spacing / soundspeed
+		}               # Beam pattern for Dolph-Chebeshev weighted line array
+	)
+}
+
+new beamRight = ProductBeam {
+	inBeams = (
+		# The ConeBeam limits the result to the forward hemisphere.
+		# It comes first for efficiency, since the others are not evaluated
+		# if the ConeBeam is zero.
+		ConeBeam { axisElevation = 0; axisBearing = 6; halfAngle = 72 },
+		
+		# Vertical DCLineBeam, unsteered:
+		verticalDCLine,
+		
+		# Horizontal DCLineBeam, steered 6 degrees left:
+		DCLineBeam {
+			axisElevation = 0
+    		axisBearing = 90	# Horizontal, pointing starboard
+			numElements = 6
+			spacing = 0.05	# half wavelength at 15 kHz
+			ratioDB = 30	# Sidelobe suppression ratio, dB >0
+			steerDelay = 3.48428e-6	# steered 6 degrees starboard
+				# = sin( angle ) * spacing / soundspeed
+		}               # Beam pattern for Dolph-Chebeshev weighted line array
+	)
+}
+
+
+new beamSampleLeft = EBFTableBeam {
+	originalBeam = beamLeft
+    offset = ( 0, 0, 0 )   # m
+	elevations = { first = -74; last = 74; interval = 2 }
+	bearings = { first = -80; last = 68; interval = 2 }
+	frequencies = { first = 15000; last = 15000; number = 1 }
+    isComplex = true
+}   # End of beamSampleLeft
+
+new beamSampleRight = EBFTableBeam {
+	originalBeam = beamRight
+    offset = ( 0, 0, 0 )   # m
+	elevations = { first = -74; last = 74; interval = 2 }
+	bearings = { first = -68; last = 80; interval = 2 }
+	frequencies = { first = 15000; last = 15000; number = 1 }
+    isComplex = true
+}   # End of beamSampleLeft

@@ -1,0 +1,7 @@
+# Sample user-supplied receive beams
+# 3 Omni elements spaced in a line, 1 meter apart
+SST_File_ReceiveBeams = BeamList(
+    OmniBeam:{ offset=(   1.0, 0, 0 ) },
+    OmniBeam:{ offset=(   2.0, 0, 0 ) },
+    OmniBeam:{ offset=(   3.0, 0, 0 ) }
+)

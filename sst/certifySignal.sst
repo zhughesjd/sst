@@ -1,0 +1,692 @@
+# certifySignal.in: Certification tests for SST Signals
+# $Id: certifySignal.sst 5584 2008-11-20 23:46:35Z kwiley $
+
+# echoInput = true
+
+## First we look at InternalSignal.
+
+print "\n***** Original InternalSignal:"
+new sig1 = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0
+        last = 0.04
+        interval = 0.01
+    }
+    buf = ( 1.1, 1.2, 1.3, 1.4,
+		    2.1, 2.2, 2.3, 2.4,
+			3.1, 3.2, 3.3, 3.4,
+			4.1, 4.2, 4.3, 4.4,
+			5.1, 5.2, 5.3, 5.4 )
+}
+print "***** Check buf increasing n.m *****"
+print sig1
+
+print "\n***** Empty InternalSignal:"
+new sig2 = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0
+        last = 0.04
+        interval = 0.01
+    }
+}
+print "***** Check buf EMPTY *****"
+print sig2
+
+print "\n***** Comparing original to a copy into existing empty InternalSignal."
+CopySignal ( sig1, sig2 )
+# print sig2
+CompareSignals {
+  signal = sig2 
+  standard = sig1 
+  message = "certifySignal -- Comparing original to a copy into existing empty InternalSignal"
+}
+
+print "\n***** This InternalSignal has been cleared.  Should contain zeroes."
+ClearSignal sig2
+print "***** Check buf zeroes *****"
+print sig2
+
+print "\n***** Comparing an InternalSignal to a copy into a new one."
+new sig2r = InternalSignal {}
+CopySignal ( sig1, sig2r )
+CompareSignals {
+  signal =  sig2r
+  standard = sig1 
+  message = "certifySignal -- Comparing an InternalSignal to a copy into a new one"
+}
+
+## Now look at BareAsciiSignal.
+
+print "\nComparing InternalSignal original to BareAsciiSignal copy."
+new sig3 = BareAsciiSignal { file = "sig3.txt" }
+CopySignal ( sig1, sig3 )
+# print sig3
+CompareSignals {
+  signal = sig3 
+  standard = sig1 
+  message = "certifySignal -- Comparing InternalSignal original to BareAsciiSignal copy"
+}
+
+print "\n***** Comparing InternalSignal copy to BareAsciiSignal original."
+CopySignal ( sig3, sig2 )
+CompareSignals {
+  signal =  sig2
+  standard = sig3 
+  message = "certifySignal -- Comparing InternalSignal copy to BareAsciiSignal original"
+}
+
+print "\n***** Ditto, same BareAsciiSignal file via new object."
+new sig3r = BareAsciiSignal { file = "sig3.txt" }
+CompareSignals {
+  signal = sig3r
+  standard = sig2
+  message = "certifySignal -- Ditto, same BareAsciiSignal file via new object"
+}
+
+## Do the same for SIOSignal.
+
+print "\n***** Comparing InternalSignal original to SIOSignal copy."
+new sig4 = SIOSignal {
+    file.filename = "sig4.sio"
+}
+CopySignal ( sig1, sig4 )
+# print sig4
+CompareSignals {
+  signal = sig4
+  standard = sig1 
+  message = "certifySignal -- Comparing InternalSignal original to SIOSignal copy"
+}
+
+print "\n***** Comparing InternalSignal copy to SIOSignal original."
+CopySignal ( sig4, sig2 )
+CompareSignals ( sig2, sig4 )
+
+print "\n***** Ditto, same SIO file via new object."
+new sig4r = SIOSignal { file = "sig4.sio" }
+CompareSignals {
+  signal = sig2
+  standard = sig4r 
+  message = "certifySignal -- Ditto, same SIO file via new object"
+}
+
+print "\n***** Comparing InternalSignal copy to SIOSignal original."
+CopySignal ( sig4, sig2 )
+CompareSignals {
+  signal = sig2
+  standard = sig4 
+  message = "certifySignal -- Comparing InternalSignal copy to SIOSignal original"
+}
+
+print "\n***** Ditto, same SIO file via new object."
+new sig4r2 = SIOSignal { file = "sig4.sio" }
+CompareSignals {
+  signal = sig2
+  standard = sig4r2 
+  message = "certifySignal -- Ditto, same SIO file via new object"
+}
+
+## Do the same for floating-point BinarySignal.
+
+print "\n***** Comparing InternalSignal original to complex unencoded BinarySignal copy."
+new sig5c = BinarySignal {
+    file = "sig5c.bin"
+	isComplex = false
+	numChannels = 1
+	clipDB = 0
+	encoding = UNENCODED
+}
+CopySignal ( sig1, sig5c )
+# print sig5c
+CompareSignals {
+  signal = sig5c
+  standard = sig1 
+  message = "certifySignal --  Comparing InternalSignal original to complex unencoded BinarySignal copy"
+}
+
+
+# For real BinarySignal and SoundSignal, the standard is a windowed tone at A
+new tone = ModulatedTone {
+	isComplex = false
+	times = { first=0; last=1; rate=8000 }
+	level = 15	# dB
+	frequencyModulation = ConstantFunction{ value = 440 }
+	envelope = HannWindow{ start=0; end=1 }
+}
+
+## Do the same for floating-point BinarySignal.
+
+print "\n***** Comparing ModulatedTone original to unencoded BinarySignal copy."
+new sig5u = BinarySignal {
+    file = "sig5u.bin"
+	isComplex = false
+	numChannels = 1
+	encoding = UNENCODED
+}
+CopySignal ( tone, sig5u )
+# print sig5u
+CompareSignals {
+  signal = sig5u
+  standard = tone 
+  message = "certifySignal -- Comparing ModulatedTone original to unencoded BinarySignal copy"
+}
+
+## Do the same for short BinarySignal.
+
+print "\n***** Comparing ModulatedTone original to short BinarySignal copy."
+new sig5s = BinarySignal {
+    file = "sig5s.bin"
+	isComplex = false
+	numChannels = 1
+	encoding = LINEAR_16
+	clipDB = 20
+}
+CopySignal ( tone, sig5s )
+# print sig5s
+CompareSignals {
+  signal = sig5s
+  standard =  tone 
+  message = "certifySignal -- Comparing ModulatedTone original to short BinarySignal copy"
+}
+
+## Do the same for float SoundSignal.
+
+print "\n***** Comparing ModulatedTone original to float SoundSignal copy."
+new sig6f = SoundSignal {
+    file = "sig6f.snd"
+	encoding = FLOAT
+	clipDB = 20
+}
+CopySignal ( tone, sig6f )
+# print sig6f
+CompareSignals {
+  signal = sig6f
+  standard = tone 
+  message = "certifySignal -- Comparing ModulatedTone original to float SoundSignal copy"
+}
+
+## Do the same for 16-bit SoundSignal.
+
+print "\n***** Comparing ModulatedTone original to 16-bit SoundSignal copy."
+new sig6s = SoundSignal {
+    file = "sig6s.snd"
+	encoding = LINEAR_16
+	clipDB = 20
+}
+CopySignal ( tone, sig6s )
+# print sig6s
+CompareSignals {
+  signal = sig6s
+  standard = tone 
+  message = "certifySignal -- Comparing ModulatedTone original to 16-bit SoundSignal copy"
+}
+
+## Do the same for mu-law SoundSignal.
+
+print "\n***** Comparing ModulatedTone original to mu-law SoundSignal copy."
+new sig6u = SoundSignal {
+    file = "sig6u.snd"
+	encoding = MULAW_8
+	clipDB = 20
+}
+CopySignal ( tone, sig6u )
+# print sig6u
+print "***** Expect max rel diff = 0.045 for mu-law sound *****"
+CompareSignals {
+  signal = sig6u
+  standard = tone
+  tolerance = 0.046
+  message = "certifySignal -- Expect max rel diff = 0.045 for mu-law sound"
+}
+
+## Do the same for a-law SoundSignal.
+
+print "\n***** Comparing ModulatedTone original to a-law SoundSignal copy."
+new sig6a = SoundSignal {
+    file = "sig6a.snd"
+	encoding = ALAW_8
+	clipDB = 20
+}
+CopySignal ( tone, sig6a )
+# print sig6a
+print "***** Expect max rel diff = 0.046 for a-law sound *****"
+CompareSignals {
+  signal = sig6a
+  standard = tone 
+  tolerance = 0.047
+  message = "certifySignal -- Expect max rel diff = 0.046 for a-law sound"
+}
+
+## Do the same for 32-bit SoundSignal.
+
+print "\n***** Comparing ModulatedTone original to 32-bit SoundSignal copy."
+new sig6l = SoundSignal {
+    file = "sig6l.snd"
+	encoding = LINEAR_32
+	clipDB = 20
+}
+CopySignal ( tone, sig6l )
+# print sig6l
+CompareSignals {
+  signal= sig6l
+  standard = tone 
+  message = "certifySignal -- Comparing ModulatedTone original to 32-bit SoundSignal copy"
+}
+
+## Do the same for 8-bit SoundSignal.
+
+print "\n***** Comparing ModulatedTone original to 8-bit SoundSignal copy."
+new sig6b = SoundSignal {
+    file = "sig6b.snd"
+	encoding = LINEAR_8
+	clipDB = 20
+}
+CopySignal ( tone, sig6b )
+# print sig6b
+print "***** Expect max rel diff = 0.011 for 8-bit sound *****"
+CompareSignals {
+  signal = sig6b
+  standard = tone 
+  message = "certifySignal -- Comparing ModulatedTone original to 8-bit SoundSignal copy"
+  tolerance = 0.011
+}
+
+## Do the same for double SoundSignal.
+
+print "\n***** Comparing ModulatedTone original to double SoundSignal copy."
+new sig6d = SoundSignal {
+    file = "sig6d.snd"
+	encoding = DOUBLE
+	clipDB = 20
+}
+CopySignal ( tone, sig6d )
+# print sig6d
+CompareSignals {
+  signal = sig6d
+  standard = tone 
+  message = "certifySignal -- Comparing ModulatedTone original to double SoundSignal copy"
+}
+
+## Test the SumSignal object.
+print "\n***** SumSignal: Add an InternalSignal to a BareAsciiSignal, forming an SIOSignal"
+new sig20 = SIOSignal { file = "sig20.sio" }
+CopySignal SumSignal{ inSignals = ( sig1, sig3 ) } sig20
+
+new std20 = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0
+        last = 0.04
+        interval = 0.01
+    }
+    buf = (  2.2,  2.4,  2.6,  2.8,
+			 4.2,  4.4,  4.6,  4.8,
+			 6.2,  6.4,  6.6,  6.8,
+			 8.2,  8.4,  8.6,  8.8,
+			10.2, 10.4, 10.6, 10.8 )
+}
+CompareSignals {
+  signal = sig20
+  standard = std20 
+  message = "certifySignal -- SumSignal: Add an InternalSignal to a BareAsciiSignal, forming an SIOSignal"
+}
+
+## Test SumSignal over a variable times grid
+new sig20b = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0.05
+        last = 0.09
+        interval = 0.01
+    }
+    buf = ( 1.1, 1.2, 1.3, 1.4,
+	    2.1, 2.2, 2.3, 2.4,
+	    3.1, 3.2, 3.3, 3.4,
+	    4.1, 4.2, 4.3, 4.4,
+	    5.1, 5.2, 5.3, 5.4 )
+}
+
+new sig20c = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0.15
+        last = 0.19
+        interval = 0.01
+    }
+    buf = ( 1.1, 1.2, 1.3, 1.4,
+	    2.1, 2.2, 2.3, 2.4,
+  	    3.1, 3.2, 3.3, 3.4,
+	    4.1, 4.2, 4.3, 4.4,
+	    5.1, 5.2, 5.3, 5.4 )
+}
+
+print "\n***** SumSignal: Add signals with different times, specify output times"
+new sig20d = SIOSignal { file = "sig20d.sio" }
+CopySignal SumSignal{ 
+   inSignals = ( sig20b, sig20c ) 
+    times = {
+        first = 0.08
+        last = 0.2
+        interval = 0.01
+    }
+} sig20d
+
+new std20d = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0.08
+        last = 0.20
+        interval = 0.01
+    }
+    buf = ( 4.1, 4.2, 4.3, 4.4,
+            5.1, 5.2, 5.3, 5.4,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            1.1, 1.2, 1.3, 1.4,
+            2.1, 2.2, 2.3, 2.4,
+            3.1, 3.2, 3.3, 3.4,
+            4.1, 4.2, 4.3, 4.4,
+            5.1, 5.2, 5.3, 5.4,
+            0.0, 0.0, 0.0, 0.0 )
+}
+CompareSignals {
+  signal = sig20d
+  standard = std20d 
+  message = "certifySignal -- SumSignal: Add signals with different times, specify output times"
+}
+
+print "\n***** SumSignal: Add signals with different times, unspecified output times"
+new sig20e = SIOSignal { file = "sig20e.sio" }
+CopySignal SumSignal{ 
+   inSignals = ( sig20b, sig20c ) 
+} sig20e
+#print sig20e
+
+new std20e = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0.05
+        last = 0.19
+        interval = 0.01
+    }
+    buf = ( 1.1, 1.2, 1.3, 1.4,
+            2.1, 2.2, 2.3, 2.4,
+            3.1, 3.2, 3.3, 3.4,
+            4.1, 4.2, 4.3, 4.4,
+            5.1, 5.2, 5.3, 5.4,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            1.1, 1.2, 1.3, 1.4,
+            2.1, 2.2, 2.3, 2.4,
+            3.1, 3.2, 3.3, 3.4,
+            4.1, 4.2, 4.3, 4.4,
+            5.1, 5.2, 5.3, 5.4 )
+}
+CompareSignals {
+  signal = sig20e
+  standard = std20e 
+  message = "certifySignal -- SumSignal: Add signals with different times, unspecified output times"
+}
+
+## Test the ScaleSignal object.
+print "\n***** ScaleSignal: Scale an InternalSignal up by 2.0, forming an SIOSignal"
+new sig21 = SIOSignal { file = "sig21.sio" }
+CopySignal ScaleSignal{ inSignal = sig1; scale = 2.0 } sig21
+CompareSignals {
+  signal = sig21
+  standard = std20 
+  message = "certifySignal -- ScaleSignal: Scale an InternalSignal up by 2.0, forming an SIOSignal"
+}
+
+## Test the MergeSignal object.
+new sig22 = InternalSignal {}
+CopySignal SelectChannel{ inSignal = sig1; channel = 2 } sig22
+new sig23 = InternalSignal {}
+CopySignal SelectChannel{ inSignal = sig1; channel = 1 } sig23
+
+print "\n***** MergeSignal: Merge two 1-channel complex signals into a 2-channel signal"
+new sig24 = InternalSignal {}
+CopySignal MergeSignal{ inSignals = ( sig22, sig23 ) } sig24
+
+new std24 = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0
+        last = 0.04
+        interval = 0.01
+    }
+    buf = ( 1.3, 1.4, 1.1, 1.2,
+		    2.3, 2.4, 2.1, 2.2,
+			3.3, 3.4, 3.1, 3.2,
+			4.3, 4.4, 4.1, 4.2,
+			5.3, 5.4, 5.1, 5.2 )
+}
+CompareSignals {
+  signal = sig24
+  standard = std24 
+  message = "certifySignal -- MergeSignal: Merge two 1-channel complex signals into a 2-channel signal"
+}
+
+## Test MergeSignal over a variable times grid
+new sig24a = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0.05
+        last = 0.09
+        interval = 0.01
+    }
+    buf = ( 1.1, 1.2,
+            2.1, 2.2,
+            3.1, 3.2,
+            4.1, 4.2,
+            5.1, 5.2 )
+}
+
+new sig24b = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0.15
+        last = 0.19
+        interval = 0.01
+    }
+    buf = ( 1.3, 1.4,
+            2.3, 2.4,
+            3.3, 3.4,
+            4.3, 4.4,
+            5.3, 5.4 )
+}
+
+print "\n***** MergeSignal: Merge signals with different times, specify output times"
+new sig24c = SIOSignal { file = "sig24c.sio" }
+CopySignal MergeSignal{ 
+   inSignals = ( sig24b, sig24a ) 
+    times = {
+        first = 0.08
+        last = 0.2
+        interval = 0.01
+    }
+} sig24c
+
+new std24c = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0.08
+        last = 0.20
+        interval = 0.01
+    }
+    buf = ( 0.0, 0.0, 4.1, 4.2,
+            0.0, 0.0, 5.1, 5.2,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            1.3, 1.4, 0.0, 0.0,
+            2.3, 2.4, 0.0, 0.0,
+            3.3, 3.4, 0.0, 0.0,
+            4.3, 4.4, 0.0, 0.0,
+            5.3, 5.4, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0 )
+}
+CompareSignals {
+  signal = sig24c
+  standard = std24c 
+  message = "certifySignal -- MergeSignal: Merge signals with different times, specify output times"
+}
+
+print "\n***** MergeSignal: Merge signals with different times, unspecified output times"
+new sig24d = SIOSignal { file = "sig24d.sio" }
+CopySignal MergeSignal{ 
+   inSignals = ( sig24b, sig24a ) 
+} sig24d
+
+new std24d = InternalSignal {
+    frequency = 15000
+    isComplex = true
+    times = {
+        first = 0.05
+        last = 0.19
+        interval = 0.01
+    }
+    buf = ( 0.0, 0.0, 1.1, 1.2,
+            0.0, 0.0, 2.1, 2.2,
+            0.0, 0.0, 3.1, 3.2,
+            0.0, 0.0, 4.1, 4.2,
+            0.0, 0.0, 5.1, 5.2,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            1.3, 1.4, 0.0, 0.0,
+            2.3, 2.4, 0.0, 0.0,
+            3.3, 3.4, 0.0, 0.0,
+            4.3, 4.4, 0.0, 0.0,
+            5.3, 5.4, 0.0, 0.0 )
+}
+CompareSignals {
+  signal = sig24d
+  standard = std24d 
+  message = "certifySignal -- MergeSignal: Merge signals with different times, unspecified output times"
+}
+
+## Test the FrequencyShiftSignal object.
+print "\n***** FrequencyShiftSignal: Shift the frequency of an InternalSignal up 10 Hz"
+new sig25a = InternalSignal {}
+new gen25a = FrequencyShiftSignal:{
+	inSignal = sig1
+	frequencyShift = 10
+}
+CopySignal gen25a sig25a
+
+new std25 = InternalSignal: {
+    frequency = 15000
+    times = {
+        first = 0
+        last = 0.04
+        interval = 0.01
+    }
+    buf = (
+            1.1,            1.2,            1.3,            1.4,
+        0.40580,        3.01419,        0.45006,        3.29355,
+       -2.08543,        3.93713,       -2.21384,        4.18914,
+       -5.26141,        2.60146,       -5.51342,        2.72987,
+       -7.18247,       -1.20918,       -7.46183,       -1.25343
+)
+}       # AR:own.
+
+CompareSignals {
+  signal = sig25a
+  standard = std25 
+  message = "certifySignal -- FrequencyShiftSignal: Shift the frequency of an InternalSignal up 10 Hz"
+}
+
+print "\n***** Shift frequency down 14790 Hz with center freq = 200"
+new sig25b = InternalSignal {}
+new gen25b = FrequencyShiftSignal:{
+	frequency = 200
+	inSignal = sig1
+	frequencyShift = -14790
+}
+CopySignal gen25b sig25b
+print "\n***** Compare FrequencyShiftSignal result to correct InternalSignal"
+CompareSignals {
+  signal = sig25b
+  standard = std25 
+  message = "certifySignal -- Compare FrequencyShiftSignal result to correct InternalSignal"
+}
+
+## Test the ThresholdSignal object.
+print "\n***** ThresholdSignal"
+# ModulatedTone, but with no FM
+new thresholdSignalIn = ModulatedTone {
+	isComplex = false
+	times = {
+		first = 0
+		last = 1.0
+		rate = 10000
+	}
+	level = 20
+	frequencyModulation = ConstantFunction { value = 1000 }
+	
+	#envelope = CosineWindow {
+	#	start = 0
+	#	end = 1.0
+	#}
+	envelope = TableFunction {
+		order = 2
+		table = (
+			0	0
+			.01	0
+			.25	1
+			.5	0
+			.75	1
+			.99	0
+			1	0
+		)
+	}
+}
+
+# Thresholded signal
+new thresholdSignalOut = ThresholdSignal {
+	threshold = 10
+	integrationPeriod = .01
+	times = {
+		first = 0
+		last = 1.0
+		rate = 10000
+	}
+	inSignal = thresholdSignalIn;
+}
+
+# Output the input signal
+new thresholdSignalInSIO = SIOSignal {
+	file = "inputSignal.sio"
+}
+
+# Output thresholded signal
+new thresholdSignalOutSIO = SIOSignal {
+	file = "thresholdedSignal.sio"
+}
+
+CopySignal ( thresholdSignalIn, thresholdSignalInSIO )
+CopySignal ( thresholdSignalOut, thresholdSignalOutSIO )
+# CompareSignals ( thresholdSignalIn, thresholdSignalOutSIO )

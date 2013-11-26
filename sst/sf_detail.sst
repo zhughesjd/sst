@@ -1,0 +1,15 @@
+# Compute detailed scattering function for Peter Dahl's ASIAEX Run 22
+
+# This defines source, receiver, and directGenerator
+read "asiaex22_common.sst"
+
+
+new scatFunGenerator = BBBScatFun {
+    times = UniformGrid { first = 0.30; last = 0.37; interval = 0.0001 }
+##    times = directGenerator.times
+    frequencies = UniformGrid { first = 8000; last = 8000; number = 1 }
+    doVolume = false
+}
+
+new scatFunction = SIOScatFun { file = "sf_detail.sio" }
+CopySignal scatFunGenerator scatFunction

@@ -1,0 +1,10 @@
+# Sample user-supplied transmit beam
+# 3 elements steered toward zero (no delay)
+SST_File_TransmitBeams = ElementSumBeam {
+    elements = (
+          # offset      amp      delay
+          1  0  0       0.02      0.0
+          2  0  0       0.02      0.0
+          3  0  0       0.02      0.0
+    )
+}

@@ -1,0 +1,146 @@
+# windowSpecs.sst: Compute power spectra of windowed tones.
+# $Id: windowSpecs.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# Constant (unwindowed) tone at nyquist/4: Value in element 128 should be 1.024.
+print "## ModulatedTone: Real constant single tone".
+new realConstTone = ModulatedTone {
+	isComplex = false
+		 # 40 cycles, 5x oversampled:
+	times = { first = 0.0; last = 0.511; rate = 1000 }
+	level = 0	# dB; rms is 1.0 (max 1.414...)
+	startingPhase = -90	# degrees:  Sine wave
+	frequencyModulation = ConstantFunction { value = 125 }
+}
+
+# get power spectra (at the first and last times) normalized per Hz
+new rutSpectGen = SpectrumFromSignal { 
+    inSignal = realConstTone
+    times = { first = 0; last = .511; interval = .511 }
+}
+new rutSpect = SIOSpectrum { file = "realConstToneSpect.sio" }
+CopySignal rutSpectGen rutSpect
+# output an ascii version of the pulse
+new ascii_sig = BareAsciiSignal { file = "realConstTone.ascii" }
+CopySignal realConstTone ascii_sig
+
+
+# Rectangular windowed tone at nyquist/4 -------------------------------------
+print "## ModulatedTone: Real constant single tone".
+new realRectTone = realConstTone {
+	envelope = RectangularWindow { start = 0; end = 0.128 }
+}
+# power spectra
+new rrtSpectGen = SpectrumFromSignal { 
+    inSignal = realRectTone
+    times = { first = 0; last = .128; interval = .128 }
+}
+new rrtSpect = SIOSpectrum { file = "realRectToneSpect.sio" }
+CopySignal rrtSpectGen rrtSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 1000 }
+    inSignals = ( realRectTone )
+}
+new ascii_sig = BareAsciiSignal { file = "realRectTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# Triangle-weighted tone at nyquist/4 ----------------------------------------
+print "## ModulatedTone: Real triangle-weighted tone".
+new realLinearTone = realConstTone {
+	envelope = LinearWindow { start = 0; end = 0.128 }
+}
+new rltSpectGen = SpectrumFromSignal { 
+    inSignal = realLinearTone
+    times = { first = 0; last = .128; interval = .128 }
+}
+new rltSpect = SIOSpectrum { file = "realTriangleToneSpect.sio" }
+CopySignal rltSpectGen rltSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 1000 }
+    inSignals = ( realLinearTone )
+}
+new ascii_sig = BareAsciiSignal { file = "realTriangleTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# Hann-weighted tone at nyquist/4 --------------------------------------------
+print "## ModulatedTone: Real Hann-weighted tone".
+new realHannTone = realConstTone {
+	envelope = HannWindow { start = 0; end = 0.128 }
+}
+new rhtSpectGen = SpectrumFromSignal { 
+    inSignal = realHannTone
+    times = { first = 0; last = .128; interval = .128 }
+}
+new rhtSpect = SIOSpectrum { file = "realHannToneSpect.sio" }
+CopySignal rhtSpectGen rhtSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 1000 }
+    inSignals = ( realHannTone )
+}
+new ascii_sig = BareAsciiSignal { file = "realHannTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# Taylor-weighted tone at nyquist/4 ------------------------------------------
+print "## ModulatedTone: Real Taylor-weighted tone".
+new realTaylorTone = realConstTone {
+	envelope = TaylorWindow { start = 0; end = 0.128 }
+}
+new rttSpectGen = SpectrumFromSignal { 
+    inSignal = realTaylorTone
+    times = { first = 0; last = .128; interval = .128 }
+}
+new rttSpect = SIOSpectrum { file = "realTaylorToneSpect.sio" }
+CopySignal rttSpectGen rttSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 1000 }
+    inSignals = ( realTaylorTone )
+}
+new ascii_sig = BareAsciiSignal { file = "realTaylorTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# Cosine-weighted tone at nyquist/4 ------------------------------------------
+print "## ModulatedTone: Real Cosine-weighted tone".
+new realCosineTone = realConstTone {
+	envelope = CosineWindow { start = 0; end = 0.128 }
+}
+new rctSpectGen = SpectrumFromSignal { 
+    inSignal = realCosineTone
+    times = { first = 0; last = .128; interval = .128 }
+}
+new rctSpect = SIOSpectrum { file = "realCosineToneSpect.sio" }
+CopySignal rctSpectGen rctSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 1000 }
+    inSignals = ( realCosineTone )
+}
+new ascii_sig = BareAsciiSignal { file = "realCosineTone.ascii" }
+CopySignal truncated_sig ascii_sig
+
+# MitchellMcPherson-weighted tone at nyquist/4 -------------------------------
+print "## ModulatedTone: Real MitchellMcPherson-weighted tone".
+new realMitchellMcPhersonTone = realConstTone {
+	envelope = MitchellMcPhersonWindow { start = 0; end = 0.128 }
+}
+new rmtSpectGen = SpectrumFromSignal { 
+    inSignal = realMitchellMcPhersonTone
+    times = { first = 0; last = .128; interval = .128 }
+}
+new rmtSpect = SIOSpectrum { file = "realMMPToneSpect.sio" }
+CopySignal rmtSpectGen rmtSpect
+
+# output an ascii version of the pulse
+new truncated_sig = SumSignal {
+    times = { first = 0.0; last = .128; rate = 1000 }
+    inSignals = ( realMitchellMcPhersonTone )
+}
+new ascii_sig = BareAsciiSignal { file = "realMMPTone.ascii" }
+CopySignal truncated_sig ascii_sig

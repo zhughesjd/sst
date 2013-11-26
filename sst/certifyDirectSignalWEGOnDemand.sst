@@ -1,0 +1,72 @@
+# certifyDirectSignalWEGOnDemand.sst: 
+# $Id: certifyDirectSignalWEGOnDemand.sst 5878 2009-04-23 17:57:19Z kwiley $
+
+new signal = ModulatedTone {
+	frequency = 1000
+	order = 0
+	times = {
+		first = 0
+		last = 0.01
+		rate = 400
+	}
+	level = 200
+}
+
+source = Source {
+	signal = signal
+	trajectory = ( {
+		time = 0.0
+		position = (0 1000.0 200.0)
+	} )
+}
+
+receiver = Sonar {
+	beams = ( OmniBeam )
+	trajectory = ( {
+		time = 0.0
+		position = (0 0 100.0)
+	} )
+}
+
+ocean = Ocean {
+	depth = 400
+	soundspeed = TableFunction { table = (
+		0.0	  1520
+		2000.0	  1480
+	) }
+	bottom = JacksonBottom
+}
+#traceEigenrayModel = true
+
+new wegOnDemand = WEGOnDemand {
+	maximumEigenrays = 10
+	maximumSurfaceBounces = 1
+	maximumBottomBounces = 1
+	doTimeSpread = false
+	frequencies = UniformGrid{ first=1000; last=1000; number=1 }
+	verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+	printEigenrays = true
+}
+
+passiveGenerator = DirectSignal {
+	frequency = signal.frequency
+	times = {
+		first = .6
+		last = 1
+		rate = signal.times.rate
+	}
+	eigenrayModel = wegOnDemand
+	source = source
+	receiver = receiver
+}
+
+txtSignal = BareAsciiSignal { file = "DirectSignalWEGOnDemandOut.txt" }
+CopySignal passiveGenerator txtSignal
+
+CompareSignals {
+	signal = txtSignal
+	standard = BareAsciiSignal {
+		file = "$SSTHOME/standard/DirectSignalWEGStd.txt"
+	}
+	message = "certifyDirectSignalWEGOnDemand"
+}

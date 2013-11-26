@@ -1,0 +1,46 @@
+# ssp.sst: Sound speed profile and wind_speed for Event 20.
+# This constitutes all event-specific environmental data.
+
+#Source: north_sea_cds/beam_data/event_20_1/event_info/svp_apr_29_1815.m
+# The event times were: 20-1 at 19:50, 20-2 at 20:15.
+# Hence the profile taken at 18:15 is closest.
+# GSM choked (ran forever) on the detailed SSP, so I smoothed it in Matlab:
+#	svp_apr_29_1815;
+#	vel3 = reshape( vel, 3, 19 )
+#	svel = ( vel3(1,:) + vel3(2,:) + vel3(3,:) )/3;
+#	dpth3 = reshape( dpth, 3, 19 )
+#	sdpth = ( dpth3(1,:) + dpth3(2,:) + dpth3(3,:) )/3;
+#	ssp = [ -sdpth; svel ]
+#	fid = fopen( 'ssp.txt', 'w' )          
+#	fprintf( fid, '%10.1f %10.2f\n', ssp );
+#	fclose( fid )                           
+
+new wind_speed = double:10
+
+new ssp = TableFunction {
+	table = (
+	/* x=depth  y=soundspeed */
+	/* [m]       [m/s] */
+	   0      1483.57
+       1.7    1483.57
+       2.9    1483.60
+       4.0    1483.61
+       5.4    1483.60
+       6.8    1483.59
+       8.5    1483.37
+      10.0    1483.31
+      11.5    1483.41
+      13.1    1483.50
+      14.6    1483.53
+      16.2    1483.56
+      17.8    1483.58
+      19.5    1483.62
+      21.1    1483.65
+      22.8    1483.68
+      24.5    1483.70
+      26.1    1483.73
+      27.8    1483.76
+      29.1    1483.78
+	  32	  1483.78	# GSM insists
+	)
+}

@@ -1,0 +1,102 @@
+# certifyCASSRun.sst: Test CASSEigenrayRun model.
+# This test implements a bistatic Reverberation scenario.
+# $Id: certifyCASSRun.sst 5881 2009-04-23 21:35:53Z kwiley $
+
+## Define the Ocean ##
+cerOcean = Ocean {
+
+   depth = 2000.0
+    soundspeed = 1500	# [m/s]
+
+    surface = Boundary {
+            totalForwardStrength = ConstantDbFunction2 { decibels = -3.0 }
+            backStrength = ConstantDbFunction2 { decibels = -40 }
+    }        
+    # One volume reverb layer from 700-900 meters
+    volume = ReverbList (
+            ReverbLayer {
+                    minDepth = 700          # m
+                    maxDepth = 900          # m
+                    strengthDB = -50.0      # dB // m^-1
+            }
+    )
+    bottom  = Boundary {
+            totalForwardStrength = ConstantDbFunction2 { decibels = -5.0 }
+            backStrength = ConstantDbFunction2 { decibels = -20 }
+    }        
+    # Volume attenuation
+    volumeAttenuation = ThorpAttenuation
+    
+}
+
+## Create the Source ##
+sourceSignal = ModulatedTone {
+               frequency = 3000.0     # Hz
+               level = 200.0           # dB // uPa^2 m^2
+               times = { first = 0.05; interval = 0.1; number = 1 }
+         }
+source = Source {
+           beams = ( OmniBeam )
+           signal = sourceSignal
+           trajectory = ( { time=0.0
+			    position=( 5000 0 150 )     # 5 km north
+ 			    orientation=(0, 0, 0) } )
+}
+
+## Create the Receiver ##
+receiver = Sonar {
+    beams = ( OmniBeam )    
+    trajectory = ( { time=0.0 
+		     position=( 0, 0, 150 )
+ 		     orientation=(0, 0, 0) } )
+}
+
+################## Reverberation propagation model ##################
+cerEigenrayModel = CASSEigenrayRun {
+        startfile = "$SSTHOME/input/flatEarth.cass"
+        scenario = "Reverberation"
+        maximumSurfaceBounces = 0
+    	maximumBottomBounces = 0
+    	max2waySurfaceBounces = 0
+    	max2wayBottomBounces = 0
+        doSurface = true
+        doBottom = true
+        doVolume = true
+        sourceTrajectory = source.trajectory
+        receiverTrajectory = receiver.trajectory
+        ranges = UniformGrid { first=0; last=20000; interval=100 }
+        frequencies = UniformGrid{ first=3000; last=3000; number=1 }
+        verticalAngles = UniformGrid{ first=-89; last=89; interval=0.1 }
+        ocean = cerOcean
+        rangeReference = 1
+        maximumEigenrays = 1000
+    	# Bistatic scenario - default source bearings to those of receiver
+        receiverBearingAngles = UniformGrid{ first=0; last=270; interval=90 }
+}
+
+cassScatFunGenerator = BBBScatFun {
+        frequencies = UniformGrid { first = 3500; number = 1 }
+        times = UniformGrid { first = 0; interval = 0.01; number = 1000 }
+        dopplers = UniformGrid {
+                first = 1.0
+                last =  1.0
+                interval = 1.0
+                number = 1
+        }
+        # What type of reverberation?
+        doSurface = cerEigenrayModel.doSurface
+        doBottom = cerEigenrayModel.doBottom
+        doVolume = cerEigenrayModel.doVolume
+        ocean = cerOcean
+        eigenrayModel = cerEigenrayModel
+}
+
+new scatFunFile = BareAsciiSignal { file = "cassRunScatFun.txt" }
+CopySignal cassScatFunGenerator scatFunFile
+
+# Compare to the standard
+CompareSignals {
+  standard = BareAsciiSignal { file = "$SSTHOME/standard/cassRunScatFun.txt" }
+  signal = scatFunFile
+  message = "certifyCASSRun"
+}

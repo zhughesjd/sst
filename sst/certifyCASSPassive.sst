@@ -1,0 +1,160 @@
+# certifyCASSPassive.sst: Certify noise level using CASS eigenrays.
+# Certify CASS level by reading in a CASS eigenray file
+# SST test script using CASS's eigenray model for a variable bathemetry case,
+# 2 frequencies and 2 bearing angles
+# Otherwise a simple environment ( constant ssp, surface:-99 and 0 bottom loss)
+
+# $Id: certifyCASSPassive.sst 5802 2009-03-02 21:19:04Z kwiley $
+
+### Generate the signal transmitted by the source.
+read "source2cass.sst"
+
+#echoInput=true
+
+# Copy the result to ASCII form
+txtSignalin = BareAsciiSignal { file = "cassin.txt" }
+CopySignal sourceSignal txtSignalin
+
+### Step 2:  Define the simulation parameters common to subsequent steps.
+######   Sonar Specification ######
+# Sonar stationary at the origin with a depth of 100m
+receiver = Sonar {
+        beams = ( OmniBeam )
+        trajectory = (
+                {
+                        time = 0.0
+                        position = (0 0 100.0)
+                }
+        )
+}
+
+######   Ocean Environment Specification :range dependent bathymetry######
+bathy= TableFunction2: {
+          order = 1
+          table2 = {
+            arg1 = ( -5000, 0, 5000 )
+            arg2 = ( -5000, 0, 5000 )
+            values = ( 2000 2000 2000
+                       400 400 400
+                       2000 2000 2000 )
+          }
+        }
+#print bathy
+ocean = Ocean {
+        depth = bathy
+        soundspeed = TableFunction { table = (
+    0.0      1500
+ 2000.0      1500
+        ) }
+
+}
+tabOutFun2 = TableFunction2 {
+        originalFunction = bathy
+        table2.arg1 = { first = -5000; last = 5000; interval = 1000 }
+        table2.arg2 = { first = -5000; last = 5000; interval = 1000 }
+}
+#print tabOutFun2.table2.values
+
+#traceEigenrayModel = true
+
+###### Specify CASS eigenray parameters ######
+new eigenrayModel = CASSEigenrayModel {
+ 	maximumEigenrays = 10
+ 	maximumSurfaceBounces = 2
+ 	maximumBottomBounces = 2
+    receiverEigenrayFile = "PASSBF"
+	filterLength = 9
+	rangeReference = 1.0	# to match "RANGE REFERENCE = 1 M" in cass input
+    transmitterTrajectory = receiver.trajectory
+    receiverTrajectory = receiver.trajectory
+}
+
+PrintEigenrays {
+   eigenrayModel = eigenrayModel
+}
+
+print "\n***** DirectSignal, CASS eigenrays, bearing 0 deg, range 4160 m *****"
+new sourceTrajectory = Trajectory (
+
+        {time = 0.0
+        position = ( 4160.0 0. 150.0 )
+        velocity = ( 0.0 0.0 0.0 ) }
+
+)
+
+new source = Source {
+        beams = ( OmniBeam )
+        signal = sourceSignal
+        trajectory = sourceTrajectory
+}
+
+###### The times structure sets listen interval and sample rate for
+# the output time signal
+# Do the simulation.  By default, the filter length is 9.######
+passiveGenerator = DirectSignal {
+        isComplex = false
+        times = {
+                first = 2.75
+                last = 3.25
+#                interval = 0.000625        # 1600 Hz
+                rate = 1600 #2X oversampling w.r.t. 400Hz
+        }
+        eigenrayModel = eigenrayModel
+}
+# Copy the result to ASCII form
+txtSignal = BareAsciiSignal { file = "passbf.txt" }
+CopySignal passiveGenerator txtSignal
+
+# Compare to pre-calculated results
+CompareSignals {
+        standard = BareAsciiSignal {
+                file = "$SSTHOME/standard/cassPassive0.txt"
+        }
+        signal = BareAsciiSignal {
+                file = "passbf.txt"
+        }
+       message = "certifyCASSPassive, test 1"
+}
+
+print "\n***** DirectSignal, CASS eigenrays, bearing 0 deg, range 4160 m *****"
+sourceTrajectory = Trajectory (    
+
+        {time = 0.0                         
+        position = ( 0  4160.0 150.0 )         
+        velocity = ( 0.0 0.0 0.0 ) }
+
+)
+
+source = Source {
+	beams = ( OmniBeam )
+	signal = sourceSignal 
+	trajectory = sourceTrajectory
+}
+
+###### The times structure sets listen interval and sample rate for
+# the output time signal
+# Do the simulation.  By default, the filter length is 9.######
+passiveGenerator = DirectSignal {
+	isComplex = false
+ 	times = { 
+ 		first = 2.75
+ 		last = 3.25
+#                interval = 0.000625        # 1600 Hz
+                rate = 1600 #2X oversampling w.r.t. 400Hz
+ 	}
+        eigenrayModel = eigenrayModel
+}
+# Copy the result to ASCII form
+txtSignal = BareAsciiSignal { file = "passbf90.txt" }
+CopySignal passiveGenerator txtSignal
+
+# Compare to pre-calculated results 
+CompareSignals {
+        standard = BareAsciiSignal {
+                file = "$SSTHOME/standard/cassPassive90.txt"
+        }
+        signal = BareAsciiSignal {
+                file = "passbf90.txt"
+        }
+       message = "certifyCASSPassive, test 2"
+}

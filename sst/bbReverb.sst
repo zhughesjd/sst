@@ -1,0 +1,342 @@
+# bbReverb.sst:  Reverberation generator using BBBDirectionalScat.
+#
+# $Id: bbReverb.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# ################ Specify the various frequency grids #############
+
+# logRatio for 16 steps per halftone
+new logRatio16PerHalftone = double: 0.001567864551
+new logRatioThirdOctave = double: 0.100343331
+
+############# Long Scenario #############
+
+# Listening times for the reverberation output
+new listenTimes =  UniformGrid:{
+    first = 0.1
+	last = 5
+    rate = 8000     # CODEC rate for listening (2.5x oversampled)
+}
+
+# A very long transmit signal
+new tranTimes = UniformGrid:{
+    first = 0.0
+    last = 1.4
+    rate = 8000     # CODEC rate for listening (2.5x oversampled)
+}
+
+# Times for spectra covering the whole pulse.
+new tranSpectTimes = UniformGrid:{
+    first = tranTimes.first
+    last = tranTimes.last
+    interval = 0.1  # Two per chirp (so each FFT is 1 chirp long)
+}
+
+# A very broadband transmit signal.
+# This frequency grid is used for the transmit pulse,
+# and in this example it's used for the reverberation power spectrum too.
+new tranFreqs =  GeometricGrid:{
+    first = 391.995     # Whole tone below first chirp
+    last =  1864.65     # Half tone above last chirp
+    logRatio = logRatio16PerHalftone
+        # Match tranSpect.frequencies & scatFun.dopplers
+}
+
+# Propagation times covering a substantial listening interval
+new scatFunTimes =  UniformGrid:{
+    first = listenTimes.first   # Recommended if pulse starts at 0
+	last =  listenTimes.last    # ditto
+	interval = tranSpectTimes.interval  # Must agree
+}
+
+# ScatFun frequencies for the whole pulse
+# This need not agree with other grids, but should cover important frequencies
+new scatFunFreqs = GeometricGrid: {
+    first = 440     # first chirp
+    last = 1760     # last chirp
+    logRatio = logRatioThirdOctave  # Typical for most situations
+}
+
+# Dopplers for scattering function
+new scatFunDopplers = GeometricGrid {
+    first = 1.0         # Back hemisphere is excluded in this case
+    last =  1.029302236 # > 1 + 2*v/c
+    logRatio = tranFreqs.logRatio   # must agree
+}
+
+# Times for reverberation spectra
+new reverbSpectTimes =  UniformGrid:{
+    first = listenTimes.first
+	last = listenTimes.last
+	interval = tranSpectTimes.interval  # must agree
+}
+
+#   From rules in SignalFromSpectrum page:
+# NFFT > reverbSig.times.rate * gaussSpect.times.interval
+#   = 8000 * 0.1 = 800
+# Next power of 2 = 1024
+# Therefore gaussSpect.frequencies.interval = reverbSig.times.rate/(2*NFFT)
+#   = 8000/(2*1024) = 3.90625
+new gaussSpectFreqs = UniformGrid {
+    first = 250         # < reverbSpect.frequencies.first
+    last = 2000         # > reverbSpect.frequencies.last
+    interval = 3.90625  # See rules above
+}
+
+# ############ Specify the transmit spower spectrum tranSpect #########
+new tranSpect = InternalSpectrum {
+    times = tranSpectTimes          # see grids.sst
+    frequencies = tranFreqs         # see grids.sst
+    isPower = true
+}
+
+# ######## Specify the transmit pulse in the time domain: tranPulse #######
+
+# Note: tranTimes comes from grids.sst, which must be read first.
+
+# The chirps form an augmented (third-octave) arpeggio over 2 octaves.
+new chirp1 = ModulatedTone {
+	isComplex = false
+	times = tranTimes
+	level = 200.0	# dB // uPa^2 m^2
+	envelope = TaylorWindow { start = 0; end = 0.2 }
+    frequencyModulation = ConstantFunction { value = 440 }    # A
+    order = 7   # Rather careful interpolation in TargetEcho & DirectSignal
+}
+new chirp2 = chirp1 {
+	envelope = TaylorWindow { start = 0.2; end = 0.4 }
+    frequencyModulation = ConstantFunction { value = 554.4 }  # C#
+}
+new chirp3 = chirp1 {
+	envelope = TaylorWindow { start = 0.4; end = 0.6 }
+    frequencyModulation = ConstantFunction { value = 698.4 }  # F
+}
+new chirp4 = chirp1 {
+	envelope = TaylorWindow { start = 0.6; end = 0.8 }
+    frequencyModulation = ConstantFunction { value = 880 }    # A
+}
+new chirp5 = chirp1 {
+	envelope = TaylorWindow { start = 0.8; end = 1.0 }
+    frequencyModulation = ConstantFunction { value = 1108.7 } # C#
+}
+new chirp6 = chirp1 {
+	envelope = TaylorWindow { start = 1.0; end = 1.2 }
+    frequencyModulation = ConstantFunction { value = 1397 }   # F
+}
+new chirp7 = chirp1 {
+	envelope = TaylorWindow { start = 1.2; end = 1.4 }
+    frequencyModulation = ConstantFunction { value = 1760 }   # A
+}
+
+new tranPulse = SumSignal {
+    inSignals = ( chirp1 chirp2 chirp3 chirp4 chirp5 chirp6 chirp7 )
+}
+
+new tranSpectGen = SpectrumFromSignal {
+    inSignal = tranPulse
+    window = MitchellMcPhersonWindow{}
+    times = tranSpect.times
+    frequencies = tranSpect.frequencies
+    isPower = tranSpect.isPower
+}
+
+CopySignal tranSpectGen tranSpect
+
+# ########### Compute the scattering function for reverberation. ##############
+
+# ######### Specify the sonar: tranPulse, tranSource, sonar ########
+
+# The sonar has four cylindrical piston transducers
+# placed adjacent to one another in a "plus" configuration.
+# The "detection" beam is the sum of the four transducers.
+# Only the "down" transducer is used for transmission.
+
+# The ConeBeam in this ProductBeam limits the response to the forward
+# hemisphere.  To be more realistic, the cutoff should be more gradual
+# (use an EBFTableBeam instead of the ConeBeam for the cutoff).
+elementBeam = ProductBeam {
+	inBeams = (
+		ConeBeam { 
+			axisElevation = 0
+			axisBearing = 0
+			halfAngle = 90
+		},
+		PistonBeam {
+			axisElevation = 0
+			axisBearing = 0
+			radius = 3 # D=2*lambda => 30 degree beam (-3dB) @ 1 kHz
+		}
+	)
+}
+
+leftBeam = elementBeam {
+	offset = (0, -.75, 0)	# [meter]
+}
+
+rightBeam = elementBeam {
+	offset = (0, +.75, 0)
+}
+
+upBeam = elementBeam {
+	offset = (0, 0, -.75)
+}
+
+downBeam = elementBeam {
+	offset = (0, 0, +.75)
+}
+
+# The "detection beam" is the sum of the other four.
+# A SumBeam would be the simplest representation, but the following form
+# is faster when the beams to be summed have identical shape (differ only
+# in offset, weight, and delay).
+detBeam = ProductBeam {
+	inBeams = (
+		elementBeam,
+		ElementSumBeam {
+			elements = (
+				# offset [m]    amp    delay
+				0, -.75,  0    0.25     0.0     # left
+				0,  .75,  0    0.25     0.0     # right
+				0,  0, -.75    0.25     0.0     # up
+				0,  0,  .55    0.25     0.0     # down
+			)
+		}
+	)
+}
+
+# Since this is a monostatic sonar, the transmitter and receiver use the
+# same trajectory.  It's diving toward the target.
+
+sonarTrajectory = Trajectory (    # Only one Snapshot in this Trajectory
+	{
+		time = 0.0  # s
+		position =        ( 0.0,  0.0, 120.0 )  # m
+		velocity =       ( 20.0,  0.0,   2.0 )  # m/s
+		orientation =     ( 0.0, 10.0,   0.0 )  # deg
+		orientationRate = ( 0.0,  0.0,   0.0 )  # deg/s
+	}
+)
+
+tranSource = Source {
+	beams  = ( downBeam )
+	signal = tranPulse
+	trajectory = sonarTrajectory
+}
+
+receiver = Sonar {
+	beams = ( detBeam, leftBeam, rightBeam, upBeam, downBeam )
+	trajectory = sonarTrajectory
+}
+
+# ######### Specify the ocean environment: ocean, eigenrayModel #########
+
+# NOTE WELL:  I am doing something here that I do NOT generally recommend:
+# I am using JacksonBottom and McDanielSurface for frequencies well below
+# the range for which they were designed.
+
+read "jacksonBottoms.sst"
+
+ocean = Ocean {
+	depth = 500.0
+	soundspeed = 1500	# [m/s]
+
+	# Surface parameters
+	windspeed = 10		# [m/s]
+	surface = McDanielSurface
+
+	# Bottom parameters
+	bottom = MediumSand
+
+	# Volume parameters
+	volumeAttenuation = -7.0    	# dB/km
+	volume = ReverbList(
+		# Use one volume scattering layer between surface and bottom depth
+		{
+			minDepth = 0.0
+			maxDepth = 500.
+			northVeloc = 0
+			eastVeloc = 0
+			rmsSpeed = 0
+			strengthDB = -80.
+		}
+	)
+}
+
+# Isovelocity eigenray model
+eigenrayModel = EigenrayModel {
+	maximumEigenrays = 10
+	maximumSurfaceBounces = 3
+	maximumBottomBounces = 3
+	max2waySurfaceBounces = 3
+	max2wayBottomBounces = 3
+	filterLength = 15   # Rather careful filtering
+}
+
+# ######### Specify the scattering function: scatFun #########
+
+# Compute the scattering function for surface, bottom, & volume
+
+scatFunGen = BBBDirectionalScat {
+    tesselation = GriddedTesselation { 
+                     elevationInc=1.0; 
+                     azimuthIncEq=1.0 }
+	frequencies = scatFunFreqs
+	times = scatFunTimes
+	dopplers = scatFunDopplers
+	isCorrelated = true
+	isComplex = true
+	source = tranSource
+	doSurface = true
+	doBottom = true
+	doVolume = true
+}
+
+# ######### Convolve pulse spectrum with scattering function ##########
+
+# ##### define ReverbSpect ####
+new reverbSpect = InternalSpectrum {
+	times = reverbSpectTimes        # see grids.sst
+    frequencies = tranFreqs         # see grids.sst
+    isPower = true
+    isCorrelated = true     # Should match scatFun.isCorrelated
+}
+
+new reverbSpectGen = ReverbSpectrum {
+    scatFunction = scatFunGen
+    pulseSpectrum = tranSpect
+    times = reverbSpect.times
+    frequencies = reverbSpect.frequencies
+    isPower = reverbSpect.isPower
+    isCorrelated = scatFunGen.isCorrelated
+}
+
+CopySignal reverbSpectGen reverbSpect
+
+# ########## Generate stochastic realization of reverberation ###########
+
+# #### define ReverbSig ####
+new reverbSig = InternalSignal {
+    times = listenTimes     # see grids.sst
+    isComplex = false
+}
+
+new gaussSpectGen = GaussianSpectrum {
+    factoredSpectrum = FactorSpectrum { powerSpectrum = reverbSpect }
+    times = reverbSpectTimes        # see grids.sst
+    frequencies = gaussSpectFreqs   # see grids.sst
+}
+
+new reverbSigGen = SignalFromSpectrum {
+    spectrum = gaussSpectGen
+    times = reverbSig.times
+    isComplex = reverbSig.isComplex
+    frequency = reverbSig.frequency
+	overlapFraction = 0.5
+	window = MitchellMcPhersonWindow
+}
+
+# Write the signal to a text file
+new reverbSigFile = BareAsciiSignal{ 
+                        file = "reverbSig.txt" 
+                        times = listenTimes
+}
+CopySignal reverbSigGen reverbSigFile

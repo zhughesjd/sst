@@ -1,0 +1,52 @@
+# APLBottom model inputs in terms of sediment name
+# from APL-UW TR 9407, p. IV-6, Table 2
+
+# $Id: aplBottoms.sst 4951 2006-12-29 00:59:57Z rpg $
+
+# The first 3 rows of the table are too rough for the grainSize parameter
+new RoughRock = APLBottom {
+    densityRatio     = 2.5
+    soundSpeedRatio  = 2.5
+    lossParameter    = 0.01374
+    volumeParameter  = 0.002
+    spectralExponent = 3.25
+    spectralStrength = 0.20693
+}
+
+new Rock = RoughRock {
+    spectralStrength = 0.01862
+}
+
+new Cobble = RoughRock {
+    soundSpeedRatio  = 1.8
+    spectralStrength = 0.016
+}
+new Gravel = Cobble
+new Pebble = Cobble
+
+new SandyGravel = APLBottom { grainSize = -1.0 }
+new VeryCoarseSand = APLBottom { grainSize = -0.5 }
+new MuddySandyGravel = APLBottom { grainSize = 0.0 }
+new GravellySand = APLBottom { grainSize = 0.5 }
+new CoarseSand = GravellySand
+new GravellyMuddySand = APLBottom { grainSize = 1.0 }
+new MediumSand = APLBottom { grainSize = 1.5 }
+new MuddyGravel = APLBottom { grainSize = 2.0 }
+new FineSand = APLBottom { grainSize = 2.5 }
+new SiltySand = FineSand
+new MuddySand = APLBottom { grainSize = 3.0 }
+new VeryFineSand = APLBottom { grainSize = 3.5 }
+new ClayeySand = APLBottom { grainSize = 4.0 }
+new CoarseSilt = APLBottom { grainSize = 4.5 }
+new SandySilt = APLBottom { grainSize = 5.0 }
+new GravellyMud = SandySilt
+new MediumSilt = APLBottom { grainSize = 5.5 }
+new SandSiltClay = MediumSilt
+new SandyMud = APLBottom { grainSize = 6.0 }
+new Silt = SandyMud
+new FineSilt = APLBottom { grainSize = 6.5 }
+new ClayeySilt = FineSilt
+new SandyClay = APLBottom { grainSize = 7.0 }
+new VeryFineSilt = APLBottom { grainSize = 7.5 }
+new SiltyClay = APLBottom { grainSize = 8.0 }
+new Clay = APLBottom { grainSize = 9.0 }

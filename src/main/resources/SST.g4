@@ -32,7 +32,7 @@ assignmentvalue : (Identifier | String)
       | Dollar LB Identifier RB //bottom = ${bottom}
       ;
 
-brackets : LB assignment* RB;
+brackets : '{' assignment* '}';
 parenthesis : LP (parenthesis | brackets | Number | Identifier (Colon? brackets)? | String)* RP;
 copysignalvalue : parenthesis
                 | Identifier (Colon? brackets)? Identifier (Colon? brackets)? Number?

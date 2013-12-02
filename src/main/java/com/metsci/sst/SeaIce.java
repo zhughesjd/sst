@@ -1,6 +1,9 @@
 package com.metsci.sst;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Polygon;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
@@ -11,8 +14,6 @@ import java.net.URL;
 import java.sql.Timestamp;
 
 import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-import javax.swing.JOptionPane;
 
 public class SeaIce {
 
@@ -38,9 +39,34 @@ public class SeaIce {
 		for(File file : new File("src/main/resources/arcticicecap/raw/").listFiles()){
 			System.out.println(file.getName());
 			BufferedImage rawImage = ImageIO.read(file);
-			BufferedImage registeredImage = register(rawImage);
-			ImageIO.write(registeredImage,"png",new File("src/main/resources/arcticicecap/registered/"+file.getName()));
+			BufferedImage registeredImage = register1(rawImage);
+			ImageIO.write(registeredImage,"png",new File("src/main/resources/arcticicecap/full/"+file.getName()));
 		}
+	}
+	private static BufferedImage register1(BufferedImage img) {
+		BufferedImage newImage = new BufferedImage(2*img.getWidth(),2*img.getHeight(),img.getType());
+		Graphics2D g2d = newImage.createGraphics();
+		g2d.setBackground(Color.green);
+		g2d.clearRect(0,0,newImage.getWidth(),newImage.getHeight());
+		g2d.rotate(Math.PI/4,newImage.getWidth()/2,newImage.getHeight()/2);
+		g2d.drawImage(img,(int)newImage.getWidth()/4,newImage.getHeight()/4,null);
+		int tx = 440;//65.04
+		int ty = 208;//65.04
+		int bx = 340;//65.04
+		int by = 738;//65.04
+		int lx = 126;//65.04
+		int ly = 524;//65.04
+		int rx = 655;//65.04
+		int ry = 422;//65.04
+		Polygon rectangle = new Polygon(new int[]{tx,rx,bx,lx},new int[]{ty,ry,by,ly},4);
+		for(int x=0;x<newImage.getWidth();x++)
+			for(int y=0;y<newImage.getHeight();y++){
+				Color color = new Color(newImage.getRGB(x, y));
+				if(color.getBlue()<200 || !rectangle.contains(new Point(x,y))){
+					newImage.setRGB(x, y, new Color(255,0,0,0).getRGB());
+				}
+			}
+		return newImage.getSubimage(lx, ty, rx-lx, by-ty);
 	}
 	private static BufferedImage register(BufferedImage img) {
 		int tx = img.getWidth()/2;
